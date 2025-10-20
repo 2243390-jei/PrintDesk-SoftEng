@@ -130,3 +130,159 @@ button[type="submit"]:hover {
   justify-content: center;
   height: auto;
 }
+
+
+/* FONTS */
+@font-face {
+  font-family: "Bebas Neue";
+  src: url("../Fonts/BebasNeue-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("../Fonts/Inter_18pt-Regular.ttf") format("truetype");
+  font-weight: 400;
+}
+/* ===== HOME BODY ===== */
+body.home-body {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", sans-serif;
+  background: #ffffff;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: 90px; 
+  display: block;
+  height: auto;
+  justify-content: initial; 
+  align-items: initial; 
+  background-image: none; 
+}
+
+/* ===== NAVBAR ===== */
+.navbar {
+  width: 100%;
+  height: 80px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #ffffff; 
+  padding: 10px 30px;
+  box-shadow: none; 
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  box-sizing: border-box;
+}
+
+.navbar .logo img {
+  height: 70px;
+  width: auto;
+}
+
+.navbar nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.navbar nav ul {
+  display: flex;
+  list-style: none;
+  gap: 65px;
+  margin: 0;
+  padding: 15px 40px;
+  background-color: #1e1362;
+  border-radius: 50px;
+}
+
+.navbar nav a {
+  text-decoration: none;
+  font-family: "Inter", sans-serif;
+  color: #ffffff;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.navbar nav a:hover {
+  color: #ffce00;
+}
+
+.navbar .profile-icon img {
+  height: 40px;
+  cursor: pointer;
+}
+
+/* ===== HERO SECTION ===== */
+.home-body .hero {
+  display: block;
+  padding: 40px 80px 0 80px; 
+  min-height: 30vh; 
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+.home-body .hero-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end; 
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 60px;
+  flex-wrap: wrap;
+}
+
+.home-body .hero-text {
+  flex: 1;
+  align-self: center; 
+}
+
+.home-body .hero-text h1 {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 3rem;
+  color: #000000;
+  margin: 0 0 10px 0; 
+  line-height: 1.2;
+}
+
+.home-body .hero-text p {
+  font-family: "Inter", sans-serif;
+  font-size: 1.2rem;
+  color: #000000;
+  margin: 0 0 15px 0; 
+  max-width: 500px;
+}
+
+.home-body .submit-btn {
+  display: inline-block;
+  background-color: transparent;
+  color: #000000;
+  padding: 10px 25px;
+  border-radius: 8px;
+  border: 2px solid #000000;
+  text-decoration: none;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  letter-spacing: 0.5px;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+
+.home-body .submit-btn:hover {
+  background-color: #000000;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.home-body .hero-image {
+  flex: 1;
+  align-self: flex-end; 
+}
+
+.home-body .hero-image img {
+  width: 100%;
+  max-width: 700px;
+  height: auto;
+  display: block;
+}

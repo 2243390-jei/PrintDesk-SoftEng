@@ -4,7 +4,7 @@ const users = [
   { role: "admin",   email: "admin@slu.edu.ph",   password: "admin123" }
 ];
 
-// --- para sa manual login pero dummy lang to ---
+// --- Manual login (dummy only) ---
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
   if (loginForm) {
@@ -25,6 +25,26 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Invalid email or password. Please try again.");
       }
     });
+  }
+
+  // --- Navbar profile update (for logged-in users) ---
+  const navbarProfilePic = document.getElementById("nav-profile-pic");
+  if (navbarProfilePic) {
+    const user = JSON.parse(localStorage.getItem("googleUser"));
+
+    if (user) {
+      if (user.picture) {
+        navbarProfilePic.src = user.picture;
+        navbarProfilePic.style.borderRadius = "50%";
+      } else {
+        console.warn("No Google picture found.");
+      }
+    } else {
+      // Redirect only if not logged in and not on index.html
+      if (!window.location.pathname.endsWith("index.html")) {
+        window.location.href = "../index.html";
+      }
+    }
   }
 });
 
@@ -48,14 +68,16 @@ function handleCredentialResponse(response) {
   const data = JSON.parse(atob(response.credential.split('.')[1]));
   console.log("Google User Data:", data);
 
+  // Save user info to localStorage
   localStorage.setItem("googleUser", JSON.stringify(data));
 
-  const email = data.email.toLowerCase();
+  const email = (data.email || "").toLowerCase();
   alert(`Logged in as ${email}`);
 
-  // --- Role detection logic based on email ---
+  // --- SLU email domain validation ---
   if (email.includes("@slu.edu.ph")) {
     if (/^\d+@slu\.edu\.ph$/.test(email)) {
+      // Student email (numbers only before @)
       window.location.href = "student/home.html";
     } else if (email.startsWith("admin@")) {
       window.location.href = "admin/dashboard.html";
