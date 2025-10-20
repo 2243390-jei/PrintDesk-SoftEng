@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saint Louis University OrgDesk</title>
+  <link rel="stylesheet" href="style/style.css" />
+  <link rel="icon" type="image/png" href="Images\Icon.png" size="32x32">
+
+
+  <!-- Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="container">
+    <div class="left">
+      <img src="images/SLU_logo.png" alt="SLU OrgDesk Logo" class="logo" />
+    </div>
+
+    <div class="login-box">
+      <img src="images/lock.png" alt="Lock" class="lock-logo" />
+      <h2>Welcome back!</h2>
+      <p>Please enter your details</p>
+
+      <form id="loginForm">
+        <label>Email</label>
+        <input type="email" id="email" placeholder="Enter your email" required>
+
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter your password" required>
+
+        <button type="submit">Login</button>
+        <a href="#" class="forgot">Forgot Password?</a>
+
+        <div class="divider">or</div>
+
+        <!-- Google Sign-In container -->
+        <div id="g_id_signin"></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="script/main.js"></script>
+</body>
+</html>
