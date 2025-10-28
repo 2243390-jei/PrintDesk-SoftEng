@@ -88,3 +88,22 @@ function handleCredentialResponse(response) {
     alert("Access denied: Please use your SLU email account.");
   }
 }
+
+// --- Navbar profile + organization table ---
+document.addEventListener("DOMContentLoaded", () => {
+  // --- Navbar profile update (if user is logged in) ---
+  const navbarProfilePic = document.getElementById("nav-profile-pic");
+
+  if (navbarProfilePic) {
+    const user = JSON.parse(localStorage.getItem("googleUser"));
+    if (user && user.picture) {
+      navbarProfilePic.src = user.picture;
+      navbarProfilePic.style.borderRadius = "50%"; // make it round
+    } else {
+      // If not logged in, redirect back to login page
+      // window.location.href = "../index.html";
+    }
+  }
+
+
+});

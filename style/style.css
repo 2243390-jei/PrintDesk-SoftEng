@@ -22,7 +22,7 @@ body::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.2);
+  /* background: rgba(255, 255, 255, 0.2); */
   pointer-events: none;
 }
 
@@ -135,13 +135,13 @@ button[type="submit"]:hover {
 /* FONTS */
 @font-face {
   font-family: "Bebas Neue";
-  src: url("../Fonts/BebasNeue-Regular.ttf") format("truetype");
+  src: url("../fonts/BebasNeue-Regular.ttf") format("truetype");
   font-weight: 400;
 }
 
 @font-face {
   font-family: "Inter";
-  src: url("../Fonts/Inter_18pt-Regular.ttf") format("truetype");
+  src: url("../fonts/Inter_18pt-Regular.ttf") format("truetype");
   font-weight: 400;
 }
 /* ===== HOME BODY ===== */
@@ -285,4 +285,73 @@ body.home-body {
   max-width: 700px;
   height: auto;
   display: block;
+}
+
+/* Print Faster Section */
+.print-faster-section {
+  background: #242E3A;
+  padding: 44px 55px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  margin-top: 140px;
+}
+
+.print-faster-image {
+  width: 408px;
+  height: 272px;
+}
+
+.print-faster-content {
+  max-width: 1200px;
+  flex: 1;
+  text-align: right;
+  padding-left: 60px;
+}
+
+.print-faster-title {
+  color: #FFF;
+  font-family: 'Bebas Neue', -apple-system, Roboto, Helvetica, sans-serif;
+  font-size: 48px;
+  font-weight: 400;
+  letter-spacing: 1.44px;
+  margin-bottom: 12px;
+  text-align: right;
+}
+
+.print-faster-text {
+  color: #FFF;
+  font-family: Inter, -apple-system, Roboto, Helvetica, sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 180%;
+  text-align: right;
+  max-width: 488px;
+  margin-left: auto;
+  margin-bottom: 30px;
+}
+
+.print-faster-buttons {
+  display: flex;
+  gap: 27px;
+  justify-content: flex-end;
+}
+
+.btn-outlined {
+  border: 1px solid #FFF;
+  border-radius: 20px;
+  background: transparent;
+  color: #FFF;
+  font-family: Inter, -apple-system, Roboto, Helvetica, sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  padding: 11px 23px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-outlined:hover {
+  background: #FFF;
+  color: #242E3A;
 }
