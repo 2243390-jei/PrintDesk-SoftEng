@@ -1,3 +1,7 @@
+html {
+  scroll-behavior: smooth;
+}
+
 /*Authentication*/
 body {
   margin: 0;
@@ -22,7 +26,7 @@ body::after {
   content: "";
   position: absolute;
   inset: 0;
-  /* background: rgba(255, 255, 255, 0.2); */
+  background: rgba(255, 255, 255, 0.2); 
   pointer-events: none;
 }
 
@@ -288,19 +292,27 @@ body.home-body {
 }
 
 /* Print Faster Section */
+
+.print-faster-background{
+  background: #242E3A; 
+}
+
 .print-faster-section {
-  background: #242E3A;
+  max-width: 1200px; 
+    margin: 0 auto;
+
   padding: 44px 55px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 40px;
-  margin-top: 140px;
 }
 
 .print-faster-image {
-  width: 408px;
-  height: 272px;
+    width: 620px;
+  height: auto;
+  max-width: 40%;
+  object-fit: contain;
 }
 
 .print-faster-content {
@@ -354,4 +366,243 @@ body.home-body {
 .btn-outlined:hover {
   background: #FFF;
   color: #242E3A;
+}
+
+/* STEP-BY-STEP SECTION */
+.step-by-step-topic {
+  background: #ffffff; 
+  padding-top: 40px;
+}
+
+.step-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 0 40px;
+  box-sizing: border-box;
+}
+
+.step-text {
+  flex: 1;
+  max-width: 500px;
+}
+
+.step-by-step-top-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 2.6rem;
+  margin: 0 0 8px 0;
+  color: #000;
+}
+
+.step-by-step-top-text {
+  font-family: Inter, sans-serif;
+  font-size: 1.1rem;
+  margin: 0 0 12px 0;
+  color: #333;
+  max-width: 680px;
+}
+
+.step-image {
+  width: 420px;
+  max-width: 38%;
+}
+
+.step-image img {
+  width: 60%;
+  height: auto;
+  display: block;
+}
+
+/* STEP-BY-STEP BOTTOM */
+
+.step-by-step-bottom {
+  background: #ffffff;
+  padding: 0 0 60px 0;
+}
+
+.step-bottom-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 0 40px;
+  box-sizing: border-box;
+}
+
+.step-bottom-image {
+  width: 420px;
+  max-width: 38%;
+}
+
+.step-bottom-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.step-box {
+  background: white;
+  border-radius: 18px;
+  padding: 28px 32px;
+  border: 1px solid #E5E5E5;
+  max-width: 580px;
+  width: 100%;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.step-num {
+  width: 34px;
+  height: auto;
+}
+
+.step-item p {
+  font-family: Inter, sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: #333;
+}
+
+/* POLICIES SECTION */
+.policy-section {
+  background: #F5F5F5;
+  padding: 60px 0 0 0;
+}
+
+.policy-details {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 40px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.policy-right {
+  text-align: right;
+  flex-basis: 400px;
+}
+
+.policy-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 2.6rem;
+  color: #000;
+  margin: 0 0 20px 0;
+}
+
+.policy-image {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  display: block;
+  margin-left: auto;
+}
+
+.policy-cards {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  padding: 0 40px;
+}
+
+.policy-card {
+  background: #fff;
+  border-radius: 15px;
+  padding: 25px;
+  flex: 1;
+  max-width: 380px;
+}
+
+.policy-card-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.policy-card-icon {
+  width: 45px;
+  height: 45px;
+  object-fit: contain;
+}
+
+.policy-card-icon {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+}
+
+.policy-card-title {
+  font-family: "Inter", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1E1362;
+  margin: 0;
+}
+
+.policy-card-text {
+  font-family: "Inter", sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+}
+
+.policy-image {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  margin-bottom: -5px;
+}
+
+.policy-card {
+  background: #fff;
+  border-radius: 15px;
+  padding: 30px;
+  flex: 1;
+  max-width: 400px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.policy-card-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.policy-card-icon {
+  width: 50px;
+  height: 50px;
+  background: #f0f0f0;
+  border-radius: 50%;
+  padding: 10px;
+}
+
+.policy-card-title {
+  font-family: "Inter", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1E1362;
+  margin: 0;
+}
+
+.policy-card-text {
+  font-family: "Inter", sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
 }
