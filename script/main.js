@@ -34,8 +34,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // --- Navbar profile update (if user is logged in) ---
+  // --- Navbar profile update and modal functionality ---
   const navbarProfilePic = document.getElementById("nav-profile-pic");
+  const modal = document.getElementById("profileModal");
+  const closeModal = document.querySelector(".close-modal");
+
   if (navbarProfilePic) {
     const googleUser = JSON.parse(localStorage.getItem("googleUser"));
     const manualUser = JSON.parse(localStorage.getItem("manualUser"));
@@ -43,13 +46,79 @@ document.addEventListener("DOMContentLoaded", () => {
     if (googleUser && googleUser.picture) {
       navbarProfilePic.src = googleUser.picture;
       navbarProfilePic.style.borderRadius = "50%";
+      // Update modal info
+      updateProfileModal(googleUser.name, "ID: " + googleUser.email.split('@')[0]);
     } else if (manualUser) {
       // Default avatar for manual user
-      navbarProfilePic.src = "../assets/default-avatar.png";
+      navbarProfilePic.src = "../images/student_img/profile.png";
       navbarProfilePic.style.borderRadius = "50%";
-    } else {
-      // Not logged in — redirect to login
-      window.location.href = "../index.html";
+      // Update modal info with dummy data
+      updateProfileModal("Student User", "ID: 2020-00000");
+    }
+
+    // Add click event for profile picture
+    navbarProfilePic.addEventListener("click", () => {
+      modal.style.display = "block";
+      updateTokenProgress();
+    });
+
+    // Close modal when clicking the close button
+    if (closeModal) {
+      closeModal.addEventListener("click", () => {
+        modal.style.display = "none";
+      });
+    }
+
+    // Close modal when clicking outside
+    window.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        modal.style.display = "none";
+      }
+    });
+  }
+
+  // Function to update profile modal information
+  function updateProfileModal(name, id) {
+    const studentName = document.getElementById("studentName");
+    const studentId = document.getElementById("studentId");
+    if (studentName && studentId) {
+      studentName.textContent = name;
+      studentId.textContent = id;
+    }
+  }
+
+  // Function to update token progress bar
+  function updateTokenProgress() {
+    const tokenCount = document.getElementById("tokenCount");
+    const progressBar = document.getElementById("tokenProgressBar");
+    const maxTokens = 500; // Maximum tokens per semester
+    const currentTokens = 350; // Example value - replace with actual token count
+
+    if (tokenCount && progressBar) {
+      tokenCount.textContent = currentTokens;
+      const progress = (currentTokens / maxTokens) * 100;
+      progressBar.style.width = progress + "%";
+    }
+
+    // Add some example notifications
+    const notificationsList = document.getElementById("notificationsList");
+    if (notificationsList) {
+      notificationsList.innerHTML = `
+        <div class="notification-item">
+          <div class="notification-content">
+            <div class="notification-title">Print Job Complete</div>
+            <div class="notification-message">Your document "Assignment1.pdf" has been printed successfully</div>
+            <div class="notification-time">2 hours ago</div>
+          </div>
+        </div>
+        <div class="notification-item">
+          <div class="notification-content">
+            <div class="notification-title">Low Token Balance</div>
+            <div class="notification-message">You have less than 100 tokens remaining</div>
+            <div class="notification-time">1 day ago</div>
+          </div>
+        </div>
+      `;
     }
   }
 });
