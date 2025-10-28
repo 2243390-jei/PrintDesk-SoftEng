@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
             window.location.href = "student/home.html";
             break;
           case "admin":
-            window.location.href = "admin/dashboard.html";
+            window.location.href = "../admin/html/queue.html";
             break;
         }
       } else {
