@@ -1,165 +1,214 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PrintDesk - Admin Dashboard</title>
-    <link rel="stylesheet" href="/admin/css/queue.css">
-</head>
-<body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Admin — Queue Management</title>
+    <link rel="stylesheet" href="/admin/css/queue.css" />
+    <script src="/admin/js/queue.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  </head>
+  <body>
     <div class="dashboard-container">
-        <!-- Main Layout -->
-        <div class="main-layout">
-            <!-- Navigation Sidebar -->
-            <nav class="sidebar">
-                <div class="sidebar-header">
-
-                    <div class="admin-profile">
-                        <div class="admin-role">ADMIN</div>
-                        <div class="admin-name">Admin Name</div>
-                    </div>
-                </div>
-                
-                <ul class="nav-links">
-                    <li class="nav-item active">
-                        <a href="#">
-                            <span class="text">QUEUE</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#">
-                            <span class="text">PRINT</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#">
-                            <span class="text">STATISTICS</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#">
-                            <span class="text">RECORDS</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#">
-                            <span class="text">MANAGE</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-
-            <!-- Main Content Area -->
-            <main class="main-content">
-                <div class="content-area">
-                    <div class="welcome-section">
-                        <h1>ADMIN DASHBOARD</h1>
-                        <h2>Good day, Admin!</h2>
-                        <p>Let's make sure everything's in order today.</p>
-                    </div>
-
-                    <section class="queue-section">
-                        <div class="section-header">
-                            <h2>Queue Management</h2>
-                            <div class="search-box">
-                                <input type="text" id="searchInput" placeholder="Search...">
-                            </div>
-                        </div>
-
-                        <div class="queue-table-container">
-                            <table class="queue-table">
-                                <thead>
-                                    <tr>
-                                        <th>No.</th>
-                                        <th>Name</th>
-                                        <th>Course and Year</th>
-                                        <th>Date</th>
-                                        <th>Others</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="queueTableBody">
-                                    <!-- Queue data will be populated by JavaScript -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-                </div>
-            </main>
+      <!-- Navigation Sidebar -->
+      <nav class="sidebar">
+        <div class="sidebar-header">
+          <div class="admin-profile">
+            <div class="admin-role">ADMIN</div>
+            <div class="admin-name">Admin Name</div>
+          </div>
         </div>
+        
+        <ul class="nav-links">
+          <li class="nav-item active">
+            <a href="/admin/html/queue.html">
+              <span class="text">QUEUE</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/admin/html/printrecordhistory.html">
+              <span class="text">PRINT</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <span class="text">STATISTICS</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <span class="text">RECORDS</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/admin/html/usermanagement.html">
+              <span class="text">MANAGE</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <div class="content-area">
+          <header class="header">
+            <div class="title-block">
+              <h1 class="title">ADMIN DASHBOARD</h1>
+              <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
+            </div>
+
+            <div class="brand-right">
+            <!-- images folder is outside admin/, so go up two levels -->
+            <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
+          </div>
+          </header>
+
+          <section class="card">
+            <div class="card-header">
+              <h2>Queue Management</h2>
+
+              <div class="controls">
+                <div class="search" role="search" aria-label="Search queue">
+                  <div class="search-icon">🔍</div>
+                  <input id="searchInput" type="search" placeholder="Search..." aria-label="Search queue" />
+                </div>
+
+                <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="filterMenu">
+                  <div class="filter-icon">⚙️</div>
+                </button>
+
+                <!-- Filter Dropdown Panel -->
+                <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
+                  <!-- view switches -->
+                  <button type="button" data-action="view" data-view="table" role="menuitem">Table</button>
+                  <button type="button" data-action="view" data-view="board" role="menuitem">Board</button>
+                  <button type="button" data-action="view" data-view="list" role="menuitem">List</button>
+                  <div class="divider" aria-hidden="true"></div>
+
+                  <!-- filters that open the small inline filter panel -->
+                  <button type="button" data-action="open-filter" data-filter="status" role="menuitem">Status</button>
+                  <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
+                  <div class="divider" aria-hidden="true"></div>
+
+                  <button type="button" data-action="apply" class="primary" role="menuitem">Filter</button>
+
+                  <!-- small inline panel for choosing filter values -->
+                  <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-inner">
+              <div class="table-wrap">
+                <!-- keep table visible for "table" view -->
+                <table class="queue-table" aria-describedby="queue-table">
+                  <thead>
+                    <tr>
+                      <th>No.</th>
+                      <th>Name</th>
+                      <th>Course & Year</th>
+                      <th>Date</th>
+                      <th class="col-actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="queueBody">
+                    <!-- Queue data will be populated by JavaScript -->
+                  </tbody>
+                </table>
+
+                <!-- board (cards) container -->
+                <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
+
+                <!-- list container (compact rows) -->
+                <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
+              </div>
+
+              <div class="table-footer">
+                <div class="pagination">
+                  <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
+                  <div id="pageNumbers" class="page-numbers"></div>
+                  <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <footer class="footer muted">© <span id="curYear"></span> PrintDesk Queue Management</footer>
+        </div>
+      </main>
     </div>
 
     <!-- Modal for View Details -->
     <div id="detailsModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button id="backBtn" class="back-btn">←</button>
-                <h2>Document Details</h2>
-            </div>
-            
-            <div class="modal-body">
-                <div class="details-top-row">
-                    <div class="detail-item">
-                        <div class="detail-label">Submitted on</div>
-                        <div class="detail-value" id="submittedDate">October 10, 2025</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Total Cost</div>
-                        <div class="detail-value" id="totalCost">15 tokens</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Status</div>
-                        <div class="detail-value">
-                            <span class="status-badge" id="statusBadge">Pending</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="request-id">
-                    Request ID: <span id="requestId">ROBF2D7B</span>
-                </div>
-                
-                <div class="document-preview">
-                    <h3>Document Preview</h3>
-                    <div class="preview-grid">
-                        <div class="preview-item">
-                            <div class="preview-label">File Name</div>
-                            <div class="preview-value" id="fileName">Automobile_Anatomy.pdf</div>
-                        </div>
-                        <div class="preview-item">
-                            <div class="preview-label">Page Count</div>
-                            <div class="preview-value" id="pageCount">1</div>
-                        </div>
-                        <div class="preview-item">
-                            <div class="preview-label">Number of Copies</div>
-                            <div class="preview-value" id="copiesCount">1</div>
-                        </div>
-                        <div class="preview-item">
-                            <div class="preview-label">Paper Size</div>
-                            <div class="preview-value" id="paperSize">A4</div>
-                        </div>
-                        <div class="preview-item">
-                            <div class="preview-label">Print Type</div>
-                            <div class="preview-value" id="printType">Colored</div>
-                        </div>
-                        <div class="preview-item">
-                            <div class="preview-label">Printing Side</div>
-                            <div class="preview-value" id="printingSide">Single-Sided</div>
-                        </div>
-                        <div class="preview-item">
-                            <div class="preview-label">Pickup Date</div>
-                            <div class="preview-value" id="pickupDate">October 20, 2025</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="action-buttons">
-                    <button class="reject-btn" id="rejectBtn">Reject</button>
-                    <button class="accept-btn" id="acceptBtn">Accept</button>
-                </div>
-            </div>
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <button id="backBtn" class="back-btn">←</button>
+          <h2>Document Details</h2>
         </div>
+        
+        <div class="modal-body">
+          <div class="details-top-row">
+            <div class="detail-item">
+              <div class="detail-label">Submitted on</div>
+              <div class="detail-value" id="submittedDate">October 10, 2025</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Total Cost</div>
+              <div class="detail-value" id="totalCost">15 tokens</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Status</div>
+              <div class="detail-value">
+                <span class="status-badge" id="statusBadge">Pending</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="request-id">
+            Request ID: <span id="requestId">ROBF2D7B</span>
+          </div>
+          
+          <div class="document-preview">
+            <h3>Document Preview</h3>
+            <div class="preview-grid">
+              <div class="preview-item">
+                <div class="preview-label">File Name</div>
+                <div class="preview-value" id="fileName">Automobile_Anatomy.pdf</div>
+              </div>
+              <div class="preview-item">
+                <div class="preview-label">Page Count</div>
+                <div class="preview-value" id="pageCount">1</div>
+              </div>
+              <div class="preview-item">
+                <div class="preview-label">Number of Copies</div>
+                <div class="preview-value" id="copiesCount">1</div>
+              </div>
+              <div class="preview-item">
+                <div class="preview-label">Paper Size</div>
+                <div class="preview-value" id="paperSize">A4</div>
+              </div>
+              <div class="preview-item">
+                <div class="preview-label">Print Type</div>
+                <div class="preview-value" id="printType">Colored</div>
+              </div>
+              <div class="preview-item">
+                <div class="preview-label">Printing Side</div>
+                <div class="preview-value" id="printingSide">Single-Sided</div>
+              </div>
+              <div class="preview-item">
+                <div class="preview-label">Pickup Date</div>
+                <div class="preview-value" id="pickupDate">October 20, 2025</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="action-buttons">
+            <button class="reject-btn" id="rejectBtn">Reject</button>
+            <button class="accept-btn" id="acceptBtn">Accept</button>
+          </div>
+        </div>
+      </div>
     </div>
-
-    <script src="/admin/js/queue.js"></script>
-</body>
+  </body>
 </html>

@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Admin — User Management</title>
-    <link rel="stylesheet" href="usermanagement.css" />
-    <script src="usermanagement.js" defer></script>
+    <link rel="stylesheet" href="../css/usermanagement.css" />
+    <script src="../js/usermanagement.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   </head>
   <body>
@@ -28,7 +28,7 @@
           </div>
 
           <div class="brand-right">
-            <img src="../images/SLU_Logo.png" alt="SLU LOGO" />
+            <img src="../../images/SLU_printdesk_logo.png" alt="SLU LOGO" />
           </div>
         </header>
 
@@ -38,12 +38,12 @@
 
             <div class="controls">
               <div class="search" role="search" aria-label="Search users">
-                <img src="../images/admin_img/loupe.png" alt="loupe icon">
+                <img src="../../images/admin_img/loupe.png" alt="loupe icon">
                 <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
               </div>
 
               <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="filterMenu">
-                <img src="../images/admin_img/filter.png" alt="filter" />
+                <img src="../../images/admin_img/filter.png" alt="filter" />
               </button>
 
               <!-- Filter Dropdown Panel -->
@@ -105,6 +105,55 @@
 
         <footer class="footer muted">© <span id="curYear"></span> Admin User Management</footer>
       </main>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="editModalTitle">
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-content">
+        <h3 id="editModalTitle">Edit User</h3>
+        <form id="editForm">
+          <label for="editEmail">Email</label>
+          <input type="email" id="editEmail" name="email" required />
+
+          <label for="editName">Name</label>
+          <input type="text" id="editName" name="name" required />
+
+          <label for="editCourse">Course &amp; Year</label>
+          <input type="text" id="editCourse" name="course" />
+
+          <label for="editStatus">Status</label>
+          <select id="editStatus" name="status">
+            <option value="Accepted">Accepted</option>
+            <option value="Pending">Pending</option>
+          </select>
+
+          <label for="editRole">Role</label>
+          <select id="editRole" name="role">
+            <option value="User">User</option>
+            <option value="Organization">Organization</option>
+            <option value="Admin">Admin</option>
+          </select>
+
+          <div class="modal-actions">
+            <button type="button" id="cancelEdit" class="btn secondary">Cancel</button>
+            <button type="submit" id="saveEdit" class="btn primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="deleteModalTitle">
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-content small">
+        <h3 id="deleteModalTitle">Confirm Delete</h3>
+        <p id="deleteMessage">Are you sure you want to delete this user?</p>
+        <div class="modal-actions">
+          <button type="button" id="cancelDelete" class="btn secondary">Cancel</button>
+          <button type="button" id="confirmDelete" class="btn danger">Delete</button>
+        </div>
+      </div>
     </div>
   </body>
 </html>
