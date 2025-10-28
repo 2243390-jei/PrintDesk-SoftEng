@@ -42,29 +42,96 @@ body{
 .circle-btn.active{ background:linear-gradient(135deg,#3f5960,#2a3b42); color:white; transform: translateY(-2px); }
 
 /* MAIN AREA */
-.main-area{
-  flex:1;
-  display:flex;
-  flex-direction:column;
+.main-area{   
+  flex: 1;
+  margin-left: 280px;
+  overflow-y: auto;
+  height: 100vh;
+  background-color: var(--bg); 
+}
+
+.content-area {
   padding: 20px 28px;
-}
-
-/* --------- Adjust SLU logo (top-right) --------- */
-.brand-right {
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-end; /* keeps logo to the right side of the header */
-  width: 220px;              /* reserve a little space for logo */
+  flex-direction: column;
+  height: 100%;
 }
 
-/* SLU logo sizing & behavior */
-.brand-right img {
-  width: 160px;       /* main size for desktop */
-  max-width: 28vw;    /* prevents the logo from overflowing on very wide displays */
-  height: auto;
-  object-fit: contain;
-  display: block;
-  margin-left: 12px;
+/* Sidebar Styles */
+.sidebar {
+  width: 280px;
+  background-color: #242E3A;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  overflow-y: auto;
+}
+
+.sidebar-header {
+  padding: 25px;
+  border-bottom: 1px solid #34495e;
+}
+
+.admin-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.admin-role {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #B0B7C3;
+}
+
+.admin-name {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.nav-links {
+  list-style: none;
+  padding: 0;
+  flex: 1;
+}
+
+.nav-item {
+  padding: 0;
+  margin-bottom: 5px;
+}
+
+.nav-item a {
+  display: flex;
+  align-items: center;
+  padding: 18px 25px;
+  color: #B0B7C3;
+  text-decoration: none;
+  transition: all 0.3s;
+  border-left: 4px solid transparent;
+  font-weight: 500;
+}
+
+.nav-item a:hover {
+  background-color: #2D3845;
+  color: white;
+}
+
+.nav-item.active a {
+  background-color: #2D3845;
+  color: white;
+  border-left: 4px solid #4A90E2;
+}
+
+.nav-item .text {
+  font-size: 1rem;
+  letter-spacing: 0.5px;
 }
 
 /* header */
@@ -75,7 +142,7 @@ body{
   margin-bottom: 18px;
 }
 .title{
-  font-size:58px; letter-spacing:1px; font-weight:700;
+  font-size:58px; letter-spacing:1px; font-weight:700 ; color: #2b3336;
 }
 .subtitle{ font-size:24px; margin-top:6px; color:var(--muted); }
 
@@ -423,15 +490,12 @@ body{
 
 /* --------- Responsive tweaks --------- */
 @media (max-width: 1200px) {
-  .brand-right { width: 160px; }
-  .brand-right img { width: 120px; }
   .card-header .search { min-width: 180px; gap: 8px; padding: 6px 8px; }
   .card-header .search img { width: 36px; height: 36px; flex: 0 0 36px; }
   .card-header .search input { width: 120px; font-size: 13px; }
 }
 
 @media (max-width: 700px) {
-  .brand-right { display: none; } /* hide large logo on small screens (optional) */
   .card-header .search input { width: 100px; }
 }
 

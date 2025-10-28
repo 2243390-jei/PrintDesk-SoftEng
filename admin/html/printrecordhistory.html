@@ -16,93 +16,122 @@
   </head>
   <body>
     <div class="app">
-      <!-- LEFT NAV (do not edit; teammate will replace) -->
-      <aside class="leftbar" aria-label="Main navigation">
-        <div class="brand"><div class="avatar">A</div></div>
-        <nav class="left-nav" role="navigation" aria-label="Sidebar">
-          <button class="circle-btn" aria-hidden="true"></button>
-          <button class="circle-btn active" aria-hidden="true"></button>
-          <button class="circle-btn" aria-hidden="true"></button>
-          <button class="circle-btn" aria-hidden="true"></button>
-        </nav>
-      </aside>
+      <!-- Navigation Sidebar -->
+      <nav class="sidebar">
+        <div class="sidebar-header">
+          <div class="admin-profile">
+            <div class="admin-role">ADMIN</div>
+            <div class="admin-name">Admin Name</div>
+          </div>
+        </div>
+        
+        <ul class="nav-links">
+          <li class="nav-item ">
+            <a href="#">
+              <span class="text">QUEUE</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <span class="text">PRINT</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <span class="text">STATISTICS</span>
+            </a>
+          </li>
+          <li class="nav-item active">
+            <a href="#">
+              <span class="text">RECORDS</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <span class="text">MANAGE</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
 
       <!-- MAIN AREA -->
       <main class="main-area" role="main">
-        <header class="header">
-          <div class="title-block">
-            <h1 class="title">ADMIN DASHBOARD</h1>
-            <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
-          </div>
-
-          <div class="brand-right">
-            <!-- images folder is outside admin/, so go up two levels -->
-            <img src="../../images/SLU_Logo.png" alt="SLU LOGO" />
-          </div>
-        </header>
-
-        <section class="card">
-          <div class="card-header">
-            <h2>Print Record History</h2>
-
-            <div class="controls">
-              <div class="search" role="search" aria-label="Search print records">
-                <img src="../../images/admin_img/loupe.png" alt="loupe icon" />
-                <input id="searchInput" type="search" placeholder="Search..." aria-label="Search records" />
-              </div>
-
-              <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="filterMenu">
-                <img src="../../images/admin_img/filter.png" alt="filter" />
-              </button>
-
-              <!-- Filter Dropdown -->
-              <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
-                <button type="button" data-action="open-filter" data-filter="printer" role="menuitem">Printer</button>
-                <button type="button" data-action="open-filter" data-filter="printType" role="menuitem">Print Type</button>
-                <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
-                <div class="divider" aria-hidden="true"></div>
-                <button type="button" data-action="clear" class="small" role="menuitem">Clear Filters</button>
-                <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card-inner">
-            <div class="table-wrap">
-              <!-- Table view -->
-              <table class="users-table" aria-describedby="print-record-table">
-                <thead>
-                  <tr>
-                    <th class="col-check"><input id="selectAll" type="checkbox" /></th>
-                    <th>Time</th>
-                    <th>Name</th>
-                    <th>Pages</th>
-                    <th>Copies</th>
-                    <th>Printer</th>
-                    <th>Documents</th>
-                    <th>Print Type</th>
-                    <th class="col-actions">Details</th>
-                  </tr>
-                </thead>
-                <tbody id="recordsBody"></tbody>
-              </table>
-
-              <!-- Board & List containers (hidden by default) -->
-              <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
-              <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
+        <div class="content-area">
+          <header class="header">
+            <div class="title-block">
+              <h1 class="title">ADMIN DASHBOARD</h1>
+              <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
             </div>
 
-            <div class="table-footer">
-              <div class="pagination">
-                <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
-                <div id="pageNumbers" class="page-numbers"></div>
-                <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
+            <div class="brand-right">
+              <!-- images folder is outside admin/, so go up two levels -->
+              <img src="../../images/SLU_printdesk_logo.png" alt="SLU LOGO" />
+            </div>
+          </header>
+
+          <section class="card">
+            <div class="card-header">
+              <h2>Print Record History</h2>
+
+              <div class="controls">
+                <div class="search" role="search" aria-label="Search print records">
+                  <img src="../../images/admin_img/loupe.png" alt="loupe icon" />
+                  <input id="searchInput" type="search" placeholder="Search..." aria-label="Search records" />
+                </div>
+
+                <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="filterMenu">
+                  <img src="../../images/admin_img/filter.png" alt="filter" />
+                </button>
+
+                <!-- Filter Dropdown -->
+                <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
+                  <button type="button" data-action="open-filter" data-filter="printer" role="menuitem">Printer</button>
+                  <button type="button" data-action="open-filter" data-filter="printType" role="menuitem">Print Type</button>
+                  <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
+                  <div class="divider" aria-hidden="true"></div>
+                  <button type="button" data-action="clear" class="small" role="menuitem">Clear Filters</button>
+                  <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
 
-        <footer class="footer muted">© <span id="curYear"></span> PrintDesk — Print Record History</footer>
+            <div class="card-inner">
+              <div class="table-wrap">
+                <!-- Table view -->
+                <table class="users-table" aria-describedby="print-record-table">
+                  <thead>
+                    <tr>
+                      <th class="col-check"><input id="selectAll" type="checkbox" /></th>
+                      <th>Time</th>
+                      <th>Name</th>
+                      <th>Pages</th>
+                      <th>Copies</th>
+                      <th>Printer</th>
+                      <th>Documents</th>
+                      <th>Print Type</th>
+                      <th class="col-actions">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recordsBody"></tbody>
+                </table>
+
+                <!-- Board & List containers (hidden by default) -->
+                <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
+                <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
+              </div>
+
+              <div class="table-footer">
+                <div class="pagination">
+                  <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
+                  <div id="pageNumbers" class="page-numbers"></div>
+                  <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <footer class="footer muted">© <span id="curYear"></span> PrintDesk — Print Record History</footer>
+        </div>
       </main>
     </div>
 
