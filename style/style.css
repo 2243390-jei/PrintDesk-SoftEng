@@ -558,6 +558,8 @@ body.home-body {
   margin: 0;
 }
 
+
+
 .policy-image {
   width: 100%;
   max-width: 400px;
@@ -605,4 +607,81 @@ body.home-body {
   line-height: 1.6;
   color: #333;
   margin: 0;
+}
+
+/* PRINT VALUES SECTION */
+.print-values-section {
+  padding: 60px 0 80px 0;
+  background: transparent;
+}
+
+.print-values-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 40px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  padding-top: 30px;
+  padding-bottom: 40px;
+}
+
+.print-values-title {
+  font-family: "Bebas Neue", sans-serif;
+  text-align: center;
+  font-size: 2.6rem;
+  margin: 10px 0 20px 0;
+}
+
+.print-values-card {
+  padding: 30px 60px;
+}
+
+.print-values-subtitle {
+  text-align: center;
+  color: #1E1362;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 1.2rem;
+  margin-bottom: 24px;
+}
+
+.print-values-columns {
+  display: flex;
+  gap: 60px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.print-value {
+  width: 380px;
+  text-align: center;
+}
+
+.print-value-image {
+  height: 220px;
+
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.print-value-image img {
+  max-width: 100%;
+  max-height: 100%;
+  
+  object-fit: contain;
+  display: block;
+}
+
+.print-value p {
+  color: #6b6b7b;
+  line-height: 1.6;
+  font-size: 0.98rem;
+}
+
+@media (max-width: 900px) {
+  .print-values-columns { flex-direction: column; gap: 30px; }
+  .print-values-container { padding: 20px; }
 }
