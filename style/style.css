@@ -853,3 +853,87 @@ body.submission-body {
   background-color: #3d2ee7;
   transform: translateY(-1px);
 }
+
+/* ===== FIXED HISTORY PAGE LAYOUT ===== */
+body.history-body {
+  display: block;                /* overrides flex from global body */
+  justify-content: initial;
+  align-items: initial;
+  background: #ffffff;
+  font-family: "Inter", sans-serif;
+  min-height: 100vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  background-image: none;        /* removes radial bg from auth page */
+}
+
+/* Filter section directly under fixed navbar */
+.history-filter-section {
+  width: 100%;
+  position: relative;
+  top: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 5px 80px;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  z-index: 5;
+  margin-top: 80px; /* ✅ creates exact space below the fixed navbar */
+}
+
+/* Wrapper for buttons and dropdown */
+.filter-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Filter Buttons */
+.filter-btn {
+  background-color: #f4f4f4;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #000;
+  font-family: "Inter", sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.filter-btn:hover {
+  background-color: #ececff;
+  border-color: #b3b3ff;
+}
+
+.filter-btn:active {
+  background-color: #1e1362;
+  border-color: #1e1362;
+  color: #ffffff;
+}
+
+.filter-btn.active {
+  background-color: #1e1362;
+  border-color: #1e1362;
+  color: #ffffff;
+}
+
+/* Dropdown */
+.filter-dropdown select {
+  padding: 8px 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: "Inter", sans-serif;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.filter-dropdown select:focus {
+  border-color: #1e1362;
+  outline: none;
+}

@@ -2,28 +2,53 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SLU PrintDesk | Home</title>
-    <link rel="stylesheet" href="../style/style.css" />
-    <script src="../script/main.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SLU PrintDesk | History</title>
+  <link rel="stylesheet" href="../style/style.css" />
+  <script src="../script/main.js" defer></script>
+  <script src="../script/history.js" defer></script>
 </head>
 
-<body class="home-body">
-    <!-- NAVIGATION BAR -->
-    <header class="navbar">
-        <div class="logo">
-            <img src="../images/student_img/SLU_printdesk_logo.png" alt="SLU PrintDesk" />
-        </div>
+<body class="history-body">
+  <!-- NAVIGATION BAR -->
+  <header class="navbar">
+    <div class="logo">
+      <img src="../images/student_img/SLU_printdesk_logo.png" alt="SLU PrintDesk" />
+    </div>
 
-        <nav>
-            <ul>
-                <li><a href="home.html">Home</a></li>
-                <li><a href="submission.html">Submission</a></li>
-                <li><a href="history.html" class="active">History</a></li>
-            </ul>
-        </nav>
-        <div class="profile-icon">
-            <img id="nav-profile-pic" src="../images/student_img/profile.png" alt="Profile" />
-        </div>
-    </header>
+    <nav>
+      <ul>
+        <li><a href="home.html">Home</a></li>
+        <li><a href="submission.html">Submission</a></li>
+        <li><a href="history.html" class="active">History</a></li>
+      </ul>
+    </nav>
+
+    <div class="profile-icon">
+      <img id="nav-profile-pic" src="../images/student_img/profile.png" alt="Profile" />
+    </div>
+  </header>
+
+  <!-- HISTORY FILTER SECTION -->
+  <section class="history-filter-section">
+    <div class="filter-container">
+      <div class="filter-buttons">
+        <button class="filter-btn active">All Jobs</button>
+        <button class="filter-btn">Completed</button>
+        <button class="filter-btn">Pending</button>
+        <button class="filter-btn">Cancelled</button>
+      </div>
+
+      <div class="filter-dropdown">
+        <select id="timeFilter">
+          <option>This Week</option>
+          <option>Last Week</option>
+          <option>This Month</option>
+          <option>Last Month</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+</html>
