@@ -1,16 +1,22 @@
+// usermanagement.js (complete file)
+// Note: save as usermanagement.js and ensure it's loaded with `defer` in your HTML.
+
 document.addEventListener("DOMContentLoaded", () => {
-  // sample users with lastActive so date filter works
+  // -------------------------
+  // Sample data (for testing)
+  // -------------------------
   const users = [
     { name: "Piamonte, Malech", email: "2243905@slu.edu.ph", course: "BSCS 3", status: "Accepted", role: "User", lastActive: "2025-10-10" },
     { name: "Argao, Jeiloyd", email: "2250923@slu.edu.ph", course: "BSCS 3", status: "Pending", role: "User", lastActive: "2025-10-05" },
     { name: "Jecquar, Aguilan", email: "2257025@slu.edu.ph", course: "BSCS 3", status: "Pending", role: "User", lastActive: "2025-10-12" },
-    // extra sample items to demonstrate pagination
     { name: "Lopez, Maria", email: "2249999@slu.edu.ph", course: "BSCS 3", status: "Accepted", role: "User", lastActive: "2025-10-14" },
     { name: "Ramos, Juan", email: "2241001@slu.edu.ph", course: "BSIT 2", status: "Accepted", role: "User", lastActive: "2025-09-20" },
     { name: "Delos, Pedro", email: "2242002@slu.edu.ph", course: "BSCS 1", status: "Pending", role: "Organization", lastActive: "2025-08-01" }
   ];
 
-  // DOM refs
+  // -------------------------
+  // DOM references
+  // -------------------------
   const usersBody = document.getElementById("usersBody");
   const cardsContainer = document.getElementById("cardsContainer");
   const listContainer = document.getElementById("listContainer");
@@ -21,29 +27,81 @@ document.addEventListener("DOMContentLoaded", () => {
   const nextPageBtn = document.getElementById("nextPage");
   const selectAll = document.getElementById("selectAll");
 
-  // filter menu + panel
   const filterBtn = document.getElementById("filterBtn");
   const filterMenu = document.getElementById("filterMenu");
   const filterPanel = document.getElementById("filterPanel");
 
-  // state
+  // Modals (ensure your HTML contains these)
+  const editModal = document.getElementById('editModal');
+  const editForm = document.getElementById('editForm');
+  const editEmail = document.getElementById('editEmail');
+  const editName = document.getElementById('editName');
+  const editCourse = document.getElementById('editCourse');
+  const editStatus = document.getElementById('editStatus');
+  const editRole = document.getElementById('editRole');
+  const cancelEdit = document.getElementById('cancelEdit');
+
+  const deleteModal = document.getElementById('deleteModal');
+  const deleteMessage = document.getElementById('deleteMessage');
+  const cancelDelete = document.getElementById('cancelDelete');
+  const confirmDelete = document.getElementById('confirmDelete');
+
+  // -------------------------
+  // State
+  // -------------------------
   let perPage = 5;
   let currentPage = 1;
   let filtered = [...users];
   let view = "table"; // 'table' | 'board' | 'list'
   let activeFilters = { role: null, status: null, dateFrom: null, dateTo: null };
 
-  curYear.textContent = new Date().getFullYear();
+  // track which user is being edited / deleted (use email identifier)
+  let editingEmail = null;
+  let deletingEmail = null;
 
-  /* ---------- rendering functions ---------- */
+  // set footer year if element exists
+  if (curYear) curYear.textContent = new Date().getFullYear();
+
+  // -------------------------
+  // Utility helpers
+  // -------------------------
+  function openModal(modal) {
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    // focus first focusable element
+    const focusable = modal.querySelector('input,button,select,textarea');
+    if (focusable) focusable.focus();
+  }
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function statusPill(text) {
+    if (!text) return '';
+    if (text.toLowerCase() === "accepted") return `<span class="pill accepted">${text}</span>`;
+    return `<span class="pill pending">${text}</span>`;
+  }
+  function statusPillText(text) {
+    if (!text) return '';
+    if (text.toLowerCase() === "accepted") return `<span class="pill accepted">${text}</span>`;
+    return `<span class="pill pending">${text}</span>`;
+  }
+
+  // -------------------------
+  // Renderers
+  // -------------------------
   function renderTable(list) {
+    if (!usersBody) return;
     usersBody.innerHTML = "";
+
     // show table, hide others
-    usersBody.closest("table").style.display = "";
-    cardsContainer.classList.add("visually-hidden");
-    cardsContainer.setAttribute("aria-hidden", "true");
-    listContainer.classList.add("visually-hidden");
-    listContainer.setAttribute("aria-hidden", "true");
+    const tableEl = usersBody.closest("table");
+    if (tableEl) tableEl.style.display = "";
+    if (cardsContainer) { cardsContainer.classList.add("visually-hidden"); cardsContainer.setAttribute("aria-hidden", "true"); }
+    if (listContainer) { listContainer.classList.add("visually-hidden"); listContainer.setAttribute("aria-hidden", "true"); }
 
     const start = (currentPage - 1) * perPage;
     const pageItems = list.slice(start, start + perPage);
@@ -66,25 +124,25 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${statusPill(u.status)}</td>
         <td>${u.role}</td>
         <td class="col-actions">
-          <img src="../images/admin_img/write.png" alt="edit" title="Edit" class="action-icon edit" />
-          <img src="../images/admin_img/delete.png" alt="delete" title="Delete" class="action-icon del" />
+          <img src="../../images/admin_img/write.png" alt="edit" title="Edit" class="action-icon edit" data-email="${u.email}" />
+          <img src="../../images/admin_img/delete.png" alt="delete" title="Delete" class="action-icon del" data-email="${u.email}" />
         </td>
       `;
       usersBody.appendChild(tr);
     });
 
     renderPagination(list.length);
-    attachRowActions();
+    attachModalRowActions();
   }
 
   function renderBoard(list) {
     // hide table, show cards
-    usersBody.closest("table").style.display = "none";
-    cardsContainer.classList.remove("visually-hidden");
-    cardsContainer.setAttribute("aria-hidden", "false");
-    listContainer.classList.add("visually-hidden");
-    listContainer.setAttribute("aria-hidden", "true");
+    const tableEl = usersBody ? usersBody.closest("table") : null;
+    if (tableEl) tableEl.style.display = "none";
+    if (cardsContainer) { cardsContainer.classList.remove("visually-hidden"); cardsContainer.setAttribute("aria-hidden", "false"); }
+    if (listContainer) { listContainer.classList.add("visually-hidden"); listContainer.setAttribute("aria-hidden", "true"); }
 
+    if (!cardsContainer) return;
     cardsContainer.innerHTML = "";
     const start = (currentPage - 1) * perPage;
     const pageItems = list.slice(start, start + perPage);
@@ -100,21 +158,26 @@ document.addEventListener("DOMContentLoaded", () => {
           <div style="font-size:13px;color:#6b7780;">${u.course} • ${u.role}</div>
           <div style="margin-top:8px;">${statusPillText(u.status)}</div>
         </div>
+        <div style="margin-left:auto;display:flex;flex-direction:column;gap:8px;">
+          <img src="../images/admin_img/write.png" class="action-icon edit" data-email="${u.email}" title="Edit" style="cursor:pointer;" />
+          <img src="../images/admin_img/delete.png" class="action-icon del" data-email="${u.email}" title="Delete" style="cursor:pointer;" />
+        </div>
       `;
       cardsContainer.appendChild(div);
     });
 
     renderPagination(list.length);
+    attachModalRowActions();
   }
 
   function renderList(list) {
     // hide table, show list
-    usersBody.closest("table").style.display = "none";
-    listContainer.classList.remove("visually-hidden");
-    listContainer.setAttribute("aria-hidden", "false");
-    cardsContainer.classList.add("visually-hidden");
-    cardsContainer.setAttribute("aria-hidden", "true");
+    const tableEl = usersBody ? usersBody.closest("table") : null;
+    if (tableEl) tableEl.style.display = "none";
+    if (listContainer) { listContainer.classList.remove("visually-hidden"); listContainer.setAttribute("aria-hidden", "false"); }
+    if (cardsContainer) { cardsContainer.classList.add("visually-hidden"); cardsContainer.setAttribute("aria-hidden", "true"); }
 
+    if (!listContainer) return;
     listContainer.innerHTML = "";
     const start = (currentPage - 1) * perPage;
     const pageItems = list.slice(start, start + perPage);
@@ -130,23 +193,23 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div style="width:160px;text-align:right;">${u.course}</div>
         <div style="width:110px;text-align:right;">${statusPillText(u.status)}</div>
+        <div style="width:80px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
+          <img src="../images/admin_img/write.png" class="action-icon edit" data-email="${u.email}" title="Edit" style="cursor:pointer;" />
+          <img src="../images/admin_img/delete.png" class="action-icon del" data-email="${u.email}" title="Delete" style="cursor:pointer;" />
+        </div>
       `;
       listContainer.appendChild(row);
     });
 
     renderPagination(list.length);
+    attachModalRowActions();
   }
 
-  function statusPill(text) {
-    if (text.toLowerCase() === "accepted") return `<span class="pill accepted">${text}</span>`;
-    return `<span class="pill pending">${text}</span>`;
-  }
-  function statusPillText(text) {
-    if (text.toLowerCase() === "accepted") return `<span class="pill accepted">${text}</span>`;
-    return `<span class="pill pending">${text}</span>`;
-  }
-
+  // -------------------------
+  // Pagination
+  // -------------------------
   function renderPagination(totalItems) {
+    if (!pageNumbers) return;
     pageNumbers.innerHTML = "";
     const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
     for (let i = 1; i <= totalPages; i++) {
@@ -155,44 +218,31 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.className = i === currentPage ? "" : "inactive";
       btn.addEventListener("click", () => {
         currentPage = i;
-        renderView(filtered);
+        renderView(users);
       });
       pageNumbers.appendChild(btn);
     }
-    prevPageBtn.disabled = currentPage === 1;
-    nextPageBtn.disabled = currentPage === totalPages;
+    if (prevPageBtn) prevPageBtn.disabled = currentPage === 1;
+    if (nextPageBtn) nextPageBtn.disabled = currentPage === totalPages;
   }
 
-  prevPageBtn.addEventListener("click", () => {
-    if (currentPage > 1) { currentPage--; renderView(filtered); }
-  });
-  nextPageBtn.addEventListener("click", () => {
-    const totalPages = Math.ceil(filtered.length / perPage);
-    if (currentPage < totalPages) { currentPage++; renderView(filtered); }
-  });
-
-  function attachRowActions() {
-    document.querySelectorAll(".action-icon.edit").forEach((el, idx) => {
-      el.addEventListener("click", () => {
-        const name = filtered[(currentPage - 1) * perPage + idx].name;
-        alert("Edit user: " + name + " (wireframe)");
-      });
+  if (prevPageBtn) {
+    prevPageBtn.addEventListener("click", () => {
+      if (currentPage > 1) { currentPage--; renderView(users); }
     });
-    document.querySelectorAll(".action-icon.del").forEach((el, idx) => {
-      el.addEventListener("click", () => {
-        const index = (currentPage - 1) * perPage + idx;
-        const name = filtered[index].name;
-        if (confirm(`Delete ${name}?`)) {
-          const globalIndex = users.findIndex(u => u.email === filtered[index].email);
-          if (globalIndex > -1) { users.splice(globalIndex, 1); filtered = [...users]; currentPage = 1; renderView(filtered); }
-        }
-      });
+  }
+  if (nextPageBtn) {
+    nextPageBtn.addEventListener("click", () => {
+      const totalPages = Math.ceil(filtered.length / perPage);
+      if (currentPage < totalPages) { currentPage++; renderView(users); }
     });
   }
 
-  /* ---------- filtering logic ---------- */
+  // -------------------------
+  // Filters (search + role/status/date)
+  // -------------------------
   function applyFiltersToList(list) {
-    const q = searchInput.value.trim().toLowerCase();
+    const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : "";
     return list.filter(u => {
       // search
       const matchesSearch = q === "" || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.course.toLowerCase().includes(q) || u.status.toLowerCase().includes(q);
@@ -201,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const matchesRole = activeFilters.role ? u.role === activeFilters.role : true;
       // status
       const matchesStatus = activeFilters.status ? u.status === activeFilters.status : true;
-      // date range (lastActive in YYYY-MM-DD)
+      // date range
       let matchesDate = true;
       if (activeFilters.dateFrom) {
         matchesDate = matchesDate && (new Date(u.lastActive) >= new Date(activeFilters.dateFrom));
@@ -217,7 +267,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderView(list) {
     // apply filters
     filtered = applyFiltersToList(list);
-    // if current page is out of bounds after filtering, reset to 1
+    // if current page is out-of-bounds after filtering, reset to 1
     const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
     if (currentPage > totalPages) currentPage = 1;
 
@@ -226,7 +276,9 @@ document.addEventListener("DOMContentLoaded", () => {
     else if (view === "list") renderList(filtered);
   }
 
-  /* ---------- search & select all ---------- */
+  // -------------------------
+  // Search & select all
+  // -------------------------
   if (searchInput) {
     searchInput.addEventListener("input", () => { currentPage = 1; renderView(users); });
   }
@@ -237,7 +289,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ---------- filter menu toggle & interactions ---------- */
+  // -------------------------
+  // Filter menu toggle & interactions
+  // -------------------------
   if (filterBtn && filterMenu) {
     filterBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -248,8 +302,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const first = filterMenu.querySelector("button");
         if (first) first.focus();
       } else {
-        filterPanel.classList.add("visually-hidden");
-        filterPanel.setAttribute("aria-hidden", "true");
+        if (filterPanel) { filterPanel.classList.add("visually-hidden"); filterPanel.setAttribute("aria-hidden", "true"); }
       }
     });
 
@@ -262,8 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
         filterMenu.classList.remove("open");
         filterMenu.setAttribute("aria-hidden", "true");
         filterBtn.setAttribute("aria-expanded", "false");
-        filterPanel.classList.add("visually-hidden");
-        filterPanel.setAttribute("aria-hidden", "true");
+        if (filterPanel) { filterPanel.classList.add("visually-hidden"); filterPanel.setAttribute("aria-hidden", "true"); }
       }
     });
 
@@ -274,24 +326,20 @@ document.addEventListener("DOMContentLoaded", () => {
           filterMenu.classList.remove("open");
           filterMenu.setAttribute("aria-hidden", "true");
           filterBtn.setAttribute("aria-expanded", "false");
-          filterPanel.classList.add("visually-hidden");
-          filterPanel.setAttribute("aria-hidden", "true");
+          if (filterPanel) { filterPanel.classList.add("visually-hidden"); filterPanel.setAttribute("aria-hidden", "true"); }
         }
       }
     });
 
-    // handle clicks on menu items (view switches and opening small filter panel)
+    // handle clicks on menu items
     filterMenu.querySelectorAll("button[data-action]").forEach(btn => {
       btn.addEventListener("click", (ev) => {
         const action = btn.dataset.action;
         if (action === "view") {
-          // change view and re-render
           view = btn.dataset.view || "table";
-          // per view we can adjust perPage (optional)
           perPage = (view === "board") ? 6 : 5;
           currentPage = 1;
           renderView(users);
-          // close menu
           filterMenu.classList.remove("open");
           filterMenu.setAttribute("aria-hidden", "true");
           filterBtn.setAttribute("aria-expanded", "false");
@@ -299,25 +347,26 @@ document.addEventListener("DOMContentLoaded", () => {
           const f = btn.dataset.filter;
           openFilterPanel(f);
         } else if (action === "apply") {
-          // apply does nothing special here since we apply immediately on selection in panel,
-          // but keep it in case you want to open an advanced modal
-          alert("Apply filters (already applied).");
+          // placeholder; filters apply immediately in panel
           filterMenu.classList.remove("open");
-          filterPanel.classList.add("visually-hidden");
+          if (filterPanel) filterPanel.classList.add("visually-hidden");
         }
       });
     });
   }
 
-  /* ---------- filter panel rendering / behavior ---------- */
+  // -------------------------
+  // Filter panel rendering
+  // -------------------------
   function openFilterPanel(type) {
+    if (!filterPanel) return;
     filterPanel.innerHTML = "";
     filterPanel.classList.remove("visually-hidden");
     filterPanel.setAttribute("aria-hidden", "false");
 
     if (type === "role") {
       const label = document.createElement("div"); label.textContent = "Role"; label.style.fontWeight = "700";
-      const userBtn = document.createElement("button"); userBtn.textContent = "User"; userBtn.className = "small"; 
+      const userBtn = document.createElement("button"); userBtn.textContent = "User"; userBtn.className = "small";
       const orgBtn = document.createElement("button"); orgBtn.textContent = "Organization"; orgBtn.className = "small";
       const clearBtn = document.createElement("button"); clearBtn.textContent = "Clear"; clearBtn.className = "small";
 
@@ -373,10 +422,147 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function hideFilterPanel() {
+    if (!filterPanel) return;
     filterPanel.classList.add("visually-hidden");
     filterPanel.setAttribute("aria-hidden", "true");
   }
 
-  /* ---------- initialization ---------- */
+  // -------------------------
+  // Modals: Edit & Delete
+  // -------------------------
+  function openEditForEmail(email) {
+    const idx = users.findIndex(u => u.email === email);
+    if (idx === -1) return;
+    const u = users[idx];
+
+    editingEmail = u.email;
+    if (editEmail) editEmail.value = u.email || '';
+    if (editName) editName.value = u.name || '';
+    if (editCourse) editCourse.value = u.course || '';
+    if (editStatus) editStatus.value = u.status || 'Pending';
+    if (editRole) editRole.value = u.role || 'User';
+
+    openModal(editModal);
+  }
+
+  function openDeleteForEmail(email) {
+    const idx = users.findIndex(u => u.email === email);
+    if (idx === -1) return;
+    deletingEmail = email;
+    if (deleteMessage) deleteMessage.textContent = `Are you sure you want to delete ${users[idx].name}?`;
+    openModal(deleteModal);
+  }
+
+  // edit form submit
+  if (editForm) {
+    editForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!editingEmail) { closeModal(editModal); return; }
+      const idx = users.findIndex(u => u.email === editingEmail);
+      if (idx === -1) { closeModal(editModal); return; }
+
+      // update record
+      users[idx].email = (editEmail && editEmail.value) ? editEmail.value.trim() : users[idx].email;
+      users[idx].name = (editName && editName.value) ? editName.value.trim() : users[idx].name;
+      users[idx].course = (editCourse && editCourse.value) ? editCourse.value.trim() : users[idx].course;
+      users[idx].status = (editStatus && editStatus.value) ? editStatus.value : users[idx].status;
+      users[idx].role = (editRole && editRole.value) ? editRole.value : users[idx].role;
+
+      editingEmail = null;
+      renderView(users);
+      closeModal(editModal);
+    });
+  }
+
+  // cancel edit
+  if (cancelEdit) {
+    cancelEdit.addEventListener('click', () => {
+      editingEmail = null;
+      closeModal(editModal);
+    });
+  }
+
+  // delete handlers
+  if (cancelDelete) {
+    cancelDelete.addEventListener('click', () => {
+      deletingEmail = null;
+      closeModal(deleteModal);
+    });
+  }
+  if (confirmDelete) {
+    confirmDelete.addEventListener('click', () => {
+      if (!deletingEmail) { closeModal(deleteModal); return; }
+      const idx = users.findIndex(u => u.email === deletingEmail);
+      if (idx > -1) {
+        users.splice(idx, 1);
+        // reapply filters and reset page
+        currentPage = 1;
+        renderView(users);
+      }
+      deletingEmail = null;
+      closeModal(deleteModal);
+    });
+  }
+
+  // backdrop click to close modals (requires modal markup to include .modal-backdrop with data-close-modal attribute)
+  document.querySelectorAll('[data-close-modal]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const modal = e.target.closest('.modal');
+      if (modal) {
+        if (modal === editModal) editingEmail = null;
+        if (modal === deleteModal) deletingEmail = null;
+        closeModal(modal);
+      }
+    });
+  });
+
+  // Escape closes modals
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (editModal && editModal.classList.contains('open')) { editingEmail = null; closeModal(editModal); }
+      if (deleteModal && deleteModal.classList.contains('open')) { deletingEmail = null; closeModal(deleteModal); }
+    }
+  });
+
+  // -------------------------
+  // Attach click handlers to action icons (edit/delete)
+  // -------------------------
+  function attachModalRowActions() {
+    // For safety, remove previous listeners by replacing nodes with clones, then reattach
+    document.querySelectorAll('.action-icon.edit').forEach(original => {
+      const clone = original.cloneNode(true);
+      original.parentNode.replaceChild(clone, original);
+    });
+    document.querySelectorAll('.action-icon.del').forEach(original => {
+      const clone = original.cloneNode(true);
+      original.parentNode.replaceChild(clone, original);
+    });
+
+    // Now add listeners
+    document.querySelectorAll('.action-icon.edit').forEach(el => {
+      el.addEventListener('click', () => {
+        const email = el.getAttribute('data-email');
+        if (email) openEditForEmail(email);
+      });
+    });
+    document.querySelectorAll('.action-icon.del').forEach(el => {
+      el.addEventListener('click', () => {
+        const email = el.getAttribute('data-email');
+        if (email) openDeleteForEmail(email);
+      });
+    });
+  }
+
+  // -------------------------
+  // Initialize (render first view)
+  // -------------------------
   renderView(users);
+
+  // Expose some helpers to console for quick testing (optional)
+  window.__adminDemo = {
+    users,
+    renderView,
+    openEditForEmail,
+    openDeleteForEmail
+  };
 });
