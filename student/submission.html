@@ -1,52 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Document Printing Submission Form</title>
-  <link rel="stylesheet" href="/style/submissionstyles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLU PrintDesk | Home</title>
+    <link rel="stylesheet" href="../style/style.css" />
+    <script src="script/main.js"></script>
 </head>
-<body>
 
-<form id="printForm" enctype="multipart/form-data">
-  <h2>Document Printing Submission Form</h2>
-  <p>Please fill out the details below to request your school document for printing.</p>
+<body class="submission-body">
+    <!-- NAVIGATION BAR -->
+    <header class="navbar">
+        <div class="logo">
+            <img src="../images/student_img/SLU_printdesk_logo.png" alt="SLU PrintDesk Logo" />
+        </div>
 
-  <input type="text" id="fullName" name="fullName" placeholder="Full Name" required>
-  <input type="text" id="courseYear" name="courseYear" placeholder="Course and Year" required>
-  <input type="email" id="email" name="email" placeholder="Email Address" required>
-  <input type="text" id="documentTitle" name="documentTitle" placeholder="Document Title" required>
-  <input type="number" id="numberOfCopies" name="numberOfCopies" placeholder="Number of Copies" required>
+        <nav>
+            <ul>
+                <li><a href="home.html">Home</a></li>
+                <li><a href="submission.html" class="active">Submission</a></li>
+                <li><a href="history.html">History</a></li>
+            </ul>
+        </nav>
 
-  <select id="printingSide" name="printingSide" required>
-    <option value="">Select side</option>
-    <option value="Single-sided">Single-sided</option>
-    <option value="Double-sided">Double-sided</option>
-  </select>
+        <div class="profile-icon">
+            <img src="../images/student_img/profile.png" alt="Profile" />
+        </div>
+    </header>
 
-  <select id="paperSize" name="paperSize" required>
-    <option value="">Select paper size</option>
-    <option value="A4">A4</option>
-    <option value="Legal">Legal</option>
-  </select>
+    <!-- HERO SECTION -->
+    <section class="print-hero">
+        <div class="hero-text">
+            <h1>SUBMIT A PRINT REQUEST</h1>
+            <p>Upload your document and set your printing preference below</p>
+        </div>
 
-  <select id="printType" name="printType" required>
-    <option value="">Select print type</option>
-    <option value="Black & White">Black & White</option>
-    <option value="Colored">Colored</option>
-  </select>
+        <div class="hero-image">
+            <img src="../images/student_img/submission/hero_submission.png" alt="Print Request Illustration" />
+        </div>
+    </section>
 
-  <input type="datetime-local" id="pickupDateTime" name="pickupDateTime" required>
-  <textarea id="notes" name="notes" placeholder="Additional Notes"></textarea>
+    <!-- PRINT REQUEST FORM -->
+    <section class="print-form-section">
+        <div class="print-form-wrapper">
+            <h3 class="form-section-title">PRINT REQUEST FORM</h3>
 
-  <input type="file" id="file" name="file" accept=".pdf,.doc,.docx,.jpg,.png" required>
+            <form id="printRequestForm" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Full Name:</label>
+                    <input type="text" name="full_name" placeholder="Your answer" required />
+                </div>
 
-  <button type="submit">Submit Request</button>
-</form>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Course & Year:</label>
+                        <input type="text" name="course_year" placeholder="Your answer" required />
+                    </div>
 
-<p id="statusMessage"></p>
+                    <div class="form-group">
+                        <label>Email Address:</label>
+                        <input type="email" name="email" placeholder="Your answer" required />
+                    </div>
+                </div>
 
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Number of Copies:</label>
+                        <input type="number" name="copies" value="1" min="1" />
+                    </div>
 
-<script src="/script/submission.js"></script>
+                    <div class="form-group">
+                        <label>Paper Size:</label>
+                        <select name="paper_size" required>
+                            <option value="" disabled selected>Select paper size</option>
+                            <option value="A4">A4</option>
+                            <option value="Letter">Letter</option>
+                            <option value="Legal">Legal</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Paper Side:</label>
+                        <select name="paper_side" required>
+                            <option value="" disabled selected>Select side</option>
+                            <option value="Single-sided">Single-sided</option>
+                            <option value="Double-sided">Double-sided</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Paper Type:</label>
+                        <select name="paper_type" required>
+                            <option value="" disabled selected>Select print type</option>
+                            <option value="Black & White">Black & White</option>
+                            <option value="Colored">Colored</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Preferred Pickup Date & Time:</label>
+                    <input type="datetime-local" name="pickup_datetime" required />
+                </div>
+
+                <div class="form-group">
+                    <label>Upload File:</label>
+                    <div class="drop-zone">
+                        <p>Browse File</p>
+                        <span>Drag & Drop files here</span>
+                        <input type="file" name="document" class="drop-zone-input" required />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Additional Notes or Instruction:</label>
+                    <textarea name="notes" placeholder="Specify printing preferences or remarks..."></textarea>
+                </div>
+
+                <div class="form-group confirm-group">
+                    <label>
+                        <input type="checkbox" required />
+                        I confirm that the information provided above is accurate and complete.
+                    </label>
+                </div>
+
+                <div class="form-buttons">
+                    <button type="reset" class="reset-btn">Reset</button>
+                    <button type="submit" class="submit-btn">Submit</button>
+                </div>
+            </form>
+        </div>
+    </section>
 </body>
+
 </html>
