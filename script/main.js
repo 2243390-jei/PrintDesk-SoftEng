@@ -1,10 +1,10 @@
 // --- Dummy users (for manual login) ---
 const users = [
   { role: "student", email: "student@slu.edu.ph", password: "student123" },
-  { role: "admin",   email: "admin@slu.edu.ph",   password: "admin123" }
+  { role: "admin", email: "admin@slu.edu.ph", password: "admin123" }
 ];
 
-// --- Manual login (dummy only) ---
+// --- Handle manual login ---
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
   if (loginForm) {
@@ -17,9 +17,16 @@ document.addEventListener("DOMContentLoaded", () => {
       if (user) {
         alert(`Login successful! Welcome, ${user.role.toUpperCase()}.`);
 
+        // Store role for session handling
+        localStorage.setItem("manualUser", JSON.stringify(user));
+
         switch (user.role) {
-          case "student": window.location.href = "student/home.html"; break;
-          case "admin":   window.location.href = "admin/dashboard.html"; break;
+          case "student":
+            window.location.href = "student/home.html";
+            break;
+          case "admin":
+            window.location.href = "admin/dashboard.html";
+            break;
         }
       } else {
         alert("Invalid email or password. Please try again.");
@@ -27,23 +34,22 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // --- Navbar profile update (for logged-in users) ---
+  // --- Navbar profile update (if user is logged in) ---
   const navbarProfilePic = document.getElementById("nav-profile-pic");
   if (navbarProfilePic) {
-    const user = JSON.parse(localStorage.getItem("googleUser"));
+    const googleUser = JSON.parse(localStorage.getItem("googleUser"));
+    const manualUser = JSON.parse(localStorage.getItem("manualUser"));
 
-    if (user) {
-      if (user.picture) {
-        navbarProfilePic.src = user.picture;
-        navbarProfilePic.style.borderRadius = "50%";
-      } else {
-        console.warn("No Google picture found.");
-      }
+    if (googleUser && googleUser.picture) {
+      navbarProfilePic.src = googleUser.picture;
+      navbarProfilePic.style.borderRadius = "50%";
+    } else if (manualUser) {
+      // Default avatar for manual user
+      navbarProfilePic.src = "../assets/default-avatar.png";
+      navbarProfilePic.style.borderRadius = "50%";
     } else {
-      // Redirect only if not logged in and not on index.html
-      if (!window.location.pathname.endsWith("index.html")) {
-        window.location.href = "../index.html";
-      }
+      // Not logged in — redirect to login
+      window.location.href = "../index.html";
     }
   }
 });
@@ -68,16 +74,14 @@ function handleCredentialResponse(response) {
   const data = JSON.parse(atob(response.credential.split('.')[1]));
   console.log("Google User Data:", data);
 
-  // Save user info to localStorage
   localStorage.setItem("googleUser", JSON.stringify(data));
 
-  const email = (data.email || "").toLowerCase();
+  const email = data.email.toLowerCase();
   alert(`Logged in as ${email}`);
 
-  // --- SLU email domain validation ---
+  // --- Role detection logic ---
   if (email.includes("@slu.edu.ph")) {
     if (/^\d+@slu\.edu\.ph$/.test(email)) {
-      // Student email (numbers only before @)
       window.location.href = "student/home.html";
     } else if (email.startsWith("admin@")) {
       window.location.href = "admin/dashboard.html";

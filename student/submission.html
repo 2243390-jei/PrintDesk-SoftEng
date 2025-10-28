@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Printing Submission Form</title>
+  <link rel="stylesheet" href="/style/submissionstyles.css">
+</head>
+<body>
+
+<form id="printForm" enctype="multipart/form-data">
+  <h2>Document Printing Submission Form</h2>
+  <p>Please fill out the details below to request your school document for printing.</p>
+
+  <input type="text" id="fullName" name="fullName" placeholder="Full Name" required>
+  <input type="text" id="courseYear" name="courseYear" placeholder="Course and Year" required>
+  <input type="email" id="email" name="email" placeholder="Email Address" required>
+  <input type="text" id="documentTitle" name="documentTitle" placeholder="Document Title" required>
+  <input type="number" id="numberOfCopies" name="numberOfCopies" placeholder="Number of Copies" required>
+
+  <select id="printingSide" name="printingSide" required>
+    <option value="">Select side</option>
+    <option value="Single-sided">Single-sided</option>
+    <option value="Double-sided">Double-sided</option>
+  </select>
+
+  <select id="paperSize" name="paperSize" required>
+    <option value="">Select paper size</option>
+    <option value="A4">A4</option>
+    <option value="Legal">Legal</option>
+  </select>
+
+  <select id="printType" name="printType" required>
+    <option value="">Select print type</option>
+    <option value="Black & White">Black & White</option>
+    <option value="Colored">Colored</option>
+  </select>
+
+  <input type="datetime-local" id="pickupDateTime" name="pickupDateTime" required>
+  <textarea id="notes" name="notes" placeholder="Additional Notes"></textarea>
+
+  <input type="file" id="file" name="file" accept=".pdf,.doc,.docx,.jpg,.png" required>
+
+  <button type="submit">Submit Request</button>
+</form>
+
+<p id="statusMessage"></p>
+
+
+<script src="/script/submission.js"></script>
+</body>
+</html>
