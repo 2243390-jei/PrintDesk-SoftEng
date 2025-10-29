@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Admin — Print Record History</title>
+    <title>Admin — Print Management</title>
 
     <!-- CSS (from admin/css/) -->
-    <link rel="stylesheet" href="../css/printrecordhistory.css" />
+    <link rel="stylesheet" href="../css/printmanagement.css" />
 
     <!-- JS -->
-    <script src="../js/printrecordhistory.js" defer></script>
+    <script src="../js/printmanagement.js" defer></script>
 
     <!-- FontAwesome (optional icons) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -31,7 +31,7 @@
               <span class="text">QUEUE</span>
             </a>
           </li>
-          <li class="nav-item">
+          <li class="nav-item active">
             <a href="printmanagement.html">
               <span class="text">PRINT</span>
             </a>
@@ -41,7 +41,7 @@
               <span class="text">STATISTICS</span>
             </a>
           </li>
-          <li class="nav-item active">
+          <li class="nav-item">
             <a href="printrecordhistory.html">
               <span class="text">RECORDS</span>
             </a>
@@ -71,7 +71,7 @@
 
           <section class="card">
             <div class="card-header">
-              <h2>Print Record History</h2>
+              <h2>Print Management</h2>
 
               <div class="controls">
                 <div class="search" role="search" aria-label="Search print records">
@@ -85,8 +85,8 @@
 
                 <!-- Filter Dropdown -->
                 <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
-                  <button type="button" data-action="open-filter" data-filter="printer" role="menuitem">Printer</button>
-                  <button type="button" data-action="open-filter" data-filter="printType" role="menuitem">Print Type</button>
+                  <button type="button" data-action="open-filter" data-filter="status" role="menuitem">Status</button>
+                  <button type="button" data-action="open-filter" data-filter="course" role="menuitem">Course</button>
                   <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
                   <div class="divider" aria-hidden="true"></div>
                   <button type="button" data-action="clear" class="small" role="menuitem">Clear Filters</button>
@@ -102,14 +102,12 @@
                   <thead>
                     <tr>
                       <th class="col-check"><input id="selectAll" type="checkbox" /></th>
-                      <th>Time</th>
+                      <th>No.</th>
                       <th>Name</th>
-                      <th>Pages</th>
-                      <th>Copies</th>
-                      <th>Printer</th>
-                      <th>Documents</th>
-                      <th>Print Type</th>
-                      <th class="col-actions">Details</th>
+                      <th>Course and Year</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th class="col-actions">Others</th>
                     </tr>
                   </thead>
                   <tbody id="recordsBody"></tbody>
