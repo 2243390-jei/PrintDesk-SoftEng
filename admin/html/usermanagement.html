@@ -10,100 +10,130 @@
   </head>
   <body>
     <div class="app">
-      <aside class="leftbar" aria-label="Main navigation">
-        <div class="brand"><div class="avatar">A</div></div>
-        <nav class="left-nav" role="navigation" aria-label="Sidebar">
-          <button class="circle-btn" aria-hidden="true"></button>
-          <button class="circle-btn active" aria-hidden="true"></button>
-          <button class="circle-btn" aria-hidden="true"></button>
-          <button class="circle-btn" aria-hidden="true"></button>
-        </nav>
-      </aside>
+      <!-- Navigation Sidebar -->
+      <nav class="sidebar">
+        <div class="sidebar-header">
+          <div class="admin-profile">
+            <div class="admin-role">ADMIN</div>
+            <div class="admin-name">Admin Name</div>
+          </div>
+        </div>
+        
+        <ul class="nav-links">
+          <li class="nav-item">
+            <a href="#">
+              <span class="text">QUEUE</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <span class="text">PRINT</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <span class="text">STATISTICS</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <span class="text">RECORDS</span>
+            </a>
+          </li>
+          <li class="nav-item active">
+            <a href="#">
+              <span class="text">MANAGE</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
 
       <main class="main-area" role="main">
-        <header class="header">
-          <div class="title-block">
-            <h1 class="title">ADMIN DASHBOARD</h1>
-            <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
-          </div>
-
-          <div class="brand-right">
-            <img src="../../images/SLU_printdesk_logo.png" alt="SLU LOGO" />
-          </div>
-        </header>
-
-        <section class="card">
-          <div class="card-header">
-            <h2>User Management</h2>
-
-            <div class="controls">
-              <div class="search" role="search" aria-label="Search users">
-                <img src="../../images/admin_img/loupe.png" alt="loupe icon">
-                <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
-              </div>
-
-              <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="filterMenu">
-                <img src="../../images/admin_img/filter.png" alt="filter" />
-              </button>
-
-              <!-- Filter Dropdown Panel -->
-              <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
-                <!-- view switches -->
-                <button type="button" data-action="view" data-view="table" role="menuitem">Table</button>
-                <button type="button" data-action="view" data-view="board" role="menuitem">Board</button>
-                <button type="button" data-action="view" data-view="list" role="menuitem">List</button>
-                <div class="divider" aria-hidden="true"></div>
-
-                <!-- filters that open the small inline filter panel -->
-                <button type="button" data-action="open-filter" data-filter="role" role="menuitem">Role</button>
-                <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
-                <button type="button" data-action="open-filter" data-filter="status" role="menuitem">Status</button>
-                <div class="divider" aria-hidden="true"></div>
-
-                <button type="button" data-action="apply" class="primary" role="menuitem">Filter</button>
-
-                <!-- small inline panel for choosing filter values -->
-                <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="card-inner">
-            <div class="table-wrap">
-              <!-- keep table visible for "table" view -->
-              <table class="users-table" aria-describedby="user-table">
-                <thead>
-                  <tr>
-                    <th class="col-check"><input id="selectAll" type="checkbox" /></th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Course & Year</th>
-                    <th>Status</th>
-                    <th>Role</th>
-                    <th class="col-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="usersBody"></tbody>
-              </table>
-
-              <!-- board (cards) container -->
-              <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
-
-              <!-- list container (compact rows) -->
-              <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
+        <div class="content-area">
+          <header class="header">
+            <div class="title-block">
+              <h1 class="title">ADMIN DASHBOARD</h1>
+              <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
             </div>
 
-            <div class="table-footer">
-              <div class="pagination">
-                <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
-                <div id="pageNumbers" class="page-numbers"></div>
-                <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
+            <div class="brand-right">
+              <img src="../../images/SLU_printdesk_logo.png" alt="SLU LOGO" />
+            </div>
+          </header>
+
+          <section class="card">
+            <div class="card-header">
+              <h2>User Management</h2>
+
+              <div class="controls">
+                <div class="search" role="search" aria-label="Search users">
+                  <img src="../../images/admin_img/loupe.png" alt="loupe icon">
+                  <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
+                </div>
+
+                <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="filterMenu">
+                  <img src="../../images/admin_img/filter.png" alt="filter" />
+                </button>
+
+                <!-- Filter Dropdown Panel -->
+                <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
+                  <!-- view switches -->
+                  <button type="button" data-action="view" data-view="table" role="menuitem">Table</button>
+                  <button type="button" data-action="view" data-view="board" role="menuitem">Board</button>
+                  <button type="button" data-action="view" data-view="list" role="menuitem">List</button>
+                  <div class="divider" aria-hidden="true"></div>
+
+                  <!-- filters that open the small inline filter panel -->
+                  <button type="button" data-action="open-filter" data-filter="role" role="menuitem">Role</button>
+                  <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
+                  <button type="button" data-action="open-filter" data-filter="status" role="menuitem">Status</button>
+                  <div class="divider" aria-hidden="true"></div>
+
+                  <button type="button" data-action="apply" class="primary" role="menuitem">Filter</button>
+
+                  <!-- small inline panel for choosing filter values -->
+                  <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
 
-        <footer class="footer muted">© <span id="curYear"></span> Admin User Management</footer>
+            <div class="card-inner">
+              <div class="table-wrap">
+                <!-- keep table visible for "table" view -->
+                <table class="users-table" aria-describedby="user-table">
+                  <thead>
+                    <tr>
+                      <th class="col-check"><input id="selectAll" type="checkbox" /></th>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Course & Year</th>
+                      <th>Status</th>
+                      <th>Role</th>
+                      <th class="col-actions">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="usersBody"></tbody>
+                </table>
+
+                <!-- board (cards) container -->
+                <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
+
+                <!-- list container (compact rows) -->
+                <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
+              </div>
+
+              <div class="table-footer">
+                <div class="pagination">
+                  <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
+                  <div id="pageNumbers" class="page-numbers"></div>
+                  <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <footer class="footer muted">© <span id="curYear"></span> Admin User Management</footer>
+        </div>         
       </main>
     </div>
 
