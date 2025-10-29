@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Admin — Analytics</title>
+    <link rel="stylesheet" href="/admin/css/statistics.css" />
+    <script src="/admin/js/statistics.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- Navigation Sidebar -->
+      <nav class="sidebar">
+        <div class="sidebar-header">
+          <div class="admin-profile">
+            <div class="admin-role">ADMIN</div>
+            <div class="admin-name">Admin Name</div>
+          </div>
+        </div>
+        
+        <ul class="nav-links">
+          <li class="nav-item">
+            <a href="/admin/html/queue.html">
+              <span class="text">QUEUE</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#">
+              <span class="text">PRINT</span>
+            </a>
+          </li>
+          <li class="nav-item active">
+            <a href="/admin/html/statistics.html">
+              <span class="text">STATISTICS</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/admin/html/printrecordhistory.html">
+              <span class="text">RECORDS</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/admin/html/usermanagement.html">
+              <span class="text">MANAGE</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <div class="content-area">
+          <header class="header">
+            <div class="title-block">
+              <h1 class="title">ADMIN DASHBOARD</h1>
+              <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
+            </div>
+
+            <div class="brand-right">
+            <!-- images folder is outside admin/, so go up two levels -->
+            <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
+          </div>
+          </header>
+
+          <section class="card">
+            <div class="card-header">
+              <h2>Analytics Overview</h2>
+
+              <div class="controls">
+                <div class="date-filter">
+                  <select id="timeRange" class="time-select">
+                    <option value="today">Today</option>
+                    <option value="week" selected>This Week</option>
+                    <option value="month">This Month</option>
+                  </select>
+                </div>
+
+                <button id="refreshBtn" class="icon-btn" title="Refresh Data">
+                  <div class="refresh-icon">🔄</div>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-inner">
+              <!-- Statistics Cards -->
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-icon users">👥</div>
+                  <div class="stat-content">
+                    <div class="stat-value" id="totalUsers">1,247</div>
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-change positive">+12% from last week</div>
+                  </div>
+                </div>
+
+                <div class="stat-card">
+                  <div class="stat-icon prints">📄</div>
+                  <div class="stat-content">
+                    <div class="stat-value" id="totalPrints">3,845</div>
+                    <div class="stat-label">Total Prints</div>
+                    <div class="stat-change positive">+8% from last week</div>
+                  </div>
+                </div>
+
+                <div class="stat-card">
+                  <div class="stat-icon leads">📈</div>
+                  <div class="stat-content">
+                    <div class="stat-value" id="totalLeads">156</div>
+                    <div class="stat-label">Total Leads</div>
+                    <div class="stat-change positive">+15% from last week</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Charts Section -->
+              <div class="charts-container">
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <h3>Daily Overview</h3>
+                    <div class="chart-controls">
+                      <button class="chart-period active" data-period="day">Day</button>
+                      <button class="chart-period" data-period="week">Week</button>
+                    </div>
+                  </div>
+                  <div class="chart-wrapper">
+                    <canvas id="dailyChart"></canvas>
+                  </div>
+                </div>
+
+                <div class="chart-card">
+                  <div class="chart-header">
+                    <h3>Print Trends</h3>
+                  </div>
+                  <div class="chart-wrapper">
+                    <canvas id="trendsChart"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Data Table -->
+              <div class="data-section">
+                <h3>Recent Activity</h3>
+                <div class="data-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>10:30 AM</td>
+                        <td>Piamonte, Malech</td>
+                        <td>Print Request</td>
+                        <td><span class="status-badge completed">Completed</span></td>
+                      </tr>
+                      <tr>
+                        <td>10:15 AM</td>
+                        <td>Argao, Jelloyd</td>
+                        <td>Print Request</td>
+                        <td><span class="status-badge pending">Pending</span></td>
+                      </tr>
+                      <tr>
+                        <td>09:45 AM</td>
+                        <td>Aguilan, Jecquar</td>
+                        <td>New Lead</td>
+                        <td><span class="status-badge new">New</span></td>
+                      </tr>
+                      <tr>
+                        <td>09:30 AM</td>
+                        <td>Santos, Maria</td>
+                        <td>Print Request</td>
+                        <td><span class="status-badge completed">Completed</span></td>
+                      </tr>
+                      <tr>
+                        <td>09:15 AM</td>
+                        <td>Reyes, Juan</td>
+                        <td>User Registration</td>
+                        <td><span class="status-badge completed">Completed</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <footer class="footer muted">© <span id="curYear"></span> PrintDesk Analytics</footer>
+        </div>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </body>
+</html>
