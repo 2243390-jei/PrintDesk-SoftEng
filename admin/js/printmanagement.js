@@ -8,7 +8,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Clear all filters button
   function clearAllFilters() {
-    activeFilters.status = null;
     activeFilters.course = null;
     activeFilters.dateFrom = null;
     activeFilters.dateTo = null;
@@ -22,11 +21,106 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   const records = [
-    { no: 1, name: "Piamonte, Malech", course: "BSIT 3", date: "10/10/25", status: "Accepted", details: "View assignment details" },
-    { no: 2, name: "Argao, Jeiloyd", course: "BSIT 3", date: "10/10/25", status: "Pending", details: "View assignment details" },
-    { no: 3, name: "Aguilan, Jecquar", course: "BSIT 3", date: "10/10/25", status: "Rejected", details: "View assignment details" },
-    { no: 4, name: "Doe, John", course: "BSIT 3", date: "10/10/25", status: "Accepted", details: "View assignment details" },
-    { no: 5, name: "Smith, Jane", course: "BSIT 3", date: "10/10/25", status: "Pending", details: "View assignment details" }
+    { 
+      no: 1, 
+      name: "Piamonte, Malech", 
+      course: "BSIT 3", 
+      date: "10/10/25", 
+      status: "Accepted",
+      details: {
+        submittedOn: "October 10, 2025",
+        totalCost: "15 tokens",
+        requestId: "RQRF2D7B",
+        fileName: "Automobile_Anatomy.pdf",
+        pageCount: "1",
+        copies: "1",
+        paperSize: "A4",
+        printType: "Colored",
+        printingSide: "Single-Sided",
+        pickupDate: "October 20, 2025",
+        previewImage: "../../images/SLU_Logo.png"
+      }
+    },
+    { 
+      no: 2, 
+      name: "Argao, Jeiloyd", 
+      course: "BSIT 3", 
+      date: "10/10/25", 
+      status: "Accepted",
+      details: {
+        submittedOn: "October 10, 2025",
+        totalCost: "25 tokens",
+        requestId: "RQRF3E8C",
+        fileName: "Programming_Assignment.pdf",
+        pageCount: "5",
+        copies: "2",
+        paperSize: "Letter",
+        printType: "Black & White",
+        printingSide: "Double-Sided",
+        pickupDate: "October 21, 2025",
+        previewImage: "../../images/SLU_printdesk_logo.png"
+      }
+    },
+    { 
+      no: 3, 
+      name: "Aguilan, Jecquar", 
+      course: "BSIT 3", 
+      date: "10/10/25", 
+      status: "Accepted",
+      details: {
+        submittedOn: "October 10, 2025",
+        totalCost: "10 tokens",
+        requestId: "RQRF4D9A",
+        fileName: "Research_Paper.pdf",
+        pageCount: "8",
+        copies: "1",
+        paperSize: "A4",
+        printType: "Black & White",
+        printingSide: "Double-Sided",
+        pickupDate: "October 19, 2025",
+        previewImage: "../../images/Icon.png"
+      }
+    },
+    { 
+      no: 4, 
+      name: "Doe, John", 
+      course: "BSIT 3", 
+      date: "10/11/25", 
+      status: "Accepted",
+      details: {
+        submittedOn: "October 11, 2025",
+        totalCost: "30 tokens",
+        requestId: "RQRF5B2E",
+        fileName: "Project_Presentation.pdf",
+        pageCount: "15",
+        copies: "3",
+        paperSize: "A4",
+        printType: "Colored",
+        printingSide: "Single-Sided",
+        pickupDate: "October 22, 2025",
+        previewImage: "../../images/lock.png"
+      }
+    },
+    { 
+      no: 5, 
+      name: "Smith, Jane", 
+      course: "BSIT 3", 
+      date: "10/11/25", 
+      status: "Accepted",
+      details: {
+        submittedOn: "October 11, 2025",
+        totalCost: "20 tokens",
+        requestId: "RQRF6C1F",
+        fileName: "Lab_Report.pdf",
+        pageCount: "12",
+        copies: "2",
+        paperSize: "Legal",
+        printType: "Black & White",
+        printingSide: "Single-Sided",
+        pickupDate: "October 23, 2025",
+        previewImage: "../../images/admin_img/Screenshot 2025-10-20 110300.png"
+      }
+    }
   ];
 
   // -------------------------
@@ -58,7 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentPage = 1;
   let filtered = [...records];
   let view = "table"; // for future: 'board' or 'list'
-  let activeFilters = { status: null, course: null, dateFrom: null, dateTo: null };
+  let activeFilters = { course: null, dateFrom: null, dateTo: null };
 
   if (curYear) curYear.textContent = new Date().getFullYear();
 
@@ -87,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${rec.course}</td>
         <td>${rec.date}</td>
         <td><span class="pill ${rec.status.toLowerCase()}">${rec.status}</span></td>
-        <td class="col-actions"><button class="action-btn view-details" data-id="${rec.name}">${rec.details}</button></td>
+        <td class="col-actions"><button class="action-btn view-details" data-id="${rec.name}">View Details</button></td>
       `;
       recordsBody.appendChild(tr);
     });
@@ -129,15 +223,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : "";
     return list.filter(r => {
       const matchesSearch = q === "" || r.name.toLowerCase().includes(q) || r.course.toLowerCase().includes(q);
-
-      const matchesStatus = activeFilters.status ? r.status === activeFilters.status : true;
       const matchesCourse = activeFilters.course ? r.course === activeFilters.course : true;
-
       let matchesDate = true;
       if (activeFilters.dateFrom) matchesDate = matchesDate && (new Date(r.date) >= new Date(activeFilters.dateFrom));
       if (activeFilters.dateTo) matchesDate = matchesDate && (new Date(r.date) <= new Date(activeFilters.dateTo));
 
-      return matchesSearch && matchesStatus && matchesCourse && matchesDate;
+      return matchesSearch && matchesCourse && matchesDate;
     });
   }
 
@@ -224,25 +315,6 @@ document.addEventListener("DOMContentLoaded", () => {
     filterPanel.classList.remove("visually-hidden");
     filterPanel.setAttribute("aria-hidden", "false");
 
-    if (type === "status") {
-      const label = document.createElement("div"); label.textContent = "Status"; label.style.fontWeight = "700";
-      const statuses = ["Accepted", "Pending", "Rejected"];
-      filterPanel.appendChild(label);
-      statuses.forEach(s => {
-        const b = document.createElement("button"); b.textContent = s; b.className = "small";
-        if (activeFilters.status === s) b.classList.add("active");
-        b.addEventListener("click", () => { 
-          activeFilters.status = s; 
-          currentPage = 1; 
-          renderView(records); 
-          hideFilterPanel(); 
-        });
-        filterPanel.appendChild(b);
-      });
-      const clear = document.createElement("button"); clear.textContent = "Clear"; clear.className = "small";
-      clear.addEventListener("click", () => { activeFilters.status = null; currentPage = 1; renderView(records); hideFilterPanel(); });
-      filterPanel.appendChild(clear);
-    }
 
     if (type === "course") {
       const label = document.createElement("div"); label.textContent = "Course"; label.style.fontWeight = "700";
@@ -295,36 +367,86 @@ document.addEventListener("DOMContentLoaded", () => {
   function attachDetailHandlers() {
     document.querySelectorAll(".view-details").forEach(btn => {
       btn.addEventListener("click", (e) => {
-        const id = btn.getAttribute("data-id") || "";
-        // simple lookup by name+doc+date combination
-        const parts = id.split("|");
-        const doc = parts[0], nm = parts[1], when = parts[2];
-        const rec = records.find(r => r.documents === doc && r.name === nm && r.when === when) || records.find(r => r.documents === doc);
-        if (!rec) return;
-        showDetails(rec);
+        e.preventDefault();
+        const id = btn.getAttribute("data-id");
+        const record = records.find(r => r.name === id);
+        showDetails(record);
       });
     });
   }
 
   function showDetails(rec) {
-    if (!detailsBody || !detailsModal) return;
-    detailsBody.innerHTML = `
-      <p><strong>Student ID:</strong> 2023-00001</p>
-      <p><strong>Name:</strong> ${rec.name}</p>
-      <p><strong>Course:</strong> ${rec.course}</p>
-      <p><strong>Status:</strong> ${rec.status}</p>
-      <p><strong>Date:</strong> ${rec.date}</p>
-      <p><strong>Document Name:</strong> Assignment1.pdf</p>
-      <p><strong>Pages:</strong> 5</p>
-      <p><strong>Print Type:</strong> Black & White</p>
-      <p><strong>Paper Size:</strong> A4</p>
-    `;
+    if (!detailsModal || !rec || !rec.details) return;
+
+    // Set preview image
+    const previewImage = detailsModal.querySelector('#previewImage');
+    if (previewImage) {
+      previewImage.src = rec.details.previewImage;
+      previewImage.alt = `Preview of ${rec.details.fileName}`;
+    }
+
+    // Update the detail fields
+    const fields = {
+      '#submittedDate': rec.details.submittedOn,
+      '#totalCost': rec.details.totalCost,
+      '#statusBadge': rec.status,
+      '#requestId': rec.details.requestId,
+      '#fileName': rec.details.fileName,
+      '#pageCount': rec.details.pageCount,
+      '#copiesCount': rec.details.copies,
+      '#paperSize': rec.details.paperSize,
+      '#printType': rec.details.printType,
+      '#printingSide': rec.details.printingSide,
+      '#pickupDate': rec.details.pickupDate
+    };
+
+    Object.entries(fields).forEach(([selector, value]) => {
+      const element = detailsModal.querySelector(selector);
+      if (element) element.textContent = value;
+    });
+
+    // Update status badge style
+    const statusBadge = detailsModal.querySelector('#statusBadge');
+    if (statusBadge) {
+      statusBadge.className = 'status-badge';
+      statusBadge.classList.add(rec.status.toLowerCase());
+      switch (rec.status.toLowerCase()) {
+        case 'accepted':
+          statusBadge.style.background = '#e8f6ea';
+          statusBadge.style.color = '#1f7a2f';
+          break;
+        case 'pending':
+          statusBadge.style.background = '#fff3cd';
+          statusBadge.style.color = '#856404';
+          break;
+        case 'rejected':
+          statusBadge.style.background = '#f8d7da';
+          statusBadge.style.color = '#721c24';
+          break;
+      }
+    }
+
+    // Show the modal
     detailsModal.classList.add("open");
     detailsModal.setAttribute("aria-hidden", "false");
+
+    // Setup print button
+    const acceptBtn = detailsModal.querySelector('#acceptBtn');
+    
+    if (acceptBtn) {
+      acceptBtn.onclick = () => {
+        rec.status = 'Accepted';
+        detailsModal.classList.remove('open');
+        detailsModal.setAttribute('aria-hidden', 'true');
+        renderView(records);
+      };
+    }
   }
 
-  if (closeDetails) {
-    closeDetails.addEventListener("click", () => {
+  // Back button and close handlers
+  const backButton = detailsModal.querySelector('#backBtn');
+  if (backButton) {
+    backButton.addEventListener('click', () => {
       detailsModal.classList.remove("open");
       detailsModal.setAttribute("aria-hidden", "true");
     });
@@ -341,6 +463,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // escape key to close modal
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (detailsModal && detailsModal.classList.contains('open')) {
