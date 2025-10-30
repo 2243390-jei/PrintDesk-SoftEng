@@ -78,6 +78,12 @@
                     <option value="today">Today</option>
                     <option value="week" selected>This Week</option>
                     <option value="month">This Month</option>
+                    <option value="term">By Term</option>
+                  </select>
+                  <select id="termFilter" class="time-select" style="display: none;">
+                    <option value="prelim">Prelim</option>
+                    <option value="midterm">Midterm</option>
+                    <option value="finals">Finals</option>
                   </select>
                 </div>
 
@@ -126,6 +132,7 @@
                     <div class="chart-controls">
                       <button class="chart-period active" data-period="day">Day</button>
                       <button class="chart-period" data-period="week">Week</button>
+                      <button class="chart-period" data-period="month">Month</button>
                     </div>
                   </div>
                   <div class="chart-wrapper">

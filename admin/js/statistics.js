@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
-  // Sample Analytics Data
+  // Sample Analytics Data with Term Data
   // -------------------------
   const analyticsData = {
     today: {
@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
       },
       trends: {
         labels: ['Users', 'Prints', 'Leads'],
-        data: [1247, 3845, 156],
+        data: [1247, 45, 8],
         colors: ['#4A90E2', '#10B981', '#8B5CF6']
       }
     },
@@ -50,6 +50,56 @@ document.addEventListener("DOMContentLoaded", () => {
         data: [1247, 15420, 625],
         colors: ['#4A90E2', '#10B981', '#8B5CF6']
       }
+    },
+    term: {
+      prelim: {
+        users: 1250,
+        prints: 5200,
+        leads: 280,
+        dailyStats: {
+          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+          users: [180, 220, 250, 280, 320],
+          prints: [800, 950, 1100, 1250, 1100],
+          leads: [40, 55, 65, 70, 50]
+        },
+        trends: {
+          labels: ['Users', 'Prints', 'Leads'],
+          data: [1250, 5200, 280],
+          colors: ['#4A90E2', '#10B981', '#8B5CF6']
+        }
+      },
+      midterm: {
+        users: 1350,
+        prints: 6800,
+        leads: 320,
+        dailyStats: {
+          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+          users: [220, 250, 280, 300, 300],
+          prints: [1100, 1300, 1450, 1550, 1400],
+          leads: [55, 65, 75, 80, 45]
+        },
+        trends: {
+          labels: ['Users', 'Prints', 'Leads'],
+          data: [1350, 6800, 320],
+          colors: ['#4A90E2', '#10B981', '#8B5CF6']
+        }
+      },
+      finals: {
+        users: 1450,
+        prints: 8200,
+        leads: 380,
+        dailyStats: {
+          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
+          users: [250, 280, 320, 350, 250],
+          prints: [1400, 1600, 1800, 2000, 1400],
+          leads: [65, 80, 95, 105, 35]
+        },
+        trends: {
+          labels: ['Users', 'Prints', 'Leads'],
+          data: [1450, 8200, 380],
+          colors: ['#4A90E2', '#10B981', '#8B5CF6']
+        }
+      }
     }
   };
 
@@ -58,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   const curYear = document.getElementById("curYear");
   const timeRange = document.getElementById("timeRange");
+  const termFilter = document.getElementById("termFilter");
   const refreshBtn = document.getElementById("refreshBtn");
 
   // Statistics elements
@@ -71,6 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Current data state
   let currentTimeRange = 'week';
+  let currentTerm = 'prelim';
   let currentChartPeriod = 'day';
 
   // -------------------------
@@ -94,11 +146,71 @@ document.addEventListener("DOMContentLoaded", () => {
   // Update Statistics
   // -------------------------
   function updateStatistics() {
-    const data = analyticsData[currentTimeRange];
+    let data;
+    
+    if (currentTimeRange === 'term') {
+      data = analyticsData.term[currentTerm];
+    } else {
+      data = analyticsData[currentTimeRange];
+    }
     
     if (totalUsers) totalUsers.textContent = data.users.toLocaleString();
     if (totalPrints) totalPrints.textContent = data.prints.toLocaleString();
     if (totalLeads) totalLeads.textContent = data.leads.toLocaleString();
+    
+    // Update percentage changes based on time range
+    updatePercentageChanges();
+  }
+
+  // -------------------------
+  // Update Percentage Changes
+  // -------------------------
+  function updatePercentageChanges() {
+    const changeElements = document.querySelectorAll('.stat-change');
+    
+    // Simulate different percentage changes based on time range
+    const changes = {
+      today: ['+12%', '+8%', '+15%'],
+      week: ['+5%', '+12%', '+8%'],
+      month: ['+18%', '+22%', '+25%'],
+      term: ['+8%', '+15%', '+12%']
+    };
+    
+    changeElements.forEach((element, index) => {
+      let changeText = changes[currentTimeRange][index];
+      
+      if (currentTimeRange === 'term') {
+        // For term, show comparison with previous term
+        const termChanges = {
+          prelim: ['New term', 'New term', 'New term'],
+          midterm: ['+8% from Prelim', '+31% from Prelim', '+14% from Prelim'],
+          finals: ['+7% from Midterm', '+21% from Midterm', '+19% from Midterm']
+        };
+        changeText = termChanges[currentTerm][index];
+      } else {
+        changeText += ` from last ${getPreviousTimeRange()}`;
+      }
+      
+      element.textContent = changeText;
+    });
+  }
+
+  function getPreviousTimeRange() {
+    switch(currentTimeRange) {
+      case 'today': return 'day';
+      case 'week': return 'week';
+      case 'month': return 'month';
+      default: return 'period';
+    }
+  }
+
+  // -------------------------
+  // Toggle Term Filter
+  // -------------------------
+  function toggleTermFilter(show) {
+    if (termFilter) {
+      termFilter.style.display = show ? 'block' : 'none';
+    }
   }
 
   // -------------------------
@@ -172,7 +284,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Chart Data Helpers
   // -------------------------
   function getDailyChartData() {
-    const data = analyticsData[currentTimeRange].dailyStats;
+    let data;
+    
+    if (currentTimeRange === 'term') {
+      data = analyticsData.term[currentTerm].dailyStats;
+    } else {
+      data = analyticsData[currentTimeRange].dailyStats;
+    }
     
     return {
       labels: data.labels,
@@ -206,7 +324,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function getTrendsChartData() {
-    const data = analyticsData[currentTimeRange].trends;
+    let data;
+    
+    if (currentTimeRange === 'term') {
+      data = analyticsData.term[currentTerm].trends;
+    } else {
+      data = analyticsData[currentTimeRange].trends;
+    }
     
     return {
       labels: data.labels,
@@ -238,6 +362,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (timeRange) {
       timeRange.addEventListener('change', (e) => {
         currentTimeRange = e.target.value;
+        
+        // Show/hide term filter based on selection
+        toggleTermFilter(currentTimeRange === 'term');
+        
+        updateStatistics();
+        updateCharts();
+      });
+    }
+
+    // Term filter
+    if (termFilter) {
+      termFilter.addEventListener('change', (e) => {
+        currentTerm = e.target.value;
         updateStatistics();
         updateCharts();
       });

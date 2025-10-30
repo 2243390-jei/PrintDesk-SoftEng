@@ -547,6 +547,39 @@ body{
     grid-template-columns: 1fr;
   }
 }
+/* Add to existing CSS */
+
+/* Semester Filter */
+.semester-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Responsive adjustments for semester filter */
+@media (max-width: 768px) {
+  .date-filter {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .semester-filter {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 520px) {
+  .date-filter {
+    width: 100%;
+  }
+  
+  .time-select {
+    width: 100%;
+  }
+}
 
 @media (max-width: 520px){
   .date-filter {
