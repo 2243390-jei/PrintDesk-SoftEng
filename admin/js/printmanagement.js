@@ -1,26 +1,8 @@
-// printrecordhistory.js
-// Place in admin/js/ and load with defer from your HTML.
-
 document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
-  // Sample records (for demo)
+  // Sample data (for testing) - Updated to match queue data structure
   // -------------------------
-
-  // Clear all filters button
-  function clearAllFilters() {
-    activeFilters.course = null;
-    activeFilters.dateFrom = null;
-    activeFilters.dateTo = null;
-    currentPage = 1;
-    renderView(records);
-    hideFilterPanel();
-    if (filterMenu) {
-      filterMenu.classList.remove("open");
-      filterMenu.setAttribute("aria-hidden", "true");
-      filterBtn.setAttribute("aria-expanded", "false");
-    }
-  }
-  const records = [
+  const printData = [
     { 
       no: 1, 
       name: "Piamonte, Malech", 
@@ -30,7 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
       details: {
         submittedOn: "October 10, 2025",
         totalCost: "15 tokens",
-        requestId: "RQRF2D7B",
+        status: "Accepted",
+        requestId: "ROBF2D7B",
         fileName: "Automobile_Anatomy.pdf",
         pageCount: "1",
         copies: "1",
@@ -43,82 +26,23 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     { 
       no: 2, 
-      name: "Argao, Jeiloyd", 
+      name: "Argao, Jelloyd", 
       course: "BSIT 3", 
       date: "10/10/25", 
       status: "Accepted",
       details: {
         submittedOn: "October 10, 2025",
-        totalCost: "25 tokens",
-        requestId: "RQRF3E8C",
-        fileName: "Programming_Assignment.pdf",
-        pageCount: "5",
+        totalCost: "18 tokens",
+        status: "Accepted",
+        requestId: "RABF207B",
+        fileName: "Data_Structures_Assignment.pdf",
+        pageCount: "3",
         copies: "2",
         paperSize: "Letter",
         printType: "Black & White",
         printingSide: "Double-Sided",
-        pickupDate: "October 21, 2025",
+        pickupDate: "October 18, 2025",
         previewImage: "../../images/SLU_printdesk_logo.png"
-      }
-    },
-    { 
-      no: 3, 
-      name: "Aguilan, Jecquar", 
-      course: "BSIT 3", 
-      date: "10/10/25", 
-      status: "Accepted",
-      details: {
-        submittedOn: "October 10, 2025",
-        totalCost: "10 tokens",
-        requestId: "RQRF4D9A",
-        fileName: "Research_Paper.pdf",
-        pageCount: "8",
-        copies: "1",
-        paperSize: "A4",
-        printType: "Black & White",
-        printingSide: "Double-Sided",
-        pickupDate: "October 19, 2025",
-        previewImage: "../../images/Icon.png"
-      }
-    },
-    { 
-      no: 4, 
-      name: "Doe, John", 
-      course: "BSIT 3", 
-      date: "10/11/25", 
-      status: "Accepted",
-      details: {
-        submittedOn: "October 11, 2025",
-        totalCost: "30 tokens",
-        requestId: "RQRF5B2E",
-        fileName: "Project_Presentation.pdf",
-        pageCount: "15",
-        copies: "3",
-        paperSize: "A4",
-        printType: "Colored",
-        printingSide: "Single-Sided",
-        pickupDate: "October 22, 2025",
-        previewImage: "../../images/lock.png"
-      }
-    },
-    { 
-      no: 5, 
-      name: "Smith, Jane", 
-      course: "BSIT 3", 
-      date: "10/11/25", 
-      status: "Accepted",
-      details: {
-        submittedOn: "October 11, 2025",
-        totalCost: "20 tokens",
-        requestId: "RQRF6C1F",
-        fileName: "Lab_Report.pdf",
-        pageCount: "12",
-        copies: "2",
-        paperSize: "Legal",
-        printType: "Black & White",
-        printingSide: "Single-Sided",
-        pickupDate: "October 23, 2025",
-        previewImage: "../../images/admin_img/Screenshot 2025-10-20 110300.png"
       }
     }
   ];
@@ -142,96 +66,92 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // modals
   const detailsModal = document.getElementById("detailsModal");
-  const detailsBody = document.getElementById("detailsBody");
-  const closeDetails = document.getElementById("closeDetails");
   const printerModal = document.getElementById("printerModal");
   const printerDetailsModal = document.getElementById("printerDetailsModal");
-  // Printer Details Modal logic
-  function attachPrinterDetailHandlers() {
-    const printerData = {
-      printer1: {
-        name: 'Printer 1',
-        brand: 'EPSON',
-        model: 'L3210',
-        status: 'Available',
-        statusColor: '#22c55e',
-        image: '../../images/printer.png',
-        ink: {
-          Black: '80%',
-          Red: '80%',
-          Blue: '80%',
-          Yellow: '80%'
-        }
-      },
-      printer2: {
-        name: 'Laser Printer',
-        brand: 'HP',
-        model: 'LaserJet Pro',
-        status: 'Unavailable',
-        statusColor: '#ef4444',
-        image: '../../images/printer.png',
-        ink: {
-          Black: '60%',
-          Red: '55%',
-          Blue: '70%',
-          Yellow: '65%'
-        }
-      }
-    };
-    document.querySelectorAll('.details-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const printerId = btn.getAttribute('data-printer');
-        const data = printerData[printerId];
-        if (data) {
-          // Update modal content using IDs
-          const img = document.getElementById('printerDetailsImg');
-          if (img) img.src = data.image;
-          const nameDiv = document.getElementById('printerDetailsName');
-          if (nameDiv) nameDiv.textContent = data.name;
-          const brandDiv = document.getElementById('printerDetailsBrand');
-          if (brandDiv) brandDiv.innerHTML = `<b>Brand</b> : ${data.brand}`;
-          const modelDiv = document.getElementById('printerDetailsModel');
-          if (modelDiv) modelDiv.innerHTML = `<b>Model</b> : ${data.model}`;
-          const statusDiv = document.getElementById('printerDetailsStatus');
-          if (statusDiv) statusDiv.innerHTML = `<b>Status</b> : <span style='color:${data.statusColor};font-weight:600;'>${data.status}</span>`;
-          // Ink
-          const inkBlack = document.getElementById('printerDetailsInkBlack');
-          if (inkBlack) inkBlack.innerHTML = `<span style='color:#222;font-weight:500;'>Black</span> : ${data.ink.Black}`;
-          const inkRed = document.getElementById('printerDetailsInkRed');
-          if (inkRed) inkRed.innerHTML = `<span style='color:#b91c1c;font-weight:500;'>Red</span> : ${data.ink.Red}`;
-          const inkBlue = document.getElementById('printerDetailsInkBlue');
-          if (inkBlue) inkBlue.innerHTML = `<span style='color:#2563eb;font-weight:500;'>Blue</span> : ${data.ink.Blue}`;
-          const inkYellow = document.getElementById('printerDetailsInkYellow');
-          if (inkYellow) inkYellow.innerHTML = `<span style='color:#eab308;font-weight:500;'>Yellow</span> : ${data.ink.Yellow}`;
-        }
-        printerModal.classList.remove('open');
-        printerModal.setAttribute('aria-hidden', 'true');
-        printerDetailsModal.classList.add('open');
-        printerDetailsModal.setAttribute('aria-hidden', 'false');
-      });
-    });
-    const printerDetailsBackBtn = document.getElementById('printerDetailsBackBtn');
-    if (printerDetailsBackBtn) {
-      printerDetailsBackBtn.addEventListener('click', () => {
-        printerDetailsModal.classList.remove('open');
-        printerDetailsModal.setAttribute('aria-hidden', 'true');
-        printerModal.classList.add('open');
-        printerModal.setAttribute('aria-hidden', 'false');
-      });
-    }
-  }
+
+  // Detail elements
+  const submittedDate = document.getElementById('submittedDate');
+  const totalCost = document.getElementById('totalCost');
+  const statusBadge = document.getElementById('statusBadge');
+  const requestId = document.getElementById('requestId');
+  const fileName = document.getElementById('fileName');
+  const pageCount = document.getElementById('pageCount');
+  const copiesCount = document.getElementById('copiesCount');
+  const paperSize = document.getElementById('paperSize');
+  const printType = document.getElementById('printType');
+  const printingSide = document.getElementById('printingSide');
+  const pickupDate = document.getElementById('pickupDate');
+  const previewImage = document.getElementById('previewImage');
 
   // -------------------------
   // state
   // -------------------------
   let perPage = 5;
   let currentPage = 1;
-  let filtered = [...records];
-  let view = "table"; // for future: 'board' or 'list'
+  let filtered = [...printData];
+  let view = "table";
   let activeFilters = { course: null, dateFrom: null, dateTo: null };
+  let currentRequestId = null;
 
   if (curYear) curYear.textContent = new Date().getFullYear();
+
+  // -------------------------
+  // Check for redirect from queue
+  // -------------------------
+  function checkForQueueRedirect() {
+    const storedRequest = sessionStorage.getItem('selectedRequest');
+    if (storedRequest) {
+      const requestData = JSON.parse(storedRequest);
+      
+      // Check if this request already exists in printData
+      const existingIndex = printData.findIndex(r => r.details.requestId === requestData.details.requestId);
+      
+      if (existingIndex === -1) {
+        // Add the new request to printData
+        const newRequest = {
+          no: printData.length + 1,
+          name: requestData.name,
+          course: requestData.course,
+          date: requestData.date,
+          status: "Accepted",
+          details: {
+            ...requestData.details,
+            status: "Accepted",
+            previewImage: "../../images/SLU_Logo.png" // Default image
+          }
+        };
+        
+        printData.unshift(newRequest);
+      }
+      
+      // Clear the stored request
+      sessionStorage.removeItem('selectedRequest');
+      
+      // Refresh the view
+      renderView(printData);
+      
+      // Find and open the details for this request
+      const record = printData.find(r => r.details.requestId === requestData.details.requestId);
+      if (record) {
+        showDetails(record);
+      }
+    }
+  }
+
+  // -------------------------
+  // Utility functions
+  // -------------------------
+  function openModal(modal) {
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+  
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
 
   // -------------------------
   // render table
@@ -258,7 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${rec.course}</td>
         <td>${rec.date}</td>
         <td><span class="pill ${rec.status.toLowerCase()}">${rec.status}</span></td>
-        <td class="col-actions"><button class="action-btn view-details" data-id="${rec.name}">View Details</button></td>
+        <td class="col-actions"><button class="action-btn view-details" data-requestid="${rec.details.requestId}">View Details</button></td>
       `;
       recordsBody.appendChild(tr);
     });
@@ -278,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const btn = document.createElement("button");
       btn.textContent = i;
       btn.className = i === currentPage ? "" : "inactive";
-      btn.addEventListener("click", () => { currentPage = i; renderView(records); });
+      btn.addEventListener("click", () => { currentPage = i; renderView(printData); });
       pageNumbers.appendChild(btn);
     }
     if (prevPageBtn) prevPageBtn.disabled = currentPage === 1;
@@ -286,11 +206,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (prevPageBtn) prevPageBtn.addEventListener("click", () => {
-    if (currentPage > 1) { currentPage--; renderView(records); }
+    if (currentPage > 1) { currentPage--; renderView(printData); }
   });
   if (nextPageBtn) nextPageBtn.addEventListener("click", () => {
     const totalPages = Math.ceil(filtered.length / perPage);
-    if (currentPage < totalPages) { currentPage++; renderView(records); }
+    if (currentPage < totalPages) { currentPage++; renderView(printData); }
   });
 
   // -------------------------
@@ -313,12 +233,11 @@ document.addEventListener("DOMContentLoaded", () => {
     filtered = applyFiltersToList(list);
     const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
     if (currentPage > totalPages) currentPage = 1;
-    // only table for now
     renderTable(filtered);
   }
 
   if (searchInput) {
-    searchInput.addEventListener("input", () => { currentPage = 1; renderView(records); });
+    searchInput.addEventListener("input", () => { currentPage = 1; renderView(printData); });
   }
 
   // select all
@@ -377,7 +296,7 @@ document.addEventListener("DOMContentLoaded", () => {
           openFilterPanel(btn.dataset.filter);
         } else if (action === "clear") {
           activeFilters = { printer: null, printType: null, dateFrom: null, dateTo: null };
-          currentPage = 1; renderView(records); hideFilterPanel();
+          currentPage = 1; renderView(printData); hideFilterPanel();
         }
       });
     });
@@ -392,10 +311,9 @@ document.addEventListener("DOMContentLoaded", () => {
     filterPanel.classList.remove("visually-hidden");
     filterPanel.setAttribute("aria-hidden", "false");
 
-
     if (type === "course") {
       const label = document.createElement("div"); label.textContent = "Course"; label.style.fontWeight = "700";
-      const courses = Array.from(new Set(records.map(r => r.course)));
+      const courses = Array.from(new Set(printData.map(r => r.course)));
       filterPanel.appendChild(label);
       courses.forEach(c => {
         const b = document.createElement("button"); b.textContent = c; b.className = "small";
@@ -403,13 +321,13 @@ document.addEventListener("DOMContentLoaded", () => {
         b.addEventListener("click", () => { 
           activeFilters.course = c; 
           currentPage = 1; 
-          renderView(records); 
+          renderView(printData); 
           hideFilterPanel(); 
         });
         filterPanel.appendChild(b);
       });
       const clear = document.createElement("button"); clear.textContent = "Clear"; clear.className = "small";
-      clear.addEventListener("click", () => { activeFilters.course = null; currentPage = 1; renderView(records); hideFilterPanel(); });
+      clear.addEventListener("click", () => { activeFilters.course = null; currentPage = 1; renderView(printData); hideFilterPanel(); });
       filterPanel.appendChild(clear);
     }
 
@@ -422,11 +340,11 @@ document.addEventListener("DOMContentLoaded", () => {
       apply.addEventListener("click", () => {
         activeFilters.dateFrom = from.value || null;
         activeFilters.dateTo = to.value || null;
-        currentPage = 1; renderView(records); hideFilterPanel();
+        currentPage = 1; renderView(printData); hideFilterPanel();
       });
       clear.addEventListener("click", () => {
         activeFilters.dateFrom = null; activeFilters.dateTo = null;
-        currentPage = 1; renderView(records); hideFilterPanel();
+        currentPage = 1; renderView(printData); hideFilterPanel();
       });
       filterPanel.appendChild(label); filterPanel.appendChild(from); filterPanel.appendChild(to); filterPanel.appendChild(apply); filterPanel.appendChild(clear);
     }
@@ -445,8 +363,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".view-details").forEach(btn => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
-        const id = btn.getAttribute("data-id");
-        const record = records.find(r => r.name === id);
+        const requestId = btn.getAttribute("data-requestid");
+        const record = printData.find(r => r.details.requestId === requestId);
         showDetails(record);
       });
     });
@@ -455,104 +373,134 @@ document.addEventListener("DOMContentLoaded", () => {
   function showDetails(rec) {
     if (!detailsModal || !rec || !rec.details) return;
 
+    currentRequestId = rec.details.requestId;
+
+    // Update all detail elements
+    if (submittedDate) submittedDate.textContent = rec.details.submittedOn;
+    if (totalCost) totalCost.textContent = rec.details.totalCost;
+    if (statusBadge) {
+      statusBadge.textContent = rec.details.status;
+      statusBadge.className = `status-badge status-${rec.details.status.toLowerCase()}`;
+    }
+    if (requestId) requestId.textContent = rec.details.requestId;
+    if (fileName) fileName.textContent = rec.details.fileName;
+    if (pageCount) pageCount.textContent = rec.details.pageCount;
+    if (copiesCount) copiesCount.textContent = rec.details.copies;
+    if (paperSize) paperSize.textContent = rec.details.paperSize;
+    if (printType) printType.textContent = rec.details.printType;
+    if (printingSide) printingSide.textContent = rec.details.printingSide;
+    if (pickupDate) pickupDate.textContent = rec.details.pickupDate;
+
     // Set preview image
-    const previewImage = detailsModal.querySelector('#previewImage');
     if (previewImage) {
       previewImage.src = rec.details.previewImage;
       previewImage.alt = `Preview of ${rec.details.fileName}`;
     }
 
-    // Update the detail fields
-    const fields = {
-      '#submittedDate': rec.details.submittedOn,
-      '#totalCost': rec.details.totalCost,
-      '#statusBadge': rec.status,
-      '#requestId': rec.details.requestId,
-      '#fileName': rec.details.fileName,
-      '#pageCount': rec.details.pageCount,
-      '#copiesCount': rec.details.copies,
-      '#paperSize': rec.details.paperSize,
-      '#printType': rec.details.printType,
-      '#printingSide': rec.details.printingSide,
-      '#pickupDate': rec.details.pickupDate
+    // Show the modal
+    openModal(detailsModal);
+  }
+
+  // -------------------------
+  // Printer Details Modal logic
+  // -------------------------
+  function attachPrinterDetailHandlers() {
+    const printerData = {
+      printer1: {
+        name: 'Printer 1',
+        brand: 'EPSON',
+        model: 'L3210',
+        status: 'Available',
+        statusColor: '#22c55e',
+        image: '../../images/printer.png',
+        ink: {
+          Black: '80%',
+          Red: '80%',
+          Blue: '80%',
+          Yellow: '80%'
+        }
+      },
+      printer2: {
+        name: 'Laser Printer',
+        brand: 'HP',
+        model: 'LaserJet Pro',
+        status: 'Unavailable',
+        statusColor: '#ef4444',
+        image: '../../images/printer.png',
+        ink: {
+          Black: '60%',
+          Red: '55%',
+          Blue: '70%',
+          Yellow: '65%'
+        }
+      }
     };
 
-    Object.entries(fields).forEach(([selector, value]) => {
-      const element = detailsModal.querySelector(selector);
-      if (element) element.textContent = value;
+    document.querySelectorAll('.details-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const printerId = btn.getAttribute('data-printer');
+        const data = printerData[printerId];
+        if (data) {
+          // Update modal content using IDs
+          const img = document.getElementById('printerDetailsImg');
+          if (img) img.src = data.image;
+          const nameDiv = document.getElementById('printerDetailsName');
+          if (nameDiv) nameDiv.textContent = data.name;
+          const brandDiv = document.getElementById('printerDetailsBrand');
+          if (brandDiv) brandDiv.innerHTML = `<b>Brand</b> : ${data.brand}`;
+          const modelDiv = document.getElementById('printerDetailsModel');
+          if (modelDiv) modelDiv.innerHTML = `<b>Model</b> : ${data.model}`;
+          const statusDiv = document.getElementById('printerDetailsStatus');
+          if (statusDiv) statusDiv.innerHTML = `<b>Status</b> : <span style='color:${data.statusColor};font-weight:600;'>${data.status}</span>`;
+          // Ink
+          const inkBlack = document.getElementById('printerDetailsInkBlack');
+          if (inkBlack) inkBlack.innerHTML = `<span style='color:#222;font-weight:500;'>Black</span> : ${data.ink.Black}`;
+          const inkRed = document.getElementById('printerDetailsInkRed');
+          if (inkRed) inkRed.innerHTML = `<span style='color:#b91c1c;font-weight:500;'>Red</span> : ${data.ink.Red}`;
+          const inkBlue = document.getElementById('printerDetailsInkBlue');
+          if (inkBlue) inkBlue.innerHTML = `<span style='color:#2563eb;font-weight:500;'>Blue</span> : ${data.ink.Blue}`;
+          const inkYellow = document.getElementById('printerDetailsInkYellow');
+          if (inkYellow) inkYellow.innerHTML = `<span style='color:#eab308;font-weight:500;'>Yellow</span> : ${data.ink.Yellow}`;
+        }
+        closeModal(printerModal);
+        openModal(printerDetailsModal);
+      });
     });
 
-    // Update status badge style
-    const statusBadge = detailsModal.querySelector('#statusBadge');
-    if (statusBadge) {
-      statusBadge.className = 'status-badge';
-      statusBadge.classList.add(rec.status.toLowerCase());
-      switch (rec.status.toLowerCase()) {
-        case 'accepted':
-          statusBadge.style.background = '#e8f6ea';
-          statusBadge.style.color = '#1f7a2f';
-          break;
-        case 'pending':
-          statusBadge.style.background = '#fff3cd';
-          statusBadge.style.color = '#856404';
-          break;
-        case 'rejected':
-          statusBadge.style.background = '#f8d7da';
-          statusBadge.style.color = '#721c24';
-          break;
-      }
-    }
-
-    // Show the modal
-    detailsModal.classList.add("open");
-    detailsModal.setAttribute("aria-hidden", "false");
-
-    // Setup print button
-    const acceptBtn = detailsModal.querySelector('#acceptBtn');
-    
-    if (acceptBtn) {
-      acceptBtn.onclick = () => {
-        detailsModal.classList.remove('open');
-        detailsModal.setAttribute('aria-hidden', 'true');
-        // Show printer selection modal
-        if (printerModal) {
-          printerModal.classList.add('open');
-          printerModal.setAttribute('aria-hidden', 'false');
-          
-          // Setup printer modal buttons
-          const printerPrintBtns = printerModal.querySelectorAll('.print-btn:not(:disabled)');
-          printerPrintBtns.forEach(btn => {
-            btn.onclick = () => {
-              // Handle print action here
-              printerModal.classList.remove('open');
-              printerModal.setAttribute('aria-hidden', 'true');
-              renderView(records);
-            };
-          });
-        }
-      };
+    const printerDetailsBackBtn = document.getElementById('printerDetailsBackBtn');
+    if (printerDetailsBackBtn) {
+      printerDetailsBackBtn.addEventListener('click', () => {
+        closeModal(printerDetailsModal);
+        openModal(printerModal);
+      });
     }
   }
 
-  // Back button and close handlers
-  const backButton = detailsModal.querySelector('#backBtn');
-  const printerBackButton = document.querySelector('#printerBackBtn');
+  // -------------------------
+  // Event listeners for modals
+  // -------------------------
+  const backButton = document.getElementById('backBtn');
+  const printerBackButton = document.getElementById('printerBackBtn');
+  const acceptBtn = document.getElementById('acceptBtn');
 
   if (backButton) {
     backButton.addEventListener('click', () => {
-      detailsModal.classList.remove("open");
-      detailsModal.setAttribute("aria-hidden", "true");
+      closeModal(detailsModal);
     });
   }
 
   if (printerBackButton) {
     printerBackButton.addEventListener('click', () => {
-      // Hide printer modal
-      printerModal.classList.remove('open');
-      printerModal.setAttribute('aria-hidden', 'true');
-      // Show details modal
-      detailsModal.classList.add('open');
-      detailsModal.setAttribute('aria-hidden', 'false');
+      closeModal(printerModal);
+      openModal(detailsModal);
+    });
+  }
+
+  if (acceptBtn) {
+    acceptBtn.addEventListener('click', () => {
+      closeModal(detailsModal);
+      openModal(printerModal);
     });
   }
 
@@ -561,8 +509,7 @@ document.addEventListener("DOMContentLoaded", () => {
     el.addEventListener('click', (e) => {
       const modal = e.target.closest('.modal');
       if (modal) {
-        modal.classList.remove('open');
-        modal.setAttribute('aria-hidden', 'true');
+        closeModal(modal);
       }
     });
   });
@@ -571,12 +518,13 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       if (detailsModal && detailsModal.classList.contains('open')) {
-        detailsModal.classList.remove('open');
-        detailsModal.setAttribute('aria-hidden', 'true');
+        closeModal(detailsModal);
       }
       if (printerModal && printerModal.classList.contains('open')) {
-        printerModal.classList.remove('open');
-        printerModal.setAttribute('aria-hidden', 'true');
+        closeModal(printerModal);
+      }
+      if (printerDetailsModal && printerDetailsModal.classList.contains('open')) {
+        closeModal(printerDetailsModal);
       }
     }
   });
@@ -584,9 +532,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // ------------------------- 
   // init
   // -------------------------
-  renderView(records);
+  renderView(printData);
   attachPrinterDetailHandlers();
+  checkForQueueRedirect();
 
   // expose for debugging
-  window.__printRecordDemo = { records, renderView, openFilterPanel: (t) => openFilterPanel(t) };
+  window.__printRecordDemo = { 
+    printData, 
+    renderView, 
+    openFilterPanel: (t) => openFilterPanel(t),
+    showDetails 
+  };
 });

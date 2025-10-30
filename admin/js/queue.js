@@ -15,12 +15,13 @@ document.addEventListener("DOMContentLoaded", () => {
         status: "Pending",
         requestId: "ROBF2D7B",
         fileName: "Automobile_Anatomy.pdf",
-        pageCount: 1,
-        numberOfCopies: 1,
+        pageCount: "1",
+        copies: "1",
         paperSize: "A4",
         printType: "Colored",
         printingSide: "Single-Sided",
-        pickupDate: "October 20, 2025"
+        pickupDate: "October 20, 2025",
+        previewImage: "../../images/SLU_Logo.png"
       }
     },
     { 
@@ -35,12 +36,13 @@ document.addEventListener("DOMContentLoaded", () => {
         status: "Pending",
         requestId: "RABF207B",
         fileName: "Data_Structures_Assignment.pdf",
-        pageCount: 3,
-        numberOfCopies: 2,
+        pageCount: "3",
+        copies: "2",
         paperSize: "Letter",
         printType: "Black & White",
         printingSide: "Double-Sided",
-        pickupDate: "October 18, 2025"
+        pickupDate: "October 18, 2025",
+        previewImage: "../../images/SLU_printdesk_logo.png"
       }
     },
     { 
@@ -55,12 +57,13 @@ document.addEventListener("DOMContentLoaded", () => {
         status: "Pending",
         requestId: "R45B8D3F",
         fileName: "Web_Development_Project.pdf",
-        pageCount: 5,
-        numberOfCopies: 1,
+        pageCount: "5",
+        copies: "1",
         paperSize: "A4",
         printType: "Colored",
         printingSide: "Single-Sided",
-        pickupDate: "October 15, 2025"
+        pickupDate: "October 15, 2025",
+        previewImage: "../../images/Icon.png"
       }
     },
     { 
@@ -75,12 +78,13 @@ document.addEventListener("DOMContentLoaded", () => {
         status: "Pending",
         requestId: "R76C2E9A",
         fileName: "Lab_Report.pdf",
-        pageCount: 3,
-        numberOfCopies: 1,
+        pageCount: "3",
+        copies: "1",
         paperSize: "A4",
         printType: "Black & White",
         printingSide: "Single-Sided",
-        pickupDate: "October 12, 2025"
+        pickupDate: "October 12, 2025",
+        previewImage: "../../images/lock.png"
       }
     },
     { 
@@ -95,12 +99,13 @@ document.addEventListener("DOMContentLoaded", () => {
         status: "Pending",
         requestId: "R34D7F1B",
         fileName: "Project_Proposal.pdf",
-        pageCount: 20,
-        numberOfCopies: 3,
+        pageCount: "20",
+        copies: "3",
         paperSize: "Legal",
         printType: "Colored",
         printingSide: "Double-Sided",
-        pickupDate: "October 22, 2025"
+        pickupDate: "October 22, 2025",
+        previewImage: "../../images/admin_img/Screenshot 2025-10-20 110300.png"
       }
     }
   ];
@@ -139,6 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const printType = document.getElementById('printType');
   const printingSide = document.getElementById('printingSide');
   const pickupDate = document.getElementById('pickupDate');
+  const previewImage = document.getElementById('previewImage');
 
   // -------------------------
   // State
@@ -512,11 +518,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (requestId) requestId.textContent = item.details.requestId;
     if (fileName) fileName.textContent = item.details.fileName;
     if (pageCount) pageCount.textContent = item.details.pageCount;
-    if (copiesCount) copiesCount.textContent = item.details.numberOfCopies;
+    if (copiesCount) copiesCount.textContent = item.details.copies;
     if (paperSize) paperSize.textContent = item.details.paperSize;
     if (printType) printType.textContent = item.details.printType;
     if (printingSide) printingSide.textContent = item.details.printingSide;
     if (pickupDate) pickupDate.textContent = item.details.pickupDate;
+
+    // Set preview image
+    if (previewImage) {
+      previewImage.src = item.details.previewImage;
+      previewImage.alt = `Preview of ${item.details.fileName}`;
+    }
 
     openModal(detailsModal);
   }
@@ -529,17 +541,44 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Handle accept/reject actions
-  function handleRequest(id, action) {
+  // -------------------------
+  // Redirect to Print Management
+  // -------------------------
+  function redirectToPrintManagement(requestId) {
+    // Store the request data in sessionStorage to pass to print management page
+    const item = queueData.find(item => item.details.requestId === requestId);
+    if (item) {
+      sessionStorage.setItem('selectedRequest', JSON.stringify(item));
+      
+      // Update the status to "Accepted" in the queue data
+      item.status = "Accepted";
+      item.details.status = "Accepted";
+      
+      // Show confirmation message
+      alert(`Request ${item.details.requestId} has been accepted and moved to print management.`);
+      
+      // Close modal
+      closeModal(detailsModal);
+      
+      // Refresh the view to reflect changes
+      renderView(queueData);
+      
+      // Redirect to print management page
+      window.location.href = '../html/printmanagement.html';
+    }
+  }
+
+  // Handle reject action
+  function handleReject(id) {
     const item = queueData.find(item => item.id === id);
     
     if (item) {
-      // Update the status
-      item.details.status = action === 'Accepted' ? 'Completed' : 'Rejected';
-      item.status = action === 'Accepted' ? 'Completed' : 'Rejected';
+      // Update the status to Rejected
+      item.details.status = "Rejected";
+      item.status = "Rejected";
       
       // Show confirmation message
-      alert(`Request ${item.details.requestId} has been ${action.toLowerCase()}.`);
+      alert(`Request ${item.details.requestId} has been rejected.`);
       
       // Close the modal
       closeModal(detailsModal);
@@ -552,13 +591,18 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add event listeners to action buttons
   if (rejectBtn) {
     rejectBtn.addEventListener('click', function() {
-      if (currentRequestId) handleRequest(currentRequestId, 'Rejected');
+      if (currentRequestId) handleReject(currentRequestId);
     });
   }
 
   if (acceptBtn) {
     acceptBtn.addEventListener('click', function() {
-      if (currentRequestId) handleRequest(currentRequestId, 'Accepted');
+      if (currentRequestId) {
+        const item = queueData.find(item => item.id === currentRequestId);
+        if (item) {
+          redirectToPrintManagement(item.details.requestId);
+        }
+      }
     });
   }
 
