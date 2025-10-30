@@ -145,6 +145,82 @@ document.addEventListener("DOMContentLoaded", () => {
   const detailsBody = document.getElementById("detailsBody");
   const closeDetails = document.getElementById("closeDetails");
   const printerModal = document.getElementById("printerModal");
+  const printerDetailsModal = document.getElementById("printerDetailsModal");
+  // Printer Details Modal logic
+  function attachPrinterDetailHandlers() {
+    const printerData = {
+      printer1: {
+        name: 'Printer 1',
+        brand: 'EPSON',
+        model: 'L3210',
+        status: 'Available',
+        statusColor: '#22c55e',
+        image: '../../images/printer.png',
+        ink: {
+          Black: '80%',
+          Red: '80%',
+          Blue: '80%',
+          Yellow: '80%'
+        }
+      },
+      printer2: {
+        name: 'Laser Printer',
+        brand: 'HP',
+        model: 'LaserJet Pro',
+        status: 'Unavailable',
+        statusColor: '#ef4444',
+        image: '../../images/printer.png',
+        ink: {
+          Black: '60%',
+          Red: '55%',
+          Blue: '70%',
+          Yellow: '65%'
+        }
+      }
+    };
+    document.querySelectorAll('.details-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const printerId = btn.getAttribute('data-printer');
+        const data = printerData[printerId];
+        if (data) {
+          // Update modal content using IDs
+          const img = document.getElementById('printerDetailsImg');
+          if (img) img.src = data.image;
+          const nameDiv = document.getElementById('printerDetailsName');
+          if (nameDiv) nameDiv.textContent = data.name;
+          const brandDiv = document.getElementById('printerDetailsBrand');
+          if (brandDiv) brandDiv.innerHTML = `<b>Brand</b> : ${data.brand}`;
+          const modelDiv = document.getElementById('printerDetailsModel');
+          if (modelDiv) modelDiv.innerHTML = `<b>Model</b> : ${data.model}`;
+          const statusDiv = document.getElementById('printerDetailsStatus');
+          if (statusDiv) statusDiv.innerHTML = `<b>Status</b> : <span style='color:${data.statusColor};font-weight:600;'>${data.status}</span>`;
+          // Ink
+          const inkBlack = document.getElementById('printerDetailsInkBlack');
+          if (inkBlack) inkBlack.innerHTML = `<span style='color:#222;font-weight:500;'>Black</span> : ${data.ink.Black}`;
+          const inkRed = document.getElementById('printerDetailsInkRed');
+          if (inkRed) inkRed.innerHTML = `<span style='color:#b91c1c;font-weight:500;'>Red</span> : ${data.ink.Red}`;
+          const inkBlue = document.getElementById('printerDetailsInkBlue');
+          if (inkBlue) inkBlue.innerHTML = `<span style='color:#2563eb;font-weight:500;'>Blue</span> : ${data.ink.Blue}`;
+          const inkYellow = document.getElementById('printerDetailsInkYellow');
+          if (inkYellow) inkYellow.innerHTML = `<span style='color:#eab308;font-weight:500;'>Yellow</span> : ${data.ink.Yellow}`;
+        }
+        printerModal.classList.remove('open');
+        printerModal.setAttribute('aria-hidden', 'true');
+        printerDetailsModal.classList.add('open');
+        printerDetailsModal.setAttribute('aria-hidden', 'false');
+      });
+    });
+    const printerDetailsBackBtn = document.getElementById('printerDetailsBackBtn');
+    if (printerDetailsBackBtn) {
+      printerDetailsBackBtn.addEventListener('click', () => {
+        printerDetailsModal.classList.remove('open');
+        printerDetailsModal.setAttribute('aria-hidden', 'true');
+        printerModal.classList.add('open');
+        printerModal.setAttribute('aria-hidden', 'false');
+      });
+    }
+  }
 
   // -------------------------
   // state
@@ -505,10 +581,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // -------------------------
+  // ------------------------- 
   // init
   // -------------------------
   renderView(records);
+  attachPrinterDetailHandlers();
 
   // expose for debugging
   window.__printRecordDemo = { records, renderView, openFilterPanel: (t) => openFilterPanel(t) };
