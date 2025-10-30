@@ -140,10 +140,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const filterMenu = document.getElementById("filterMenu");
   const filterPanel = document.getElementById("filterPanel");
 
-  // details modal
+  // modals
   const detailsModal = document.getElementById("detailsModal");
   const detailsBody = document.getElementById("detailsBody");
   const closeDetails = document.getElementById("closeDetails");
+  const printerModal = document.getElementById("printerModal");
 
   // -------------------------
   // state
@@ -435,20 +436,47 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (acceptBtn) {
       acceptBtn.onclick = () => {
-        rec.status = 'Accepted';
         detailsModal.classList.remove('open');
         detailsModal.setAttribute('aria-hidden', 'true');
-        renderView(records);
+        // Show printer selection modal
+        if (printerModal) {
+          printerModal.classList.add('open');
+          printerModal.setAttribute('aria-hidden', 'false');
+          
+          // Setup printer modal buttons
+          const printerPrintBtns = printerModal.querySelectorAll('.print-btn:not(:disabled)');
+          printerPrintBtns.forEach(btn => {
+            btn.onclick = () => {
+              // Handle print action here
+              printerModal.classList.remove('open');
+              printerModal.setAttribute('aria-hidden', 'true');
+              renderView(records);
+            };
+          });
+        }
       };
     }
   }
 
   // Back button and close handlers
   const backButton = detailsModal.querySelector('#backBtn');
+  const printerBackButton = document.querySelector('#printerBackBtn');
+
   if (backButton) {
     backButton.addEventListener('click', () => {
       detailsModal.classList.remove("open");
       detailsModal.setAttribute("aria-hidden", "true");
+    });
+  }
+
+  if (printerBackButton) {
+    printerBackButton.addEventListener('click', () => {
+      // Hide printer modal
+      printerModal.classList.remove('open');
+      printerModal.setAttribute('aria-hidden', 'true');
+      // Show details modal
+      detailsModal.classList.add('open');
+      detailsModal.setAttribute('aria-hidden', 'false');
     });
   }
 
@@ -469,6 +497,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (detailsModal && detailsModal.classList.contains('open')) {
         detailsModal.classList.remove('open');
         detailsModal.setAttribute('aria-hidden', 'true');
+      }
+      if (printerModal && printerModal.classList.contains('open')) {
+        printerModal.classList.remove('open');
+        printerModal.setAttribute('aria-hidden', 'true');
       }
     }
   });

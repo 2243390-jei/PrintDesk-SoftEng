@@ -137,6 +137,39 @@
       </main>
     </div>
 
+    <!-- Printer Selection Modal -->
+    <div id="printerModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <button id="printerBackBtn" class="back-btn">&larr;</button>
+          <h2>Printers Available</h2>
+        </div>
+        <div class="modal-body">
+          <div class="printer-grid">
+            <div class="printer-card">
+              <img src="../../images/printer.png" alt="Epson L3210" class="printer-icon" />
+              <div class="printer-info">
+                <h3>Epson L3210</h3>
+                <div class="status available">Status: Available</div>
+                <button class="print-btn">Print</button>
+              </div>
+              <button class="details-btn">Details</button>
+            </div>
+            <div class="printer-card">
+              <img src="../../images/printer.png" alt="Laser Printer" class="printer-icon" />
+              <div class="printer-info">
+                <h3>Laser Printer</h3>
+                <div class="status unavailable">Status: unavailable</div>
+                <button class="print-btn" disabled>Print</button>
+              </div>
+              <button class="details-btn">Details</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Details Modal -->
     <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
       <div class="modal-backdrop" data-close-modal></div>

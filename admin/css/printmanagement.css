@@ -194,6 +194,98 @@ body {
   border-color: #0b5ed7;
 }
 
+/* Printer Selection Modal */
+.printer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.printer-card {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 15px;
+  position: relative;
+}
+
+.printer-icon {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.printer-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.printer-info h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.status {
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.status.available {
+  background: #e8f6ea;
+  color: #1f7a2f;
+}
+
+.status.unavailable {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.print-btn {
+  background: #0d6efd;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.print-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.print-btn:hover:not(:disabled) {
+  background: #0b5ed7;
+}
+
+.details-btn {
+  background: transparent;
+  border: none;
+  color: #6c757d;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-top: 5px;
+}
+
+.details-btn:hover {
+  color: #0d6efd;
+}
+
 /* modal */
 .modal { 
   position: fixed; 
