@@ -1014,6 +1014,83 @@ body.history-body {
   outline: none;
 }
 
+/* Print Jobs Styling */
+#printJobs h4 {
+  color: #3d348b;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.print-job {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.print-job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.print-job-header h5 {
+  margin: 0;
+  color: #3d348b;
+  font-size: 1.1rem;
+}
+
+.remove-job-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.remove-job-btn:hover {
+  background: #fff1f1;
+}
+
+.add-job-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: 2px dashed #3d348b;
+  color: #3d348b;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  margin: 20px 0;
+  width: 100%;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.add-job-btn:hover {
+  background: #f0f0ff;
+}
+
+.add-job-btn span {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.page-count {
+  font-size: 0.9rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #e9ecef;
+  display: inline-block;
+}
+
 /* Profile Modal Styles */
 .modal {
   display: none;

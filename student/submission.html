@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SLU PrintDesk | Submission</title>
     <link rel="stylesheet" href="../style/style.css" />
-    <script src="../script/main.js"> defer</script>
+    <script src="../script/main.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
     <script src="../script/submission.js" defer></script>
 </head>
 
@@ -65,61 +66,78 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Number of Copies:</label>
-                        <input type="number" name="copies" value="1" min="1" />
-                    </div>
-
-                    <div class="form-group">
-                        <label>Paper Size:</label>
-                        <select name="paper_size" required>
-                            <option value="" disabled selected>Select paper size</option>
-                            <option value="A4">A4</option>
-                            <option value="Letter">Letter</option>
-                            <option value="Legal">Legal</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Paper Side:</label>
-                        <select name="paper_side" required>
-                            <option value="" disabled selected>Select side</option>
-                            <option value="Single-sided">Single-sided</option>
-                            <option value="Double-sided">Double-sided</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Paper Type:</label>
-                        <select name="paper_type" required>
-                            <option value="" disabled selected>Select print type</option>
-                            <option value="Black & White">Black & White</option>
-                            <option value="Colored">Colored</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div class="form-group">
                     <label>Preferred Pickup Date & Time:</label>
                     <input type="datetime-local" name="pickup_datetime" required />
                 </div>
 
-                <div class="form-group">
-                    <label>Upload File:</label>
-                    <div class="drop-zone">
-                        <p>Browse File</p>
-                        <span>Drag & Drop files here</span>
-                        <input type="file" name="document" class="drop-zone-input" required />
+                <div id="printJobs">
+                    <h4>Print Jobs</h4>
+                    <div class="print-job" data-job-id="1">
+                        <div class="print-job-header">
+                            <h5>Print Job #1</h5>
+                            <button type="button" class="remove-job-btn" style="display: none;">&times;</button>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Number of Copies:</label>
+                                <input type="number" name="copies_1" value="1" min="1" required />
+                            </div>
+
+                            <div class="form-group">
+                                <label>Paper Size:</label>
+                                <select name="paper_size_1" required>
+                                    <option value="" disabled selected>Select paper size</option>
+                                    <option value="A4">A4</option>
+                                    <option value="Letter">Letter</option>
+                                    <option value="Legal">Legal</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Paper Side:</label>
+                                <select name="paper_side_1" required>
+                                    <option value="" disabled selected>Select side</option>
+                                    <option value="Single-sided">Single-sided</option>
+                                    <option value="Double-sided">Double-sided</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Paper Type:</label>
+                                <select name="paper_type_1" required>
+                                    <option value="" disabled selected>Select print type</option>
+                                    <option value="Black & White">Black & White</option>
+                                    <option value="Colored">Colored</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Upload File:</label>
+                            <div class="drop-zone">
+                                <p>Browse File</p>
+                                <span>Drag & Drop files here</span>
+                                <input type="file" name="document_1" class="drop-zone-input" required />
+                            </div>
+                            <div class="page-count" style="margin-top: 8px; color: #666;">
+                                Pages: <span>0</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Additional Notes:</label>
+                            <textarea name="notes_1" placeholder="Specify printing preferences or remarks..."></textarea>
+                        </div>
                     </div>
                 </div>
-
-                <div class="form-group">
-                    <label>Additional Notes or Instruction:</label>
-                    <textarea name="notes" placeholder="Specify printing preferences or remarks..."></textarea>
-                </div>
+                
+                <button type="button" id="addPrintJob" class="add-job-btn">
+                    <span>+</span> Add Another Print Job
+                </button>
 
                 <div class="form-group confirm-group">
                     <label>
