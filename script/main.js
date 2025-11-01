@@ -1,182 +1,203 @@
-// --- Dummy users (for manual login) ---
-const users = [
-  { role: "student", email: "student@slu.edu.ph", password: "student123" },
-  { role: "admin", email: "admin@slu.edu.ph", password: "admin123" }
-];
+// =========================
+// 📄 login.js — Real-time user data + session persistence
+// =========================
+
+let currentUserEmail = sessionStorage.getItem("userEmail") || null;
 
 // --- Handle manual login ---
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
+
   if (loginForm) {
-    loginForm.addEventListener("submit", (e) => {
+    loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value.trim();
 
-      const user = users.find(u => u.email === email && u.password === password);
-      if (user) {
-        alert(`Login successful! Welcome, ${user.role.toUpperCase()}.`);
+      try {
+        const res = await fetch("http://localhost:3000/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
 
-        // Store role for session handling
-        localStorage.setItem("manualUser", JSON.stringify(user));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Invalid credentials");
 
-        switch (user.role) {
-          case "student":
-            window.location.href = "student/home.html";
-            break;
-          case "admin":
-            window.location.href = "../admin/html/queue.html";
-            break;
-        }
-      } else {
-        alert("Invalid email or password. Please try again.");
+        alert(`✅ Login successful! Welcome, ${data.fullName || data.role.toUpperCase()}.`);
+
+        // 🧠 Remember logged-in user
+        currentUserEmail = data.email;
+        sessionStorage.setItem("userEmail", data.email);
+
+        // Redirect based on role
+        if (data.role === "student") window.location.href = "student/home.html";
+        else if (data.role === "admin") window.location.href = "../admin/html/queue.html";
+      } catch (err) {
+        alert("❌ " + err.message);
       }
     });
   }
 
-  // --- Navbar profile update and modal functionality ---
+  // --- Navbar profile + modal setup ---
   const navbarProfilePic = document.getElementById("nav-profile-pic");
   const modal = document.getElementById("profileModal");
   const closeModal = document.querySelector(".close-modal");
 
   if (navbarProfilePic) {
-    const googleUser = JSON.parse(localStorage.getItem("googleUser"));
-    const manualUser = JSON.parse(localStorage.getItem("manualUser"));
-
-    if (googleUser && googleUser.picture) {
-      navbarProfilePic.src = googleUser.picture;
-      navbarProfilePic.style.borderRadius = "50%";
-      // Update modal info
-      updateProfileModal(googleUser.name, "ID: " + googleUser.email.split('@')[0]);
-    } else if (manualUser) {
-      // Default avatar for manual user
-      navbarProfilePic.src = "../images/student_img/profile.png";
-      navbarProfilePic.style.borderRadius = "50%";
-      // Update modal info with dummy data
-      updateProfileModal("Student User", "ID: 2020-00000");
+    // Load user details if session exists
+    if (currentUserEmail) {
+      fetchAndDisplayUser(currentUserEmail);
     }
 
-    // Add click event for profile picture
-    navbarProfilePic.addEventListener("click", () => {
+    navbarProfilePic.addEventListener("click", async () => {
+      if (!currentUserEmail) {
+        alert("⚠️ Please log in first.");
+        return;
+      }
       modal.style.display = "block";
-      updateTokenProgress();
+      await fetchAndDisplayUser(currentUserEmail);
     });
 
-    // Close modal when clicking the close button
     if (closeModal) {
       closeModal.addEventListener("click", () => {
         modal.style.display = "none";
       });
     }
 
-    // Close modal when clicking outside
     window.addEventListener("click", (event) => {
-      if (event.target === modal) {
-        modal.style.display = "none";
-      }
+      if (event.target === modal) modal.style.display = "none";
     });
-  }
-
-  // Function to update profile modal information
-  function updateProfileModal(name, id) {
-    const studentName = document.getElementById("studentName");
-    const studentId = document.getElementById("studentId");
-    if (studentName && studentId) {
-      studentName.textContent = name;
-      studentId.textContent = id;
-    }
-  }
-
-  // Function to update token progress bar
-  function updateTokenProgress() {
-    const tokenCount = document.getElementById("tokenCount");
-    const progressBar = document.getElementById("tokenProgressBar");
-    const maxTokens = 500; // Maximum tokens per semester
-    const currentTokens = 350; // Example value - replace with actual token count
-
-    if (tokenCount && progressBar) {
-      tokenCount.textContent = currentTokens;
-      const progress = (currentTokens / maxTokens) * 100;
-      progressBar.style.width = progress + "%";
-    }
-
-    // Add some example notifications
-    const notificationsList = document.getElementById("notificationsList");
-    if (notificationsList) {
-      notificationsList.innerHTML = `
-        <div class="notification-item">
-          <div class="notification-content">
-            <div class="notification-title">Print Job Complete</div>
-            <div class="notification-message">Your document "Assignment1.pdf" has been printed successfully</div>
-            <div class="notification-time">2 hours ago</div>
-          </div>
-        </div>
-        <div class="notification-item">
-          <div class="notification-content">
-            <div class="notification-title">Low Token Balance</div>
-            <div class="notification-message">You have less than 100 tokens remaining</div>
-            <div class="notification-time">1 day ago</div>
-          </div>
-        </div>
-      `;
-    }
   }
 });
 
-// --- Google Identity Services (SSO) ---
-window.onload = function () {
-  const googleSignInBtn = document.getElementById("g_id_signin");
-  if (googleSignInBtn) {
-    google.accounts.id.initialize({
-      client_id: "45090330265-mntibu3tlf84kfpsctq1dtuta79cskiq.apps.googleusercontent.com",
-      callback: handleCredentialResponse
-    });
-    google.accounts.id.renderButton(
-      googleSignInBtn,
-      { theme: "outline", size: "large", text: "signin_with" }
-    );
-  }
-};
+// =========================
+// 🧠 Fetch user data from MongoDB in real time
+// =========================
+async function fetchAndDisplayUser(email) {
+  try {
+    const res = await fetch(`http://localhost:3000/users/${encodeURIComponent(email)}`);
+    if (!res.ok) throw new Error("User not found");
+    const user = await res.json();
 
-// --- Handle Google credential response ---
-function handleCredentialResponse(response) {
-  const data = JSON.parse(atob(response.credential.split('.')[1]));
-  console.log("Google User Data:", data);
-
-  localStorage.setItem("googleUser", JSON.stringify(data));
-
-  const email = data.email.toLowerCase();
-  alert(`Logged in as ${email}`);
-
-  // --- Role detection logic ---
-  if (email.includes("@slu.edu.ph")) {
-    if (/^\d+@slu\.edu\.ph$/.test(email)) {
-      window.location.href = "student/home.html";
-    } else if (email.startsWith("admin@")) {
-      window.location.href = "admin/dashboard.html";
-    } else {
-      alert("Unrecognized SLU account type.");
-    }
-  } else {
-    alert("Access denied: Please use your SLU email account.");
+    // Update both modal and navbar
+    updateProfileModal(user.fullName, user.email, user.tokenBalance, user.role, user.picture);
+    updateNavbarProfilePic(user.picture);
+    updateTokenProgress(user.tokenBalance);
+  } catch (err) {
+    console.error("⚠️ Failed to fetch user:", err);
   }
 }
 
-// --- Navbar profile + organization table ---
-document.addEventListener("DOMContentLoaded", () => {
-  // --- Navbar profile update (if user is logged in) ---
-  const navbarProfilePic = document.getElementById("nav-profile-pic");
+// =========================
+// 🧩 Profile Modal Functions
+// =========================
+function updateProfileModal(name, email, tokens, role, picture) {
+  const studentName = document.getElementById("studentName");
+  const studentId = document.getElementById("studentId");
+  const tokenCount = document.getElementById("tokenCount");
+  const profilePic = document.getElementById("profileModalPic");
 
-  if (navbarProfilePic) {
-    const user = JSON.parse(localStorage.getItem("googleUser"));
-    if (user && user.picture) {
-      navbarProfilePic.src = user.picture;
-      navbarProfilePic.style.borderRadius = "50%"; // make it round
-    } else {
-      // If not logged in, redirect back to login page
-      // window.location.href = "../index.html";
-    }
+  if (studentName) studentName.textContent = name || "Unknown User";
+  if (studentId) studentId.textContent = email || "N/A";
+  if (tokenCount) tokenCount.textContent = tokens ?? 0;
+  if (profilePic && picture) {
+    profilePic.src = picture;
+    profilePic.style.borderRadius = "50%";
+  }
+}
+
+function updateNavbarProfilePic(picture) {
+  const navbarProfilePic = document.getElementById("nav-profile-pic");
+  if (!navbarProfilePic) return;
+
+  if (picture) {
+    navbarProfilePic.src = picture;
+  } else {
+    // fallback avatar for manual logins or missing Google picture
+    navbarProfilePic.src = "../images/student_img/profile.png";
+  }
+  navbarProfilePic.style.borderRadius = "50%";
+}
+
+function updateTokenProgress(currentTokens = 0) {
+  const tokenCount = document.getElementById("tokenCount");
+  const progressBar = document.getElementById("tokenProgressBar");
+  const maxTokens = 500;
+
+  if (tokenCount && progressBar) {
+    tokenCount.textContent = currentTokens;
+    const progress = (currentTokens / maxTokens) * 100;
+    progressBar.style.width = progress + "%";
   }
 
+  const notificationsList = document.getElementById("notificationsList");
+  if (notificationsList) {
+    notificationsList.innerHTML = `
+      <div class="notification-item">
+        <div class="notification-content">
+          <div class="notification-title">Token Update</div>
+          <div class="notification-message">You currently have ${currentTokens} tokens.</div>
+          <div class="notification-time">Just now</div>
+        </div>
+      </div>
+    `;
+  }
+}
 
-});
+// =========================
+// 🧠 Google Login Integration
+// =========================
+window.onload = function () {
+  const googleSignInBtn = document.getElementById("g_id_signin");
+
+  if (googleSignInBtn) {
+    google.accounts.id.initialize({
+      client_id: "45090330265-mntibu3tlf84kfpsctq1dtuta79cskiq.apps.googleusercontent.com",
+      callback: handleGoogleLogin,
+    });
+
+    google.accounts.id.renderButton(googleSignInBtn, {
+      theme: "outline",
+      size: "large",
+      text: "signin_with",
+    });
+  }
+
+  // Restore session on reload
+  const savedEmail = sessionStorage.getItem("userEmail");
+  if (savedEmail) {
+    currentUserEmail = savedEmail;
+    fetchAndDisplayUser(savedEmail);
+  }
+};
+
+async function handleGoogleLogin(response) {
+  const data = JSON.parse(atob(response.credential.split(".")[1]));
+
+  try {
+    const res = await fetch("http://localhost:3000/google-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: data.email,
+        fullName: data.name,
+        googleId: data.sub,
+        picture: data.picture,
+      }),
+    });
+
+    const user = await res.json();
+    if (!res.ok) throw new Error(user.error || "Google login failed");
+
+    alert(`Welcome ${user.fullName}!`);
+    currentUserEmail = user.email;
+    sessionStorage.setItem("userEmail", user.email);
+
+    if (user.role === "admin") window.location.href = "../admin/html/queue.html";
+    else window.location.href = "student/home.html";
+  } catch (err) {
+    alert("⚠️ " + err.message);
+  }
+}
