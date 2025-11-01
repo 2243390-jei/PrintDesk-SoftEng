@@ -1,5 +1,5 @@
 // ========================
-// 📄 server.js — PrintDesk Backend API
+// 📄 server.js — stores tokens & request status
 // ========================
 const express = require("express");
 const mongoose = require("mongoose");
@@ -57,7 +57,7 @@ const printRequestSchema = new mongoose.Schema({
   pickupDateTime: String,
   documents: [documentSchema],
   totalTokens: Number,
-  status: { type: String, default: "Pending" }, // Added status field with default
+  status: { type: String, default: "Pending" }, 
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -77,71 +77,14 @@ const upload = multer({ storage });
 // Routes
 // ------------------------
 app.get("/", (req, res) =>
-  res.send("✅ PrintDesk API running (tokens read from frontend)")
+  res.send("✅ PrintDesk API running (tokens + status supported)")
 );
 
-// GET all print requests (sorted by createdAt for queue order)
-app.get("/requests", async (req, res) => {
-  try {
-    const requests = await PrintRequest.find().sort({ createdAt: 1 }); // Sort by creation date (oldest first)
-    console.log(`✅ Fetched ${requests.length} print requests`);
-    res.json(requests);
-  } catch (err) {
-    console.error("❌ Error fetching requests:", err);
-    res.status(500).json({ error: "Failed to fetch requests", details: err.message });
-  }
-});
-
-// GET single print request by ID
-app.get("/requests/:id", async (req, res) => {
-  try {
-    const request = await PrintRequest.findById(req.params.id);
-    if (!request) {
-      return res.status(404).json({ error: "Request not found" });
-    }
-    res.json(request);
-  } catch (err) {
-    console.error("❌ Error fetching request:", err);
-    res.status(500).json({ error: "Failed to fetch request", details: err.message });
-  }
-});
-
-// PATCH update print request status
-app.patch("/requests/:id", async (req, res) => {
-  try {
-    const { status } = req.body;
-    
-    // Validate status
-    const validStatuses = ["Pending", "Accepted", "Rejected", "Completed"];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
-    }
-    
-    const updatedRequest = await PrintRequest.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
-    
-    if (!updatedRequest) {
-      return res.status(404).json({ error: "Request not found" });
-    }
-    
-    console.log(`✅ Updated request ${req.params.id} status to: ${status}`);
-    res.json(updatedRequest);
-  } catch (err) {
-    console.error("❌ Error updating request:", err);
-    res.status(500).json({ error: "Failed to update request", details: err.message });
-  }
-});
-
-// POST submit new print request
 app.post("/submit", upload.array("documents", 20), async (req, res) => {
   try {
     console.log("📩 Received form data:", req.body);
     console.log("📁 Received files:", req.files?.length || 0);
 
-    // Parse JSON data from frontend
     const printJobs = JSON.parse(req.body.printJobs || "[]");
 
     const documents = [];
@@ -151,7 +94,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       const file = req.files[i];
       const copies = parseInt(job.copies) || 1;
       const pageCount = parseInt(job.pageCount) || 1;
-      const totalTokens = parseInt(job.totalTokens) || 0; // ✅ taken directly from frontend
+      const totalTokens = parseInt(job.totalTokens) || 0;
       const tokensPerPage = parseInt(job.tokensPerPage) || 0;
       const isImagePrint = job.isImagePrint === true || job.isImagePrint === "true";
 
@@ -172,7 +115,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       });
     });
 
-    // Create main print request
+    // ✅ Include status (defaults to "Pending")
     const newRequest = new PrintRequest({
       fullName: req.body.full_name,
       courseYear: req.body.course_year,
@@ -180,7 +123,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       pickupDateTime: req.body.pickup_datetime,
       documents,
       totalTokens: totalTokensRequest,
-      status: "Pending", // Default status for new requests
+      status: "Pending", // default explicitly
     });
 
     await newRequest.save();
@@ -190,6 +133,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       message: "Print request submitted successfully",
       requestId: newRequest._id,
       totalTokens: totalTokensRequest,
+      status: newRequest.status, // return status in response
     });
   } catch (err) {
     console.error("❌ Error saving request:", err);
