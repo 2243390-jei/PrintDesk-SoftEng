@@ -1,23 +1,20 @@
 /* reset & base */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root{
-  --bg: #f6f6f7;
-  --card: #ffffff;
-  --deep: #222b2f;         /* dark inner frame */
-  --muted: #8b98a1;
-  --accent: #2f3a40;       /* sidebar color */
+  --bg: #ffffff;
+  --card: #f8f9fa;
+  --deep: #ffffff;
+  --muted: #6c757d;
+  --accent: #2f3a40;
   --round: 14px;
-  --shadow: 0 8px 18px rgba(16,22,25,0.08);
-  --primary: #4A90E2;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
+  --shadow: 0 4px 12px rgba(0,0,0,0.08);
+  --border: #e9ecef;
 }
 
 body{
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   background: var(--bg);
-  color: #111;
+  color: #333;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
@@ -173,13 +170,9 @@ body{
   width: 220px;
 }
 
-.slu-logo {
-  background-color: #3A4A5C;
-  padding: 12px 16px;
-  border-radius: 4px;
-  font-weight: 700;
-  font-size: 1.2rem;
-  color: white;
+.brand-right img {
+  max-width: 100%;
+  height: auto;
 }
 
 /* big white card */
@@ -188,7 +181,7 @@ body{
   border-radius: 18px;
   padding: 22px;
   box-shadow: var(--shadow);
-  border: 1px solid rgba(10,18,20,0.04);
+  border: 1px solid var(--border);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -202,14 +195,6 @@ body{
   margin-bottom: 16px;
 }
 
-.card-header h2{ 
-  font-size:24px; 
-  letter-spacing:1px; 
-  margin:0; 
-  font-weight:700; 
-  color:#2b3336; 
-}
-
 /* make controls positioned so dropdown positions to it */
 .controls{ 
   display:flex; 
@@ -219,20 +204,26 @@ body{
   z-index: 2; 
 }
 
-/* Date Filter */
 .date-filter {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .time-select {
-  padding: 10px 15px;
-  border: 1px solid #D1D5DB;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #F9FAFB;
+  background: white;
   font-size: 14px;
-  cursor: pointer;
+  color: #333;
+}
+
+.card-header h2{ 
+  font-size:24px; 
+  letter-spacing:1px; 
+  margin:0; 
+  font-weight:700; 
+  color:#2b3336; 
 }
 
 /* filter icon button */
@@ -245,99 +236,106 @@ body{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  box-shadow: 0 4px 12px rgba(20,28,32,0.06);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
   cursor:pointer;
+  transition: all 0.3s;
+}
+
+.icon-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
 }
 
 .refresh-icon {
   font-size: 18px;
 }
 
-/* inner dark frame (rounded) */
+/* inner light frame (rounded) */
 .card-inner{
   background: var(--deep);
   margin-top: 6px;
   padding: 22px;
   border-radius: 18px;
-  box-shadow: inset 0 4px 0 rgba(255,255,255,0.02);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  box-shadow: inset 0 4px 0 rgba(0,0,0,0.02);
+  border: 1px solid var(--border);
 }
 
 /* Statistics Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
-  margin-bottom: 10px;
+  margin-bottom: 30px;
 }
 
 .stat-card {
-  background: #ffffff;
+  background: white;
+  padding: 20px;
   border-radius: 12px;
-  padding: 24px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  box-shadow: 0 4px 12px rgba(16,22,25,0.08);
-  border: 1px solid rgba(0,0,0,0.03);
+  gap: 15px;
+  color: #333;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .stat-icon {
+  font-size: 2rem;
   width: 60px;
   height: 60px;
-  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.05);
 }
-
-.stat-icon.users { background: #E3F2FD; color: #1976D2; }
-.stat-icon.prints { background: #E8F5E8; color: #2E7D32; }
-.stat-icon.leads { background: #F3E5F5; color: #7B1FA2; }
 
 .stat-content {
   flex: 1;
 }
 
 .stat-value {
-  font-size: 32px;
+  font-size: 2rem;
   font-weight: 700;
+  margin-bottom: 5px;
   color: #2b3336;
-  margin-bottom: 4px;
 }
 
 .stat-label {
-  font-size: 14px;
+  font-size: 0.9rem;
   color: var(--muted);
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .stat-change {
-  font-size: 12px;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
-.stat-change.positive { color: var(--success); }
-.stat-change.negative { color: var(--danger); }
+.stat-change.positive {
+  color: #10B981;
+}
+
+.stat-change.negative {
+  color: #EF4444;
+}
 
 /* Charts Container */
 .charts-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr;
   gap: 20px;
-  margin-bottom: 10px;
+  margin-bottom: 30px;
 }
 
 .chart-card {
-  background: #ffffff;
+  background: white;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 4px 12px rgba(16,22,25,0.08);
-  border: 1px solid rgba(0,0,0,0.03);
+  color: #333;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .chart-header {
@@ -348,10 +346,9 @@ body{
 }
 
 .chart-header h3 {
-  font-size: 18px;
+  font-size: 1.2rem;
   font-weight: 600;
   color: #2b3336;
-  margin: 0;
 }
 
 .chart-controls {
@@ -361,18 +358,23 @@ body{
 
 .chart-period {
   padding: 6px 12px;
-  border: 1px solid #D1D5DB;
-  background: #F9FAFB;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
   border-radius: 6px;
-  font-size: 12px;
   cursor: pointer;
+  font-size: 0.8rem;
   transition: all 0.3s;
 }
 
+.chart-period:hover {
+  background: rgba(0,0,0,0.05);
+}
+
 .chart-period.active {
-  background: var(--primary);
+  background: #4A90E2;
+  border-color: #4A90E2;
   color: white;
-  border-color: var(--primary);
 }
 
 .chart-wrapper {
@@ -380,78 +382,101 @@ body{
   position: relative;
 }
 
-/* Data Section */
+/* Recent Activity */
 .data-section {
-  background: #ffffff;
+  background: white;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 4px 12px rgba(16,22,25,0.08);
-  border: 1px solid rgba(0,0,0,0.03);
+  color: #333;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
 
 .data-section h3 {
-  font-size: 18px;
+  font-size: 1.2rem;
   font-weight: 600;
+  margin-bottom: 15px;
   color: #2b3336;
-  margin-bottom: 16px;
 }
 
-.data-table {
-  overflow-x: auto;
+.recent-activity {
+  max-height: 400px;
+  overflow-y: auto;
 }
 
-.data-table table {
-  width: 100%;
-  border-collapse: collapse;
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
 }
 
-.data-table th {
-  text-align: left;
-  padding: 12px 16px;
-  background: #F9FAFB;
-  color: #374151;
-  font-weight: 600;
-  font-size: 13px;
-  border-bottom: 1px solid #E5E7EB;
+.activity-item:last-child {
+  border-bottom: none;
 }
 
-.data-table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #F3F4F6;
-  font-size: 14px;
-  color: #6B7280;
+.activity-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #4A90E2;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 12px;
+  flex-shrink: 0;
 }
 
-.data-table tr:hover {
-  background: #F9FAFB;
+.activity-content {
+  flex: 1;
 }
 
-/* Status Badges */
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
+.activity-text {
+  margin-bottom: 4px;
+  line-height: 1.4;
+  color: #333;
+}
+
+.document-name {
+  font-style: italic;
+  color: var(--muted);
+}
+
+.activity-details {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-time {
   font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
+  color: #6c757d;
 }
 
-.status-badge.completed {
-  background: #D1FAE5;
-  color: #065F46;
+.activity-status {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: bold;
+  margin-left: 8px;
 }
 
-.status-badge.pending {
-  background: #FEF3C7;
-  color: #92400E;
-}
+.status-pending { background: #fff3cd; color: #856404; }
+.status-accepted { background: #d1ecf1; color: #0c5460; }
+.status-completed { background: #d4edda; color: #155724; }
+.status-rejected { background: #f8d7da; color: #721c24; }
 
-.status-badge.new {
-  background: #E0E7FF;
-  color: #3730A3;
+.loading-activity, .no-activity {
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+  padding: 20px;
 }
-
-/* helper used by JS to show/hide elements */
-.visually-hidden{ display:none; }
 
 /* footer */
 .footer{ 
@@ -462,9 +487,25 @@ body{
   padding-right:6px; 
 }
 
+/* helper used by JS to show/hide elements */
+.visually-hidden{ display:none; }
+
+/* Spin animation for refresh button */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.refresh-spin {
+  animation: spin 1s linear infinite;
+}
+
 /* Responsive Styles */
 @media (max-width: 1200px) {
   .brand-right { width: 160px; }
+  .charts-container {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 992px) {
@@ -496,14 +537,6 @@ body{
   .main-content {
     margin-left: 70px;
   }
-  
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .charts-container {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 768px) {
@@ -526,11 +559,6 @@ body{
     gap: 15px;
   }
   
-  .controls {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
   .brand-right {
     display: none;
   }
@@ -546,53 +574,18 @@ body{
   .stats-grid {
     grid-template-columns: 1fr;
   }
-}
-/* Add to existing CSS */
-
-/* Semester Filter */
-.semester-filter {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Responsive adjustments for semester filter */
-@media (max-width: 768px) {
+  
   .date-filter {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
-  .semester-filter {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-}
-
-@media (max-width: 520px) {
-  .date-filter {
-    width: 100%;
-  }
-  
-  .time-select {
-    width: 100%;
   }
 }
 
 @media (max-width: 520px){
-  .date-filter {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+  .charts-container {
+    grid-template-columns: 1fr;
   }
   
   .chart-controls {
     flex-wrap: wrap;
-  }
-  
-  .chart-wrapper {
-    height: 200px;
   }
 }

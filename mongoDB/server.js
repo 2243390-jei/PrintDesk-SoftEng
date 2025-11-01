@@ -243,6 +243,34 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
   }
 });
 
+// DELETE a print request
+app.delete("/requests/:id", async (req, res) => {
+  try {
+    const deletedRequest = await PrintRequest.findByIdAndDelete(req.params.id);
+    if (!deletedRequest) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    console.log(`✅ Deleted request: ${req.params.id}`);
+    res.json({ message: "Request deleted successfully" });
+  } catch (err) {
+    console.error("❌ Error deleting request:", err);
+    res.status(500).json({ error: "Failed to delete request", details: err.message });
+  }
+});
+
+// ------------------------
+// Error handling middleware
+// ------------------------
+app.use((err, req, res, next) => {
+  console.error("❌ Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error", details: err.message });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: "Endpoint not found" });
+});
+
 
 // --- Start Server ---
 const PORT = 3000;
