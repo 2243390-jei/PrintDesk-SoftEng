@@ -1,5 +1,5 @@
 // ========================
-// 📄 server.js — stores tokens from frontend
+// 📄 server.js — stores tokens & request status
 // ========================
 const express = require("express");
 const mongoose = require("mongoose");
@@ -57,6 +57,7 @@ const printRequestSchema = new mongoose.Schema({
   pickupDateTime: String,
   documents: [documentSchema],
   totalTokens: Number,
+  status: { type: String, default: "Pending" }, 
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -76,7 +77,7 @@ const upload = multer({ storage });
 // Routes
 // ------------------------
 app.get("/", (req, res) =>
-  res.send("✅ PrintDesk API running (tokens read from frontend)")
+  res.send("✅ PrintDesk API running (tokens + status supported)")
 );
 
 app.post("/submit", upload.array("documents", 20), async (req, res) => {
@@ -84,7 +85,6 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
     console.log("📩 Received form data:", req.body);
     console.log("📁 Received files:", req.files?.length || 0);
 
-    // Parse JSON data from frontend
     const printJobs = JSON.parse(req.body.printJobs || "[]");
 
     const documents = [];
@@ -94,7 +94,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       const file = req.files[i];
       const copies = parseInt(job.copies) || 1;
       const pageCount = parseInt(job.pageCount) || 1;
-      const totalTokens = parseInt(job.totalTokens) || 0; // ✅ taken directly from frontend
+      const totalTokens = parseInt(job.totalTokens) || 0;
       const tokensPerPage = parseInt(job.tokensPerPage) || 0;
       const isImagePrint = job.isImagePrint === true || job.isImagePrint === "true";
 
@@ -115,7 +115,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       });
     });
 
-    // Create main print request
+    // ✅ Include status (defaults to "Pending")
     const newRequest = new PrintRequest({
       fullName: req.body.full_name,
       courseYear: req.body.course_year,
@@ -123,6 +123,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       pickupDateTime: req.body.pickup_datetime,
       documents,
       totalTokens: totalTokensRequest,
+      status: "Pending", // default explicitly
     });
 
     await newRequest.save();
@@ -132,6 +133,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       message: "Print request submitted successfully",
       requestId: newRequest._id,
       totalTokens: totalTokensRequest,
+      status: newRequest.status, // return status in response
     });
   } catch (err) {
     console.error("❌ Error saving request:", err);
