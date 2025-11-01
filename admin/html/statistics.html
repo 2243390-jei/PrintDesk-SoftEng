@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Admin — Analytics</title>
     <link rel="stylesheet" href="../css/statistics.css" />
-    <script src="/admin/js/statistics.js" defer></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
     <div class="dashboard-container">
@@ -20,7 +19,7 @@
         </div>
         
         <ul class="nav-links">
-          <li class="nav-item ">
+          <li class="nav-item">
             <a href="../html/queue.html">
               <span class="text">QUEUE</span>
             </a>
@@ -63,9 +62,8 @@
             </div>
 
             <div class="brand-right">
-            <!-- images folder is outside admin/, so go up two levels -->
-            <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
-          </div>
+              <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
+            </div>
           </header>
 
           <section class="card">
@@ -78,9 +76,9 @@
                     <option value="today">Today</option>
                     <option value="week" selected>This Week</option>
                     <option value="month">This Month</option>
-                    <option value="term">By Term</option>
+                    <option value="semester">By Semester</option>
                   </select>
-                  <select id="termFilter" class="time-select" style="display: none;">
+                  <select id="semesterFilter" class="time-select" style="display: none;">
                     <option value="prelim">Prelim</option>
                     <option value="midterm">Midterm</option>
                     <option value="finals">Finals</option>
@@ -99,27 +97,27 @@
                 <div class="stat-card">
                   <div class="stat-icon users">👥</div>
                   <div class="stat-content">
-                    <div class="stat-value" id="totalUsers">1,247</div>
+                    <div class="stat-value" id="totalUsers">0</div>
                     <div class="stat-label">Total Users</div>
-                    <div class="stat-change positive">+12% from last week</div>
+                    <div class="stat-change positive" id="usersChange">Loading...</div>
                   </div>
                 </div>
 
                 <div class="stat-card">
                   <div class="stat-icon prints">📄</div>
                   <div class="stat-content">
-                    <div class="stat-value" id="totalPrints">3,845</div>
+                    <div class="stat-value" id="totalPrints">0</div>
                     <div class="stat-label">Total Prints</div>
-                    <div class="stat-change positive">+8% from last week</div>
+                    <div class="stat-change positive" id="printsChange">Loading...</div>
                   </div>
                 </div>
 
                 <div class="stat-card">
                   <div class="stat-icon leads">📈</div>
                   <div class="stat-content">
-                    <div class="stat-value" id="totalLeads">156</div>
+                    <div class="stat-value" id="totalLeads">0</div>
                     <div class="stat-label">Total Leads</div>
-                    <div class="stat-change positive">+15% from last week</div>
+                    <div class="stat-change positive" id="leadsChange">Loading...</div>
                   </div>
                 </div>
               </div>
@@ -150,52 +148,11 @@
                 </div>
               </div>
 
-              <!-- Data Table -->
+              <!-- Recent Activity Section -->
               <div class="data-section">
                 <h3>Recent Activity</h3>
-                <div class="data-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Time</th>
-                        <th>User</th>
-                        <th>Action</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>10:30 AM</td>
-                        <td>Piamonte, Malech</td>
-                        <td>Print Request</td>
-                        <td><span class="status-badge completed">Completed</span></td>
-                      </tr>
-                      <tr>
-                        <td>10:15 AM</td>
-                        <td>Argao, Jelloyd</td>
-                        <td>Print Request</td>
-                        <td><span class="status-badge pending">Pending</span></td>
-                      </tr>
-                      <tr>
-                        <td>09:45 AM</td>
-                        <td>Aguilan, Jecquar</td>
-                        <td>New Lead</td>
-                        <td><span class="status-badge new">New</span></td>
-                      </tr>
-                      <tr>
-                        <td>09:30 AM</td>
-                        <td>Santos, Maria</td>
-                        <td>Print Request</td>
-                        <td><span class="status-badge completed">Completed</span></td>
-                      </tr>
-                      <tr>
-                        <td>09:15 AM</td>
-                        <td>Reyes, Juan</td>
-                        <td>User Registration</td>
-                        <td><span class="status-badge completed">Completed</span></td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div class="recent-activity" id="recentActivityList">
+                  <div class="loading-activity">Loading recent activity...</div>
                 </div>
               </div>
             </div>
@@ -206,6 +163,6 @@
       </main>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../js/statistics.js"></script>
   </body>
 </html>

@@ -1,116 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
-  // Sample data (for testing)
-  // -------------------------
-  const queueData = [
-    { 
-      id: 1, 
-      name: "Piamonte, Malech", 
-      course: "BSIT 3", 
-      date: "10/10/25", 
-      status: "Pending",
-      details: {
-        submittedOn: "October 10, 2025",
-        totalCost: "15 tokens",
-        status: "Pending",
-        requestId: "ROBF2D7B",
-        fileName: "Automobile_Anatomy.pdf",
-        pageCount: "1",
-        copies: "1",
-        paperSize: "A4",
-        printType: "Colored",
-        printingSide: "Single-Sided",
-        pickupDate: "October 20, 2025",
-        previewImage: "../../images/SLU_Logo.png"
-      }
-    },
-    { 
-      id: 2, 
-      name: "Argao, Jelloyd", 
-      course: "BSIT 3", 
-      date: "10/10/25", 
-      status: "Pending",
-      details: {
-        submittedOn: "October 10, 2025",
-        totalCost: "18 tokens",
-        status: "Pending",
-        requestId: "RABF207B",
-        fileName: "Data_Structures_Assignment.pdf",
-        pageCount: "3",
-        copies: "2",
-        paperSize: "Letter",
-        printType: "Black & White",
-        printingSide: "Double-Sided",
-        pickupDate: "October 18, 2025",
-        previewImage: "../../images/SLU_printdesk_logo.png"
-      }
-    },
-    { 
-      id: 3, 
-      name: "Aguilan, Jecquar", 
-      course: "BSIT 3", 
-      date: "10/10/25", 
-      status: "Pending",
-      details: {
-        submittedOn: "October 10, 2025",
-        totalCost: "8 tokens",
-        status: "Pending",
-        requestId: "R45B8D3F",
-        fileName: "Web_Development_Project.pdf",
-        pageCount: "5",
-        copies: "1",
-        paperSize: "A4",
-        printType: "Colored",
-        printingSide: "Single-Sided",
-        pickupDate: "October 15, 2025",
-        previewImage: "../../images/Icon.png"
-      }
-    },
-    { 
-      id: 4, 
-      name: "Santos, Maria", 
-      course: "BSCS 2", 
-      date: "10/11/25", 
-      status: "Pending",
-      details: {
-        submittedOn: "October 11, 2025",
-        totalCost: "12 tokens",
-        status: "Pending",
-        requestId: "R76C2E9A",
-        fileName: "Lab_Report.pdf",
-        pageCount: "3",
-        copies: "1",
-        paperSize: "A4",
-        printType: "Black & White",
-        printingSide: "Single-Sided",
-        pickupDate: "October 12, 2025",
-        previewImage: "../../images/lock.png"
-      }
-    },
-    { 
-      id: 5, 
-      name: "Reyes, Juan", 
-      course: "BSIS 4", 
-      date: "10/11/25", 
-      status: "Pending",
-      details: {
-        submittedOn: "October 11, 2025",
-        totalCost: "30 tokens",
-        status: "Pending",
-        requestId: "R34D7F1B",
-        fileName: "Project_Proposal.pdf",
-        pageCount: "20",
-        copies: "3",
-        paperSize: "Legal",
-        printType: "Colored",
-        printingSide: "Double-Sided",
-        pickupDate: "October 22, 2025",
-        previewImage: "../../images/admin_img/Screenshot 2025-10-20 110300.png"
-      }
-    }
-  ];
-
-  // -------------------------
   // DOM references
   // -------------------------
   const queueBody = document.getElementById("queueBody");
@@ -145,16 +34,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const printingSide = document.getElementById('printingSide');
   const pickupDate = document.getElementById('pickupDate');
   const previewImage = document.getElementById('previewImage');
+  const previewContainer = document.getElementById('previewContainer');
+  const previewPlaceholder = document.getElementById('previewPlaceholder');
 
   // -------------------------
   // State
   // -------------------------
   let perPage = 5;
   let currentPage = 1;
-  let filtered = [...queueData];
+  let queueData = []; // Will be populated from backend
+  let filtered = [];
   let view = "table"; // 'table' | 'board' | 'list'
   let activeFilters = { status: null, dateFrom: null, dateTo: null };
   let currentRequestId = null;
+
+  // API endpoints
+  const API_BASE = "http://localhost:3000";
+  const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
 
   // set footer year if element exists
   if (curYear) curYear.textContent = new Date().getFullYear();
@@ -176,14 +72,146 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function statusPill(text) {
     if (!text) return '';
-    if (text.toLowerCase() === "completed") return `<span class="pill accepted">${text}</span>`;
+    const status = text.toLowerCase();
+    if (status === "completed") return `<span class="pill accepted">${text}</span>`;
+    if (status === "accepted") return `<span class="pill accepted">${text}</span>`;
+    if (status === "rejected") return `<span class="pill rejected">${text}</span>`;
     return `<span class="pill pending">${text}</span>`;
   }
   
   function statusPillText(text) {
-    if (!text) return '';
-    if (text.toLowerCase() === "completed") return `<span class="pill accepted">${text}</span>`;
-    return `<span class="pill pending">${text}</span>`;
+    return statusPill(text);
+  }
+
+  // Function to check if file is an image
+  function isImageFile(filename) {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'];
+    return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+  }
+
+  // Function to check if file is a PDF
+  function isPdfFile(filename) {
+    return filename.toLowerCase().endsWith('.pdf');
+  }
+
+  // -------------------------
+  // API Functions
+  // -------------------------
+  async function fetchPrintRequests() {
+    try {
+      const response = await fetch(REQUESTS_ENDPOINT);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      // Sort by createdAt (oldest first) to maintain queue order
+      const sortedData = data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      
+      // Transform backend data to frontend format with queue numbers
+      return sortedData.map((request, index) => {
+        // Use the first document for display purposes
+        const primaryDoc = request.documents && request.documents.length > 0 
+          ? request.documents[0] 
+          : {
+              documentTitle: "Unknown",
+              pageCount: 0,
+              numberOfCopies: 1,
+              paperSize: "Unknown",
+              printType: "Unknown",
+              printingSide: "Unknown",
+              filePath: null
+            };
+        
+        // Format date for display
+        const createdDate = new Date(request.createdAt);
+        const formattedDate = `${createdDate.getMonth() + 1}/${createdDate.getDate()}/${createdDate.getFullYear().toString().slice(-2)}`;
+        
+        // Use the status from database, default to "Pending" if not present
+        const status = request.status || "Pending";
+        
+        // Determine preview type and URL
+        let previewImage = "../../images/SLU_Logo.png";
+        let previewType = "image";
+        
+        if (primaryDoc.filePath) {
+          const fullFilePath = `${API_BASE}${primaryDoc.filePath}`;
+          if (isImageFile(primaryDoc.documentTitle)) {
+            previewImage = fullFilePath;
+            previewType = "image";
+          } else if (isPdfFile(primaryDoc.documentTitle)) {
+            previewImage = "../../images/pdf-icon.png"; // You can add a PDF icon
+            previewType = "pdf";
+          } else {
+            previewImage = "../../images/document-icon.png"; // Generic document icon
+            previewType = "document";
+          }
+        }
+        
+        return {
+          id: request._id, // Use the actual MongoDB _id for internal reference
+          queueNumber: index + 1, // This is the display queue number (1, 2, 3, ...)
+          name: request.fullName,
+          course: request.courseYear,
+          date: formattedDate,
+          status: status,
+          details: {
+            submittedOn: createdDate.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            }),
+            totalCost: `${request.totalTokens} tokens`,
+            status: status,
+            requestId: request._id,
+            fileName: primaryDoc.documentTitle,
+            pageCount: primaryDoc.pageCount,
+            copies: primaryDoc.numberOfCopies,
+            paperSize: primaryDoc.paperSize,
+            printType: primaryDoc.printType,
+            printingSide: primaryDoc.printingSide,
+            pickupDate: request.pickupDateTime ? 
+              new Date(request.pickupDateTime).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              }) : "Not specified",
+            previewImage: previewImage,
+            previewType: previewType,
+            filePath: primaryDoc.filePath ? `${API_BASE}${primaryDoc.filePath}` : null,
+            // Include all documents for the print management page
+            allDocuments: request.documents || [],
+            email: request.email,
+            totalTokens: request.totalTokens
+          }
+        };
+      });
+    } catch (error) {
+      console.error("Error fetching print requests:", error);
+      // Return empty array if API fails
+      return [];
+    }
+  }
+
+  async function updateRequestStatus(requestId, newStatus) {
+    try {
+      const response = await fetch(`${REQUESTS_ENDPOINT}/${requestId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error updating request status:", error);
+      throw error;
+    }
   }
 
   // -------------------------
@@ -205,10 +233,10 @@ document.addEventListener("DOMContentLoaded", () => {
     pageItems.forEach(item => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${item.id}</td>
+        <td>${item.queueNumber}</td>
         <td>
           <div class="user-name">
-            <div class="user-avatar" aria-hidden="true">${item.name.split(",")[0].slice(0,1)}</div>
+            <div class="user-avatar" aria-hidden="true">${item.name.split(" ")[0].slice(0,1)}</div>
             <div>
               <div style="font-weight:700; font-size:14px;">${item.name}</div>
               <div style="font-size:13px; color: #6b7780;">${item.course}</div>
@@ -217,6 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </td>
         <td>${item.course}</td>
         <td>${item.date}</td>
+        <td>${statusPill(item.status)}</td>
         <td class="col-actions">
           <button class="view-details-btn" data-id="${item.id}">View Details</button>
         </td>
@@ -244,7 +273,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const div = document.createElement("div");
       div.className = "card-item";
       div.innerHTML = `
-        <div class="avatar">${item.name.split(",")[0].slice(0,1)}</div>
+        <div class="queue-badge">#${item.queueNumber}</div>
+        <div class="avatar">${item.name.split(" ")[0].slice(0,1)}</div>
         <div class="meta">
           <div class="name">${item.name}</div>
           <div class="course">${item.course}</div>
@@ -278,7 +308,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const row = document.createElement("div");
       row.className = "list-row";
       row.innerHTML = `
-        <div class="avatar">${item.name.split(",")[0].slice(0,1)}</div>
+        <div style="width:60px;font-weight:700;text-align:center;">#${item.queueNumber}</div>
+        <div class="avatar">${item.name.split(" ")[0].slice(0,1)}</div>
         <div style="flex:1;">
           <div style="font-weight:700;">${item.name}</div>
           <div style="font-size:13px;color:#6b7780;">${item.course}</div>
@@ -340,7 +371,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const matchesSearch = q === "" || 
         item.name.toLowerCase().includes(q) || 
         item.course.toLowerCase().includes(q) || 
-        item.date.includes(q);
+        item.date.includes(q) ||
+        item.queueNumber.toString().includes(q);
 
       // status
       const matchesStatus = activeFilters.status ? item.status === activeFilters.status : true;
@@ -455,16 +487,22 @@ document.addEventListener("DOMContentLoaded", () => {
     if (type === "status") {
       const label = document.createElement("div"); label.textContent = "Status"; label.style.fontWeight = "700";
       const pendingBtn = document.createElement("button"); pendingBtn.textContent = "Pending";
+      const acceptedBtn = document.createElement("button"); acceptedBtn.textContent = "Accepted";
       const completedBtn = document.createElement("button"); completedBtn.textContent = "Completed";
+      const rejectedBtn = document.createElement("button"); rejectedBtn.textContent = "Rejected";
       const clearBtn = document.createElement("button"); clearBtn.textContent = "Clear";
 
       pendingBtn.addEventListener("click", () => { activeFilters.status = "Pending"; currentPage = 1; renderView(queueData); hideFilterPanel(); });
+      acceptedBtn.addEventListener("click", () => { activeFilters.status = "Accepted"; currentPage = 1; renderView(queueData); hideFilterPanel(); });
       completedBtn.addEventListener("click", () => { activeFilters.status = "Completed"; currentPage = 1; renderView(queueData); hideFilterPanel(); });
+      rejectedBtn.addEventListener("click", () => { activeFilters.status = "Rejected"; currentPage = 1; renderView(queueData); hideFilterPanel(); });
       clearBtn.addEventListener("click", () => { activeFilters.status = null; currentPage = 1; renderView(queueData); hideFilterPanel(); });
 
       filterPanel.appendChild(label);
       filterPanel.appendChild(pendingBtn);
+      filterPanel.appendChild(acceptedBtn);
       filterPanel.appendChild(completedBtn);
+      filterPanel.appendChild(rejectedBtn);
       filterPanel.appendChild(clearBtn);
     }
 
@@ -500,7 +538,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // Modal: View Details
+  // Modal: View Details with Enhanced Preview
   // -------------------------
   function openDetailsForId(id) {
     const item = queueData.find(item => item.id === id);
@@ -515,7 +553,7 @@ document.addEventListener("DOMContentLoaded", () => {
       statusBadge.textContent = item.details.status;
       statusBadge.className = `status-badge status-${item.details.status.toLowerCase()}`;
     }
-    if (requestId) requestId.textContent = item.details.requestId;
+    if (requestId) requestId.textContent = `Queue #${item.queueNumber}`;
     if (fileName) fileName.textContent = item.details.fileName;
     if (pageCount) pageCount.textContent = item.details.pageCount;
     if (copiesCount) copiesCount.textContent = item.details.copies;
@@ -524,10 +562,73 @@ document.addEventListener("DOMContentLoaded", () => {
     if (printingSide) printingSide.textContent = item.details.printingSide;
     if (pickupDate) pickupDate.textContent = item.details.pickupDate;
 
-    // Set preview image
-    if (previewImage) {
-      previewImage.src = item.details.previewImage;
-      previewImage.alt = `Preview of ${item.details.fileName}`;
+    // Enhanced preview handling
+    if (previewImage && previewContainer) {
+      const fileName = item.details.fileName;
+      
+      // Hide placeholder if we have a file
+      if (previewPlaceholder) {
+        previewPlaceholder.style.display = item.details.filePath ? 'none' : 'block';
+      }
+
+      if (item.details.filePath) {
+        if (isImageFile(fileName)) {
+          // Show actual image for image files
+          previewImage.src = item.details.filePath;
+          previewImage.alt = `Preview of ${fileName}`;
+          previewImage.style.display = 'block';
+          previewImage.onerror = function() {
+            // If image fails to load, show placeholder
+            this.style.display = 'none';
+            if (previewPlaceholder) previewPlaceholder.style.display = 'block';
+          };
+        } else if (isPdfFile(fileName)) {
+          // For PDF files, show PDF icon and download link
+          previewImage.src = "../../images/pdf-icon.png";
+          previewImage.alt = `PDF Document: ${fileName}`;
+          previewImage.style.display = 'block';
+          
+          // Add download button for PDF
+          let downloadBtn = previewContainer.querySelector('.download-btn');
+          if (!downloadBtn) {
+            downloadBtn = document.createElement('a');
+            downloadBtn.className = 'download-btn';
+            downloadBtn.textContent = 'Download PDF';
+            downloadBtn.style.display = 'block';
+            downloadBtn.style.marginTop = '10px';
+            downloadBtn.style.padding = '8px 16px';
+            downloadBtn.style.backgroundColor = '#007bff';
+            downloadBtn.style.color = 'white';
+            downloadBtn.style.textDecoration = 'none';
+            downloadBtn.style.borderRadius = '4px';
+            downloadBtn.style.textAlign = 'center';
+            previewContainer.appendChild(downloadBtn);
+          }
+          downloadBtn.href = item.details.filePath;
+          downloadBtn.download = fileName;
+          downloadBtn.style.display = 'block';
+        } else {
+          // For other file types, show document icon
+          previewImage.src = "../../images/document-icon.png";
+          previewImage.alt = `Document: ${fileName}`;
+          previewImage.style.display = 'block';
+        }
+      } else {
+        // No file available
+        previewImage.style.display = 'none';
+        if (previewPlaceholder) previewPlaceholder.style.display = 'block';
+      }
+    }
+
+    // Show/hide action buttons based on current status
+    if (rejectBtn && acceptBtn) {
+      if (item.details.status === "Pending") {
+        rejectBtn.style.display = "block";
+        acceptBtn.style.display = "block";
+      } else {
+        rejectBtn.style.display = "none";
+        acceptBtn.style.display = "none";
+      }
     }
 
     openModal(detailsModal);
@@ -541,50 +642,65 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // -------------------------
-  // Redirect to Print Management
-  // -------------------------
-  function redirectToPrintManagement(requestId) {
-    // Store the request data in sessionStorage to pass to print management page
-    const item = queueData.find(item => item.details.requestId === requestId);
-    if (item) {
-      sessionStorage.setItem('selectedRequest', JSON.stringify(item));
-      
-      // Update the status to "Accepted" in the queue data
-      item.status = "Accepted";
-      item.details.status = "Accepted";
-      
-      // Show confirmation message
-      alert(`Request ${item.details.requestId} has been accepted and moved to print management.`);
-      
-      // Close modal
-      closeModal(detailsModal);
-      
-      // Refresh the view to reflect changes
-      renderView(queueData);
-      
-      // Redirect to print management page
-      window.location.href = '../html/printmanagement.html';
-    }
-  }
-
   // Handle reject action
-  function handleReject(id) {
+  async function handleReject(id) {
     const item = queueData.find(item => item.id === id);
     
     if (item) {
-      // Update the status to Rejected
-      item.details.status = "Rejected";
-      item.status = "Rejected";
-      
-      // Show confirmation message
-      alert(`Request ${item.details.requestId} has been rejected.`);
-      
-      // Close the modal
-      closeModal(detailsModal);
-      
-      // Refresh the view to reflect changes
-      renderView(queueData);
+      try {
+        // Update status in backend
+        await updateRequestStatus(item.details.requestId, "Rejected");
+        
+        // Update the status to Rejected in frontend
+        item.details.status = "Rejected";
+        item.status = "Rejected";
+        
+        // Show confirmation message
+        alert(`Request Queue #${item.queueNumber} has been rejected.`);
+        
+        // Close the modal
+        closeModal(detailsModal);
+        
+        // Refresh the view to reflect changes
+        renderView(queueData);
+      } catch (error) {
+        alert("Failed to reject request. Please try again.");
+        console.error("Error rejecting request:", error);
+      }
+    }
+  }
+
+  // Handle accept action
+  async function handleAccept(id) {
+    const item = queueData.find(item => item.id === id);
+    
+    if (item) {
+      try {
+        // Update status in backend
+        await updateRequestStatus(item.details.requestId, "Accepted");
+        
+        // Update the status to Accepted in frontend
+        item.status = "Accepted";
+        item.details.status = "Accepted";
+        
+        // Store the request data in sessionStorage to pass to print management page
+        sessionStorage.setItem('selectedRequest', JSON.stringify(item));
+        
+        // Show confirmation message
+        alert(`Request Queue #${item.queueNumber} has been accepted and moved to print management.`);
+        
+        // Close modal
+        closeModal(detailsModal);
+        
+        // Refresh the view to reflect changes
+        renderView(queueData);
+        
+        // Redirect to print management page
+        window.location.href = '../html/printmanagement.html';
+      } catch (error) {
+        alert("Failed to accept request. Please try again.");
+        console.error("Error accepting request:", error);
+      }
     }
   }
 
@@ -597,12 +713,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (acceptBtn) {
     acceptBtn.addEventListener('click', function() {
-      if (currentRequestId) {
-        const item = queueData.find(item => item.id === currentRequestId);
-        if (item) {
-          redirectToPrintManagement(item.details.requestId);
-        }
-      }
+      if (currentRequestId) handleAccept(currentRequestId);
     });
   }
 
@@ -640,21 +751,38 @@ document.addEventListener("DOMContentLoaded", () => {
     // Now add listeners
     document.querySelectorAll('.view-details-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const id = parseInt(btn.getAttribute('data-id'));
+        const id = btn.getAttribute('data-id');
         if (id) openDetailsForId(id);
       });
     });
   }
 
   // -------------------------
-  // Initialize (render first view)
+  // Initialize (fetch data and render first view)
   // -------------------------
-  renderView(queueData);
+  async function initialize() {
+    try {
+      // Show loading state
+      if (queueBody) queueBody.innerHTML = "<tr><td colspan='6'>Loading print requests...</td></tr>";
+      
+      // Fetch data from backend
+      queueData = await fetchPrintRequests();
+      
+      // Render the view
+      renderView(queueData);
+    } catch (error) {
+      console.error("Error initializing:", error);
+      if (queueBody) queueBody.innerHTML = "<tr><td colspan='6'>Error loading print requests</td></tr>";
+    }
+  }
+
+  initialize();
 
   // Expose some helpers to console for quick testing (optional)
   window.__queueDemo = {
     queueData,
     renderView,
-    openDetailsForId
+    openDetailsForId,
+    fetchPrintRequests
   };
 });

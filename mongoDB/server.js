@@ -1,5 +1,5 @@
 // ========================
-// 📄 server.js — stores tokens from frontend
+// 📄 server.js — PrintDesk Backend API
 // ========================
 const express = require("express");
 const mongoose = require("mongoose");
@@ -57,6 +57,7 @@ const printRequestSchema = new mongoose.Schema({
   pickupDateTime: String,
   documents: [documentSchema],
   totalTokens: Number,
+  status: { type: String, default: "Pending" }, // Added status field with default
   createdAt: { type: Date, default: Date.now },
 });
 
@@ -79,6 +80,62 @@ app.get("/", (req, res) =>
   res.send("✅ PrintDesk API running (tokens read from frontend)")
 );
 
+// GET all print requests (sorted by createdAt for queue order)
+app.get("/requests", async (req, res) => {
+  try {
+    const requests = await PrintRequest.find().sort({ createdAt: 1 }); // Sort by creation date (oldest first)
+    console.log(`✅ Fetched ${requests.length} print requests`);
+    res.json(requests);
+  } catch (err) {
+    console.error("❌ Error fetching requests:", err);
+    res.status(500).json({ error: "Failed to fetch requests", details: err.message });
+  }
+});
+
+// GET single print request by ID
+app.get("/requests/:id", async (req, res) => {
+  try {
+    const request = await PrintRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    res.json(request);
+  } catch (err) {
+    console.error("❌ Error fetching request:", err);
+    res.status(500).json({ error: "Failed to fetch request", details: err.message });
+  }
+});
+
+// PATCH update print request status
+app.patch("/requests/:id", async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    // Validate status
+    const validStatuses = ["Pending", "Accepted", "Rejected", "Completed"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+    
+    const updatedRequest = await PrintRequest.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    
+    if (!updatedRequest) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    
+    console.log(`✅ Updated request ${req.params.id} status to: ${status}`);
+    res.json(updatedRequest);
+  } catch (err) {
+    console.error("❌ Error updating request:", err);
+    res.status(500).json({ error: "Failed to update request", details: err.message });
+  }
+});
+
+// POST submit new print request
 app.post("/submit", upload.array("documents", 20), async (req, res) => {
   try {
     console.log("📩 Received form data:", req.body);
@@ -123,6 +180,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       pickupDateTime: req.body.pickup_datetime,
       documents,
       totalTokens: totalTokensRequest,
+      status: "Pending", // Default status for new requests
     });
 
     await newRequest.save();
@@ -139,6 +197,34 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       .status(500)
       .json({ error: "Failed to submit print request", details: err.message });
   }
+});
+
+// DELETE a print request
+app.delete("/requests/:id", async (req, res) => {
+  try {
+    const deletedRequest = await PrintRequest.findByIdAndDelete(req.params.id);
+    if (!deletedRequest) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    console.log(`✅ Deleted request: ${req.params.id}`);
+    res.json({ message: "Request deleted successfully" });
+  } catch (err) {
+    console.error("❌ Error deleting request:", err);
+    res.status(500).json({ error: "Failed to delete request", details: err.message });
+  }
+});
+
+// ------------------------
+// Error handling middleware
+// ------------------------
+app.use((err, req, res, next) => {
+  console.error("❌ Unhandled error:", err);
+  res.status(500).json({ error: "Internal server error", details: err.message });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: "Endpoint not found" });
 });
 
 // ------------------------
