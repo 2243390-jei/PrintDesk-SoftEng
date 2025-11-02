@@ -80,6 +80,62 @@ app.get("/", (req, res) =>
   res.send("✅ PrintDesk API running (tokens + status supported)")
 );
 
+// GET all print requests (sorted by createdAt for queue order)
+app.get("/requests", async (req, res) => {
+  try {
+    const requests = await PrintRequest.find().sort({ createdAt: 1 }); // Sort by creation date (oldest first)
+    console.log(`✅ Fetched ${requests.length} print requests`);
+    res.json(requests);
+  } catch (err) {
+    console.error("❌ Error fetching requests:", err);
+    res.status(500).json({ error: "Failed to fetch requests", details: err.message });
+  }
+});
+
+// GET single print request by ID
+app.get("/requests/:id", async (req, res) => {
+  try {
+    const request = await PrintRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    res.json(request);
+  } catch (err) {
+    console.error("❌ Error fetching request:", err);
+    res.status(500).json({ error: "Failed to fetch request", details: err.message });
+  }
+});
+
+// PATCH update print request status
+app.patch("/requests/:id", async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    // Validate status
+    const validStatuses = ["Pending", "Accepted", "Rejected", "Completed"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+    
+    const updatedRequest = await PrintRequest.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    
+    if (!updatedRequest) {
+      return res.status(404).json({ error: "Request not found" });
+    }
+    
+    console.log(`✅ Updated request ${req.params.id} status to: ${status}`);
+    res.json(updatedRequest);
+  } catch (err) {
+    console.error("❌ Error updating request:", err);
+    res.status(500).json({ error: "Failed to update request", details: err.message });
+  }
+});
+
+// POST submit new print request
 app.post("/submit", upload.array("documents", 20), async (req, res) => {
   try {
     console.log("📩 Received form data:", req.body);
