@@ -1,5 +1,5 @@
 // ========================
-// 📄 server.js — Unified backend for Users + Print Requests
+// server.js — Unified backend for Users + Print Requests
 // ========================
 const express = require("express");
 const mongoose = require("mongoose");
@@ -27,8 +27,8 @@ mongoose
   .connect(
     "mongodb+srv://root:root123360@software-engineering.vw1nyls.mongodb.net/Software-Engineering?retryWrites=true&w=majority"
   )
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // ------------------------
 // User Schema
@@ -83,6 +83,21 @@ const printRequestSchema = new mongoose.Schema({
 const PrintRequest = mongoose.model("print_requests", printRequestSchema);
 
 // ------------------------
+// Token Reset Schema
+// ------------------------
+const tokenResetSchema = new mongoose.Schema({
+  resetDate: { type: Date, required: true },
+  scheduledBy: String,
+  executed: { type: Boolean, default: false },
+  executedAt: Date,
+  cancelled: { type: Boolean, default: false },
+  cancelledAt: Date,
+  createdAt: { type: Date, default: Date.now },
+});
+
+const TokenReset = mongoose.model("token_resets", tokenResetSchema);
+
+// ------------------------
 // Multer (file upload)
 // ------------------------
 const storage = multer.diskStorage({
@@ -96,8 +111,278 @@ const upload = multer({ storage });
 // Routes
 // ------------------------
 app.get("/", (req, res) =>
-  res.send("✅ PrintDesk API running with user authentication + tokens + status")
+  res.send("PrintDesk API running with user authentication + tokens + status")
 );
+
+// --- GET all print requests ---
+app.get("/requests", async (req, res) => {
+  try {
+    console.log("GET /requests - Fetching all print requests");
+    const requests = await PrintRequest.find().sort({ createdAt: 1 });
+    console.log(`Found ${requests.length} print requests`);
+    res.json(requests);
+  } catch (err) {
+    console.error("Error fetching print requests:", err);
+    res.status(500).json({ error: "Failed to fetch print requests", details: err.message });
+  }
+});
+
+// --- GET single print request by ID ---
+app.get("/requests/:id", async (req, res) => {
+  try {
+    const request = await PrintRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ error: "Print request not found" });
+    }
+    res.json(request);
+  } catch (err) {
+    console.error("Error fetching print request:", err);
+    res.status(500).json({ error: "Failed to fetch print request", details: err.message });
+  }
+});
+
+// --- UPDATE print request status ---
+app.patch("/requests/:id", async (req, res) => {
+  try {
+    console.log(`PATCH /requests/${req.params.id}`, req.body);
+    
+    const { status } = req.body;
+    const validStatuses = ["Pending", "Accepted", "Completed", "Rejected"];
+    
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        error: "Invalid status", 
+        validStatuses 
+      });
+    }
+    
+    const updatedRequest = await PrintRequest.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedRequest) {
+      return res.status(404).json({ error: "Print request not found" });
+    }
+    
+    console.log(`Updated request ${req.params.id} to status: ${status}`);
+    res.json(updatedRequest);
+  } catch (err) {
+    console.error("Error updating print request:", err);
+    res.status(500).json({ error: "Failed to update print request", details: err.message });
+  }
+});
+
+// --- GET all users ---
+app.get("/users", async (req, res) => {
+  try {
+    console.log("GET /users - Fetching all users");
+    const users = await User.find().sort({ createdAt: -1 });
+    console.log(`Found ${users.length} users`);
+    res.json(users);
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ error: "Failed to fetch users", details: err.message });
+  }
+});
+
+// --- UPDATE user ---
+app.patch("/users/:id", async (req, res) => {
+  try {
+    console.log(`PATCH /users/${req.params.id}`, req.body);
+    
+    const { fullName, courseYear, role } = req.body;
+    const updates = {};
+    
+    if (fullName) updates.fullName = fullName;
+    if (courseYear) updates.courseYear = courseYear;
+    if (role) updates.role = role;
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    );
+    
+    if (!updatedUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    console.log(`Updated user ${req.params.id}`);
+    res.json(updatedUser);
+  } catch (err) {
+    console.error("Error updating user:", err);
+    res.status(500).json({ error: "Failed to update user", details: err.message });
+  }
+});
+
+// --- DELETE user ---
+app.delete("/users/:id", async (req, res) => {
+  try {
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    if (!deletedUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    console.log(`Deleted user: ${req.params.id}`);
+    res.json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting user:", err);
+    res.status(500).json({ error: "Failed to delete user", details: err.message });
+  }
+});
+
+// --- SCHEDULE TOKEN RESET ---
+app.post("/reset-tokens", async (req, res) => {
+  try {
+    const { resetDate } = req.body;
+    
+    if (!resetDate) {
+      return res.status(400).json({ error: "Reset date is required" });
+    }
+    
+    // Check if there's already a scheduled reset that's not executed or cancelled
+    const existingReset = await TokenReset.findOne({
+      executed: false,
+      cancelled: false,
+      resetDate: { $gte: new Date() }
+    });
+    
+    if (existingReset) {
+      return res.status(400).json({ 
+        error: "A token reset is already scheduled",
+        existingReset: {
+          _id: existingReset._id,
+          resetDate: existingReset.resetDate
+        }
+      });
+    }
+    
+    // Create new token reset schedule
+    const tokenReset = new TokenReset({
+      resetDate: new Date(resetDate),
+      scheduledBy: "admin", // You can get this from auth later
+    });
+    
+    await tokenReset.save();
+    
+    console.log(`Token reset scheduled for: ${resetDate}`);
+    res.json({ 
+      message: "Token reset scheduled successfully", 
+      resetId: tokenReset._id,
+      resetDate: tokenReset.resetDate 
+    });
+    
+  } catch (err) {
+    console.error("Error scheduling token reset:", err);
+    res.status(500).json({ error: "Failed to schedule token reset", details: err.message });
+  }
+});
+
+// --- CANCEL TOKEN RESET ---
+app.post("/cancel-reset", async (req, res) => {
+  try {
+    // Find the active scheduled reset (not executed, not cancelled, future date)
+    const scheduledReset = await TokenReset.findOne({
+      executed: false,
+      cancelled: false,
+      resetDate: { $gte: new Date() }
+    });
+    
+    if (!scheduledReset) {
+      return res.status(404).json({ error: "No active token reset scheduled" });
+    }
+    
+    // Mark as cancelled
+    scheduledReset.cancelled = true;
+    scheduledReset.cancelledAt = new Date();
+    await scheduledReset.save();
+    
+    console.log(`Token reset cancelled: ${scheduledReset._id}`);
+    res.json({ 
+      message: "Token reset cancelled successfully",
+      cancelledReset: {
+        _id: scheduledReset._id,
+        resetDate: scheduledReset.resetDate
+      }
+    });
+    
+  } catch (err) {
+    console.error("Error cancelling token reset:", err);
+    res.status(500).json({ error: "Failed to cancel token reset", details: err.message });
+  }
+});
+
+// --- GET SCHEDULED RESET ---
+app.get("/reset-tokens/scheduled", async (req, res) => {
+  try {
+    // Find the active scheduled reset (not executed, not cancelled, future date)
+    const scheduledReset = await TokenReset.findOne({
+      executed: false,
+      cancelled: false,
+      resetDate: { $gte: new Date() }
+    }).sort({ resetDate: 1 }); // Get the earliest scheduled reset
+    
+    if (!scheduledReset) {
+      return res.status(404).json({ error: "No token reset scheduled" });
+    }
+    
+    res.json({
+      _id: scheduledReset._id,
+      resetDate: scheduledReset.resetDate,
+      scheduledBy: scheduledReset.scheduledBy,
+      createdAt: scheduledReset.createdAt
+    });
+    
+  } catch (err) {
+    console.error("Error getting scheduled reset:", err);
+    res.status(500).json({ error: "Failed to get scheduled reset", details: err.message });
+  }
+});
+
+// --- EXECUTE TOKEN RESET (for cron job) ---
+app.post("/execute-token-reset", async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Find scheduled resets for today that haven't been executed or cancelled
+    const scheduledResets = await TokenReset.find({
+      resetDate: { $lte: today },
+      executed: false,
+      cancelled: false
+    });
+    
+    if (scheduledResets.length === 0) {
+      return res.json({ message: "No token resets scheduled for today" });
+    }
+    
+    // Reset all users' tokens to 500
+    const result = await User.updateMany(
+      {},
+      { $set: { tokenBalance: 500 } }
+    );
+    
+    // Mark resets as executed
+    await TokenReset.updateMany(
+      { _id: { $in: scheduledResets.map(r => r._id) } },
+      { 
+        executed: true,
+        executedAt: new Date()
+      }
+    );
+    
+    console.log(`Token reset executed: ${result.modifiedCount} users updated`);
+    res.json({ 
+      message: "Token reset executed successfully", 
+      usersUpdated: result.modifiedCount 
+    });
+    
+  } catch (err) {
+    console.error("Error executing token reset:", err);
+    res.status(500).json({ error: "Failed to execute token reset", details: err.message });
+  }
+});
 
 // --- Manual Login ---
 app.post("/login", async (req, res) => {
@@ -167,7 +452,6 @@ app.get("/users/:email", async (req, res) => {
   }
 });
 
-
 // --- Submit Print Request ---
 app.post("/submit", upload.array("documents", 20), async (req, res) => {
   try {
@@ -197,11 +481,11 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       });
     });
 
-    // 🔹 Find user
+    // Find user
     const user = await User.findOne({ email: req.body.email });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // 🔹 Check if user has enough tokens
+    // Check if user has enough tokens
     if (user.tokenBalance < totalTokensRequest) {
       return res.status(400).json({
         error: "Insufficient tokens",
@@ -210,7 +494,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       });
     }
 
-    // 🔹 Create new print request
+    // Create new print request
     const newRequest = new PrintRequest({
       fullName: req.body.full_name,
       courseYear: req.body.course_year,
@@ -224,11 +508,11 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
 
     await newRequest.save();
 
-    // 🔹 Deduct tokens from user's balance
+    // Deduct tokens from user's balance
     user.tokenBalance -= totalTokensRequest;
     await user.save();
 
-    // ✅ Respond with success
+    // Respond with success
     res.status(201).json({
       message: "Print request submitted successfully",
       requestId: newRequest._id,
@@ -250,10 +534,10 @@ app.delete("/requests/:id", async (req, res) => {
     if (!deletedRequest) {
       return res.status(404).json({ error: "Request not found" });
     }
-    console.log(`✅ Deleted request: ${req.params.id}`);
+    console.log(`Deleted request: ${req.params.id}`);
     res.json({ message: "Request deleted successfully" });
   } catch (err) {
-    console.error("❌ Error deleting request:", err);
+    console.error("Error deleting request:", err);
     res.status(500).json({ error: "Failed to delete request", details: err.message });
   }
 });
@@ -262,7 +546,7 @@ app.delete("/requests/:id", async (req, res) => {
 // Error handling middleware
 // ------------------------
 app.use((err, req, res, next) => {
-  console.error("❌ Unhandled error:", err);
+  console.error("Unhandled error:", err);
   res.status(500).json({ error: "Internal server error", details: err.message });
 });
 
@@ -271,7 +555,6 @@ app.use((req, res) => {
   res.status(404).json({ error: "Endpoint not found" });
 });
 
-
 // --- Start Server ---
 const PORT = 3000;
-app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
