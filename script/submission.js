@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (googleUser) {
     // Extract name and email from Google login
-    document.querySelector('input[name="full_name"]').value = googleUser.name || "";
+    document.querySelector('input[name="full_name"]').value = googleUser.fullName || "";
     document.querySelector('input[name="email"]').value = googleUser.email || "";
 
   } else if (manualUser) {
@@ -61,21 +61,56 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateTotalTokens() {
-    const allJobTokens = Array.from(document.querySelectorAll(".token-cost"))
-      .map(div => parseInt(div.textContent.replace(/\D/g, "")) || 0);
-    const total = allJobTokens.reduce((a, b) => a + b, 0);
+  const allJobTokens = Array.from(document.querySelectorAll(".token-cost"))
+    .map(div => parseInt(div.textContent.replace(/\D/g, "")) || 0);
+  const total = allJobTokens.reduce((a, b) => a + b, 0);
 
-    let totalDisplay = document.getElementById("totalTokens");
-    if (!totalDisplay) {
-      totalDisplay = document.createElement("div");
-      totalDisplay.id = "totalTokens";
-      totalDisplay.style.textAlign = "right";
-      totalDisplay.style.marginTop = "15px";
-      totalDisplay.style.fontWeight = "bold";
-      form.appendChild(totalDisplay);
-    }
-    totalDisplay.textContent = `💰 Total Tokens Required: ${total}`;
+  let totalDisplay = document.getElementById("totalTokens");
+  if (!totalDisplay) {
+    totalDisplay = document.createElement("div");
+    totalDisplay.id = "totalTokens";
+    totalDisplay.style.textAlign = "right";
+    totalDisplay.style.marginTop = "15px";
+    totalDisplay.style.fontWeight = "bold";
+    form.appendChild(totalDisplay);
   }
+  totalDisplay.textContent = `💰 Total Tokens Required: ${total}`;
+
+ let userBalance = 0;
+
+// Try getting user info from sessionStorage
+const currentEmail = sessionStorage.getItem("userEmail");
+
+if (currentEmail) {
+  // Fetch real-time token balance from MongoDB
+  fetch(`http://localhost:3000/users/${encodeURIComponent(currentEmail)}`)
+    .then(res => res.json())
+    .then(user => {
+      userBalance = user.tokenBalance ?? 0;
+
+      const allJobTokens = Array.from(document.querySelectorAll(".token-cost"))
+        .map(div => parseInt(div.textContent.replace(/\D/g, "")) || 0);
+      const total = allJobTokens.reduce((a, b) => a + b, 0);
+
+      const remainingTokens = Math.max(userBalance - total, 0);
+      let remainingDisplay = document.getElementById("remainingTokens");
+      if (!remainingDisplay) {
+        remainingDisplay = document.createElement("div");
+        remainingDisplay.id = "remainingTokens";
+        remainingDisplay.style.textAlign = "right";
+        remainingDisplay.style.marginTop = "5px";
+        remainingDisplay.style.fontWeight = "bold";
+        form.appendChild(remainingDisplay);
+      }
+
+      remainingDisplay.style.color = remainingTokens > 0 ? "#2e7d32" : "#c62828";
+      remainingDisplay.textContent = `🪙 Remaining Tokens After Transaction: ${remainingTokens}`;
+    })
+    .catch(err => console.error("Failed to fetch token balance:", err));
+} else {
+  console.warn("No logged-in user found in sessionStorage.");
+}
+}
 
   // =============================
   // Drop Zone Logic

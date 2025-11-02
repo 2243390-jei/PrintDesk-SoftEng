@@ -1,5 +1,5 @@
 // ========================
-// 📄 server.js — stores tokens & request status
+// 📄 server.js — Unified backend for Users + Print Requests
 // ========================
 const express = require("express");
 const mongoose = require("mongoose");
@@ -14,7 +14,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ------------------------
-// Upload folder
+// Upload folder setup
 // ------------------------
 const uploadDir = path.join(__dirname, "..", "uploads");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
@@ -31,7 +31,25 @@ mongoose
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // ------------------------
-// Schema
+// User Schema
+// ------------------------
+const userSchema = new mongoose.Schema({
+  fullName: String,
+  email: { type: String, required: true, unique: true },
+  password: { type: String, select: false }, // only for manual logins
+  role: { type: String, enum: ["student", "admin"], default: "student" },
+  authProvider: { type: String, enum: ["manual", "google"], required: true },
+  googleId: { type: String },
+  picture: String,
+  tokenBalance: { type: Number, default: 500 },
+  createdAt: { type: Date, default: Date.now },
+  lastLogin: Date,
+});
+
+const User = mongoose.model("users", userSchema);
+
+// ------------------------
+// Print Request Schema
 // ------------------------
 const documentSchema = new mongoose.Schema(
   {
@@ -54,17 +72,18 @@ const printRequestSchema = new mongoose.Schema({
   fullName: String,
   courseYear: String,
   email: String,
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
   pickupDateTime: String,
   documents: [documentSchema],
   totalTokens: Number,
-  status: { type: String, default: "Pending" }, 
+  status: { type: String, default: "Pending" },
   createdAt: { type: Date, default: Date.now },
 });
 
 const PrintRequest = mongoose.model("print_requests", printRequestSchema);
 
 // ------------------------
-// Multer setup
+// Multer (file upload)
 // ------------------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
@@ -77,122 +96,147 @@ const upload = multer({ storage });
 // Routes
 // ------------------------
 app.get("/", (req, res) =>
-  res.send("✅ PrintDesk API running (tokens + status supported)")
+  res.send("✅ PrintDesk API running with user authentication + tokens + status")
 );
 
-// GET all print requests (sorted by createdAt for queue order)
-app.get("/requests", async (req, res) => {
+// --- Manual Login ---
+app.post("/login", async (req, res) => {
   try {
-    const requests = await PrintRequest.find().sort({ createdAt: 1 }); // Sort by creation date (oldest first)
-    console.log(`✅ Fetched ${requests.length} print requests`);
-    res.json(requests);
+    const { email, password } = req.body;
+    const user = await User.findOne({ email, authProvider: "manual" }).select("+password");
+
+    if (!user || user.password !== password)
+      return res.status(401).json({ error: "Invalid email or password" });
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    res.json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      tokenBalance: user.tokenBalance,
+    });
   } catch (err) {
-    console.error("❌ Error fetching requests:", err);
-    res.status(500).json({ error: "Failed to fetch requests", details: err.message });
+    res.status(500).json({ error: "Login failed", details: err.message });
   }
 });
 
-// GET single print request by ID
-app.get("/requests/:id", async (req, res) => {
+// --- Google Login ---
+app.post("/google-login", async (req, res) => {
   try {
-    const request = await PrintRequest.findById(req.params.id);
-    if (!request) {
-      return res.status(404).json({ error: "Request not found" });
+    const { email, fullName, googleId, picture } = req.body;
+
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await User.create({
+        email,
+        fullName,
+        googleId,
+        picture,
+        authProvider: "google",
+        role: email.startsWith("admin@") ? "admin" : "student",
+      });
     }
-    res.json(request);
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    res.json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      picture: user.picture,
+      tokenBalance: user.tokenBalance,
+    });
   } catch (err) {
-    console.error("❌ Error fetching request:", err);
-    res.status(500).json({ error: "Failed to fetch request", details: err.message });
+    res.status(500).json({ error: "Google login failed", details: err.message });
   }
 });
 
-// PATCH update print request status
-app.patch("/requests/:id", async (req, res) => {
+app.get("/users/:email", async (req, res) => {
+  const email = decodeURIComponent(req.params.email);
   try {
-    const { status } = req.body;
-    
-    // Validate status
-    const validStatuses = ["Pending", "Accepted", "Rejected", "Completed"];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: "Invalid status" });
-    }
-    
-    const updatedRequest = await PrintRequest.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
-    
-    if (!updatedRequest) {
-      return res.status(404).json({ error: "Request not found" });
-    }
-    
-    console.log(`✅ Updated request ${req.params.id} status to: ${status}`);
-    res.json(updatedRequest);
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
   } catch (err) {
-    console.error("❌ Error updating request:", err);
-    res.status(500).json({ error: "Failed to update request", details: err.message });
+    res.status(500).json({ error: "Failed to fetch user data", details: err.message });
   }
 });
 
-// POST submit new print request
+
+// --- Submit Print Request ---
 app.post("/submit", upload.array("documents", 20), async (req, res) => {
   try {
-    console.log("📩 Received form data:", req.body);
-    console.log("📁 Received files:", req.files?.length || 0);
-
     const printJobs = JSON.parse(req.body.printJobs || "[]");
-
     const documents = [];
     let totalTokensRequest = 0;
 
     printJobs.forEach((job, i) => {
       const file = req.files[i];
-      const copies = parseInt(job.copies) || 1;
-      const pageCount = parseInt(job.pageCount) || 1;
       const totalTokens = parseInt(job.totalTokens) || 0;
       const tokensPerPage = parseInt(job.tokensPerPage) || 0;
       const isImagePrint = job.isImagePrint === true || job.isImagePrint === "true";
-
       totalTokensRequest += totalTokens;
 
       documents.push({
         documentTitle: file ? file.originalname : "Untitled",
         filePath: file ? "/uploads/" + file.filename : null,
-        numberOfCopies: copies,
+        numberOfCopies: job.copies || 1,
         paperSize: job.paperSize || "",
         printingSide: job.paperSide || "",
         printType: job.paperType || "",
         notes: job.notes || "",
-        pageCount,
+        pageCount: job.pageCount || 1,
         tokensPerPage,
         totalTokens,
         isImagePrint,
       });
     });
 
-    // ✅ Include status (defaults to "Pending")
+    // 🔹 Find user
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // 🔹 Check if user has enough tokens
+    if (user.tokenBalance < totalTokensRequest) {
+      return res.status(400).json({
+        error: "Insufficient tokens",
+        currentBalance: user.tokenBalance,
+        required: totalTokensRequest,
+      });
+    }
+
+    // 🔹 Create new print request
     const newRequest = new PrintRequest({
       fullName: req.body.full_name,
       courseYear: req.body.course_year,
       email: req.body.email,
+      userId: user._id,
       pickupDateTime: req.body.pickup_datetime,
       documents,
       totalTokens: totalTokensRequest,
-      status: "Pending", // default explicitly
+      status: "Pending",
     });
 
     await newRequest.save();
 
-    console.log("✅ Request saved:", newRequest._id);
+    // 🔹 Deduct tokens from user's balance
+    user.tokenBalance -= totalTokensRequest;
+    await user.save();
+
+    // ✅ Respond with success
     res.status(201).json({
       message: "Print request submitted successfully",
       requestId: newRequest._id,
       totalTokens: totalTokensRequest,
-      status: newRequest.status, // return status in response
+      remainingTokens: user.tokenBalance,
+      status: newRequest.status,
     });
   } catch (err) {
-    console.error("❌ Error saving request:", err);
     res
       .status(500)
       .json({ error: "Failed to submit print request", details: err.message });
@@ -227,10 +271,7 @@ app.use((req, res) => {
   res.status(404).json({ error: "Endpoint not found" });
 });
 
-// ------------------------
-// Start server
-// ------------------------
+
+// --- Start Server ---
 const PORT = 3000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running at http://localhost:${PORT}`)
-);
+app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
