@@ -81,12 +81,19 @@
                 <!-- Calendar for Reset Date -->
                 <input type="date" id="resetDate" class="reset-calendar" title="Select reset date" />
 
-                <!-- Reset Button -->
-                <button id="resetTokensBtn" class="reset-btn">RESET TOKENS</button>
+                <!-- Reset Buttons -->
+                <button id="resetTokensBtn" class="reset-btn">SCHEDULE TOKEN RESET</button>
+                <button id="cancelResetBtn" class="btn-secondary" style="display: none;">CANCEL RESET</button>
+                <button id="rescheduleResetBtn" class="btn-primary" style="display: none;">RESCHEDULE RESET</button>
               </div>
             </div>
 
             <div class="card-inner">
+              <!-- Reset Status Display -->
+              <div id="resetStatus" style="margin-bottom: 15px; padding: 10px; border-radius: 6px; background: #f8f9fa; text-align: center;">
+                No token reset scheduled
+              </div>
+
               <div class="table-wrap">
                 <table class="tokens-table" aria-describedby="tokens-table">
                   <thead>

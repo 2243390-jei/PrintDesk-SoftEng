@@ -1,19 +1,7 @@
-// usermanagement.js (complete file)
+// usermanagement.js (complete file - Database Connected Version)
 // Note: save as usermanagement.js and ensure it's loaded with `defer` in your HTML.
 
 document.addEventListener("DOMContentLoaded", () => {
-  // -------------------------
-  // Sample data (for testing)
-  // -------------------------
-  const users = [
-    { name: "Piamonte, Malech", email: "2243905@slu.edu.ph", course: "BSCS 3", status: "Accepted", role: "User", lastActive: "2025-10-10" },
-    { name: "Argao, Jeiloyd", email: "2250923@slu.edu.ph", course: "BSCS 3", status: "Pending", role: "User", lastActive: "2025-10-05" },
-    { name: "Jecquar, Aguilan", email: "2257025@slu.edu.ph", course: "BSCS 3", status: "Pending", role: "User", lastActive: "2025-10-12" },
-    { name: "Lopez, Maria", email: "2249999@slu.edu.ph", course: "BSCS 3", status: "Accepted", role: "User", lastActive: "2025-10-14" },
-    { name: "Ramos, Juan", email: "2241001@slu.edu.ph", course: "BSIT 2", status: "Accepted", role: "User", lastActive: "2025-09-20" },
-    { name: "Delos, Pedro", email: "2242002@slu.edu.ph", course: "BSCS 1", status: "Pending", role: "Organization", lastActive: "2025-08-01" }
-  ];
-
   // -------------------------
   // DOM references
   // -------------------------
@@ -51,13 +39,19 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   let perPage = 5;
   let currentPage = 1;
-  let filtered = [...users];
+  let users = []; // Will be populated from backend
+  let filtered = [];
   let view = "table"; // 'table' | 'board' | 'list'
   let activeFilters = { role: null, status: null, dateFrom: null, dateTo: null };
 
   // track which user is being edited / deleted (use email identifier)
   let editingEmail = null;
   let deletingEmail = null;
+
+  // API endpoints
+  const API_BASE = "http://localhost:3000";
+  const USERS_ENDPOINT = `${API_BASE}/users`;
+  const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
 
   // set footer year if element exists
   if (curYear) curYear.textContent = new Date().getFullYear();
@@ -73,6 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const focusable = modal.querySelector('input,button,select,textarea');
     if (focusable) focusable.focus();
   }
+  
   function closeModal(modal) {
     if (!modal) return;
     modal.classList.remove('open');
@@ -84,6 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (text.toLowerCase() === "accepted") return `<span class="pill accepted">${text}</span>`;
     return `<span class="pill pending">${text}</span>`;
   }
+  
   function statusPillText(text) {
     if (!text) return '';
     if (text.toLowerCase() === "accepted") return `<span class="pill accepted">${text}</span>`;
@@ -91,11 +87,151 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
+  // API Functions
+  // -------------------------
+  async function fetchUsersWithPrintStats() {
+    try {
+      console.log("Fetching users and print requests...");
+      
+      // Fetch all users
+      const usersResponse = await fetch(USERS_ENDPOINT);
+      if (!usersResponse.ok) {
+        throw new Error(`HTTP error! status: ${usersResponse.status}`);
+      }
+      const usersData = await usersResponse.json();
+      
+      // Fetch all print requests to calculate user stats
+      const requestsResponse = await fetch(REQUESTS_ENDPOINT);
+      if (!requestsResponse.ok) {
+        throw new Error(`HTTP error! status: ${requestsResponse.status}`);
+      }
+      const requestsData = await requestsResponse.json();
+      
+      console.log(`Found ${usersData.length} users and ${requestsData.length} print requests`);
+      
+      // Transform users data with print statistics
+      const transformedUsers = usersData.map(user => {
+        // Find user's print requests
+        const userRequests = requestsData.filter(request => 
+          request.email === user.email || request.userId === user._id
+        );
+        
+        // Calculate statistics
+        const pendingRequests = userRequests.filter(req => req.status === "Pending").length;
+        const acceptedRequests = userRequests.filter(req => req.status === "Accepted").length;
+        const completedRequests = userRequests.filter(req => req.status === "Completed").length;
+        const rejectedRequests = userRequests.filter(req => req.status === "Rejected").length;
+        
+        // Determine user status based on registration and requests
+        const userStatus = user.lastLogin ? "Accepted" : "Pending";
+        
+        // Extract course from email or use default
+        const course = user.courseYear || extractCourseFromEmail(user.email) || "Unknown Course";
+        
+        return {
+          _id: user._id,
+          name: user.fullName || "Unknown User",
+          email: user.email,
+          course: course,
+          status: userStatus,
+          role: user.role || "User",
+          lastActive: user.lastLogin ? new Date(user.lastLogin).toISOString().split('T')[0] : "Never",
+          tokenBalance: user.tokenBalance || 0,
+          printStats: {
+            total: userRequests.length,
+            pending: pendingRequests,
+            accepted: acceptedRequests,
+            completed: completedRequests,
+            rejected: rejectedRequests
+          }
+        };
+      });
+      
+      console.log("User data transformation complete");
+      return transformedUsers;
+      
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      // Show user-friendly error message
+      if (usersBody) {
+        usersBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 20px; color: #dc3545;">
+              <div>Error loading users</div>
+              <div style="font-size: 12px; margin-top: 8px;">${error.message}</div>
+              <div style="font-size: 12px;">Please check if the server is running on ${API_BASE}</div>
+            </td>
+          </tr>
+        `;
+      }
+      return [];
+    }
+  }
+
+  // Helper function to extract course from email
+  function extractCourseFromEmail(email) {
+    // This is a simple example - adjust based on your email patterns
+    if (email.includes('@slu.edu.ph')) {
+      return "SLU Student";
+    }
+    return "Student";
+  }
+
+  async function updateUser(userId, updates) {
+    try {
+      console.log(`Updating user ${userId}:`, updates);
+      
+      const response = await fetch(`${USERS_ENDPOINT}/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updates)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log("User update successful:", result);
+      return result;
+      
+    } catch (error) {
+      console.error("Error updating user:", error);
+      throw error;
+    }
+  }
+
+  async function deleteUser(userId) {
+    try {
+      console.log(`Deleting user ${userId}`);
+      
+      const response = await fetch(`${USERS_ENDPOINT}/${userId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log("User deletion successful:", result);
+      return result;
+      
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      throw error;
+    }
+  }
+
+  // -------------------------
   // Renderers
   // -------------------------
   function renderTable(list) {
     if (!usersBody) return;
-    usersBody.innerHTML = "";
+    
+    console.log(`Rendering table view with ${list.length} users`);
 
     // show table, hide others
     const tableEl = usersBody.closest("table");
@@ -106,13 +242,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const start = (currentPage - 1) * perPage;
     const pageItems = list.slice(start, start + perPage);
 
+    if (pageItems.length === 0) {
+      usersBody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 20px;">
+            No users found
+          </td>
+        </tr>
+      `;
+      renderPagination(list.length);
+      return;
+    }
+
+    usersBody.innerHTML = "";
+
     pageItems.forEach(u => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td class="col-check"><input type="checkbox" /></td>
         <td>
           <div class="user-name">
-            <div class="user-avatar" aria-hidden="true">${u.name.split(",")[0].slice(0,1)}</div>
+            <div class="user-avatar" aria-hidden="true">${u.name.split(",")[0]?.slice(0,1) || 'U'}</div>
             <div>
               <div style="font-weight:700; font-size:14px;">${u.name}</div>
               <div style="font-size:13px; color: #6b7780;">${u.email}</div>
@@ -124,8 +274,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${statusPill(u.status)}</td>
         <td>${u.role}</td>
         <td class="col-actions">
-          <img src="../../images/admin_img/write.png" alt="edit" title="Edit" class="action-icon edit" data-email="${u.email}" />
-          <img src="../../images/admin_img/delete.png" alt="delete" title="Delete" class="action-icon del" data-email="${u.email}" />
+          <img src="../../images/admin_img/write.png" alt="edit" title="Edit" class="action-icon edit" data-email="${u.email}" data-id="${u._id}" />
+          <img src="../../images/admin_img/delete.png" alt="delete" title="Delete" class="action-icon del" data-email="${u.email}" data-id="${u._id}" />
         </td>
       `;
       usersBody.appendChild(tr);
@@ -136,6 +286,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderBoard(list) {
+    console.log(`Rendering board view with ${list.length} users`);
+    
     // hide table, show cards
     const tableEl = usersBody ? usersBody.closest("table") : null;
     if (tableEl) tableEl.style.display = "none";
@@ -143,24 +295,39 @@ document.addEventListener("DOMContentLoaded", () => {
     if (listContainer) { listContainer.classList.add("visually-hidden"); listContainer.setAttribute("aria-hidden", "true"); }
 
     if (!cardsContainer) return;
-    cardsContainer.innerHTML = "";
+    
     const start = (currentPage - 1) * perPage;
     const pageItems = list.slice(start, start + perPage);
+
+    if (pageItems.length === 0) {
+      cardsContainer.innerHTML = `
+        <div style="text-align: center; padding: 40px; grid-column: 1 / -1;">
+          No users found
+        </div>
+      `;
+      renderPagination(list.length);
+      return;
+    }
+
+    cardsContainer.innerHTML = "";
 
     pageItems.forEach(u => {
       const div = document.createElement("div");
       div.className = "card-item";
       div.innerHTML = `
-        <div class="avatar">${u.name.split(",")[0].slice(0,1)}</div>
+        <div class="avatar">${u.name.split(",")[0]?.slice(0,1) || 'U'}</div>
         <div class="meta">
           <div class="name">${u.name}</div>
           <div class="email">${u.email}</div>
           <div style="font-size:13px;color:#6b7780;">${u.course} • ${u.role}</div>
           <div style="margin-top:8px;">${statusPillText(u.status)}</div>
+          <div style="font-size:12px;color:#888;margin-top:4px;">
+            Tokens: ${u.tokenBalance} | Prints: ${u.printStats?.total || 0}
+          </div>
         </div>
         <div style="margin-left:auto;display:flex;flex-direction:column;gap:8px;">
-          <img src="../images/admin_img/write.png" class="action-icon edit" data-email="${u.email}" title="Edit" style="cursor:pointer;" />
-          <img src="../images/admin_img/delete.png" class="action-icon del" data-email="${u.email}" title="Delete" style="cursor:pointer;" />
+          <img src="../images/admin_img/write.png" class="action-icon edit" data-email="${u.email}" data-id="${u._id}" title="Edit" style="cursor:pointer;" />
+          <img src="../images/admin_img/delete.png" class="action-icon del" data-email="${u.email}" data-id="${u._id}" title="Delete" style="cursor:pointer;" />
         </div>
       `;
       cardsContainer.appendChild(div);
@@ -171,6 +338,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderList(list) {
+    console.log(`Rendering list view with ${list.length} users`);
+    
     // hide table, show list
     const tableEl = usersBody ? usersBody.closest("table") : null;
     if (tableEl) tableEl.style.display = "none";
@@ -178,15 +347,27 @@ document.addEventListener("DOMContentLoaded", () => {
     if (cardsContainer) { cardsContainer.classList.add("visually-hidden"); cardsContainer.setAttribute("aria-hidden", "true"); }
 
     if (!listContainer) return;
-    listContainer.innerHTML = "";
+    
     const start = (currentPage - 1) * perPage;
     const pageItems = list.slice(start, start + perPage);
+
+    if (pageItems.length === 0) {
+      listContainer.innerHTML = `
+        <div style="text-align: center; padding: 20px;">
+          No users found
+        </div>
+      `;
+      renderPagination(list.length);
+      return;
+    }
+
+    listContainer.innerHTML = "";
 
     pageItems.forEach(u => {
       const row = document.createElement("div");
       row.className = "list-row";
       row.innerHTML = `
-        <div class="avatar">${u.name.split(",")[0].slice(0,1)}</div>
+        <div class="avatar">${u.name.split(",")[0]?.slice(0,1) || 'U'}</div>
         <div style="flex:1;">
           <div style="font-weight:700;">${u.name}</div>
           <div style="font-size:13px;color:#6b7780;">${u.email}</div>
@@ -194,8 +375,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <div style="width:160px;text-align:right;">${u.course}</div>
         <div style="width:110px;text-align:right;">${statusPillText(u.status)}</div>
         <div style="width:80px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
-          <img src="../images/admin_img/write.png" class="action-icon edit" data-email="${u.email}" title="Edit" style="cursor:pointer;" />
-          <img src="../images/admin_img/delete.png" class="action-icon del" data-email="${u.email}" title="Delete" style="cursor:pointer;" />
+          <img src="../images/admin_img/write.png" class="action-icon edit" data-email="${u.email}" data-id="${u._id}" title="Edit" style="cursor:pointer;" />
+          <img src="../images/admin_img/delete.png" class="action-icon del" data-email="${u.email}" data-id="${u._id}" title="Delete" style="cursor:pointer;" />
         </div>
       `;
       listContainer.appendChild(row);
@@ -210,31 +391,43 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   function renderPagination(totalItems) {
     if (!pageNumbers) return;
-    pageNumbers.innerHTML = "";
+    
     const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
+    console.log(`Pagination: ${totalItems} items, ${totalPages} pages, current: ${currentPage}`);
+    
+    pageNumbers.innerHTML = "";
+    
     for (let i = 1; i <= totalPages; i++) {
       const btn = document.createElement("button");
       btn.textContent = i;
-      btn.className = i === currentPage ? "" : "inactive";
+      btn.className = i === currentPage ? "active" : "inactive";
       btn.addEventListener("click", () => {
         currentPage = i;
         renderView(users);
       });
       pageNumbers.appendChild(btn);
     }
+    
     if (prevPageBtn) prevPageBtn.disabled = currentPage === 1;
     if (nextPageBtn) nextPageBtn.disabled = currentPage === totalPages;
   }
 
   if (prevPageBtn) {
     prevPageBtn.addEventListener("click", () => {
-      if (currentPage > 1) { currentPage--; renderView(users); }
+      if (currentPage > 1) { 
+        currentPage--; 
+        renderView(users); 
+      }
     });
   }
+  
   if (nextPageBtn) {
     nextPageBtn.addEventListener("click", () => {
       const totalPages = Math.ceil(filtered.length / perPage);
-      if (currentPage < totalPages) { currentPage++; renderView(users); }
+      if (currentPage < totalPages) { 
+        currentPage++; 
+        renderView(users); 
+      }
     });
   }
 
@@ -243,9 +436,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   function applyFiltersToList(list) {
     const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : "";
-    return list.filter(u => {
+    
+    const filteredList = list.filter(u => {
       // search
-      const matchesSearch = q === "" || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.course.toLowerCase().includes(q) || u.status.toLowerCase().includes(q);
+      const matchesSearch = q === "" || 
+        u.name.toLowerCase().includes(q) || 
+        u.email.toLowerCase().includes(q) || 
+        u.course.toLowerCase().includes(q) || 
+        u.status.toLowerCase().includes(q);
 
       // role
       const matchesRole = activeFilters.role ? u.role === activeFilters.role : true;
@@ -262,14 +460,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
       return matchesSearch && matchesRole && matchesStatus && matchesDate;
     });
+    
+    console.log(`Filters applied: ${list.length} -> ${filteredList.length} users`);
+    return filteredList;
   }
 
   function renderView(list) {
+    console.log(`Rendering ${view} view with ${list.length} total users`);
+    
     // apply filters
     filtered = applyFiltersToList(list);
+    
     // if current page is out-of-bounds after filtering, reset to 1
     const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
-    if (currentPage > totalPages) currentPage = 1;
+    if (currentPage > totalPages) {
+      console.log(`Resetting current page from ${currentPage} to 1`);
+      currentPage = 1;
+    }
 
     if (view === "table") renderTable(filtered);
     else if (view === "board") renderBoard(filtered);
@@ -280,8 +487,13 @@ document.addEventListener("DOMContentLoaded", () => {
   // Search & select all
   // -------------------------
   if (searchInput) {
-    searchInput.addEventListener("input", () => { currentPage = 1; renderView(users); });
+    searchInput.addEventListener("input", () => { 
+      console.log("Search input changed:", searchInput.value);
+      currentPage = 1; 
+      renderView(users); 
+    });
   }
+  
   if (selectAll) {
     selectAll.addEventListener("change", (e) => {
       const checked = e.target.checked;
@@ -430,47 +642,76 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   // Modals: Edit & Delete
   // -------------------------
-  function openEditForEmail(email) {
-    const idx = users.findIndex(u => u.email === email);
-    if (idx === -1) return;
-    const u = users[idx];
+  function openEditForEmail(email, userId) {
+    const user = users.find(u => u.email === email && u._id === userId);
+    if (!user) {
+      console.error("User not found for editing:", email);
+      return;
+    }
 
-    editingEmail = u.email;
-    if (editEmail) editEmail.value = u.email || '';
-    if (editName) editName.value = u.name || '';
-    if (editCourse) editCourse.value = u.course || '';
-    if (editStatus) editStatus.value = u.status || 'Pending';
-    if (editRole) editRole.value = u.role || 'User';
+    editingEmail = user.email;
+    if (editEmail) editEmail.value = user.email || '';
+    if (editName) editName.value = user.name || '';
+    if (editCourse) editCourse.value = user.course || '';
+    if (editStatus) editStatus.value = user.status || 'Pending';
+    if (editRole) editRole.value = user.role || 'User';
 
     openModal(editModal);
   }
 
-  function openDeleteForEmail(email) {
-    const idx = users.findIndex(u => u.email === email);
-    if (idx === -1) return;
+  function openDeleteForEmail(email, userId) {
+    const user = users.find(u => u.email === email && u._id === userId);
+    if (!user) {
+      console.error("User not found for deletion:", email);
+      return;
+    }
+    
     deletingEmail = email;
-    if (deleteMessage) deleteMessage.textContent = `Are you sure you want to delete ${users[idx].name}?`;
+    if (deleteMessage) deleteMessage.textContent = `Are you sure you want to delete ${user.name}? This action cannot be undone.`;
     openModal(deleteModal);
   }
 
   // edit form submit
   if (editForm) {
-    editForm.addEventListener('submit', (e) => {
+    editForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!editingEmail) { closeModal(editModal); return; }
-      const idx = users.findIndex(u => u.email === editingEmail);
-      if (idx === -1) { closeModal(editModal); return; }
+      if (!editingEmail) { 
+        closeModal(editModal); 
+        return; 
+      }
+      
+      const user = users.find(u => u.email === editingEmail);
+      if (!user) { 
+        closeModal(editModal); 
+        return; 
+      }
 
-      // update record
-      users[idx].email = (editEmail && editEmail.value) ? editEmail.value.trim() : users[idx].email;
-      users[idx].name = (editName && editName.value) ? editName.value.trim() : users[idx].name;
-      users[idx].course = (editCourse && editCourse.value) ? editCourse.value.trim() : users[idx].course;
-      users[idx].status = (editStatus && editStatus.value) ? editStatus.value : users[idx].status;
-      users[idx].role = (editRole && editRole.value) ? editRole.value : users[idx].role;
+      try {
+        // Prepare updates for backend
+        const updates = {
+          fullName: (editName && editName.value) ? editName.value.trim() : user.name,
+          courseYear: (editCourse && editCourse.value) ? editCourse.value.trim() : user.course,
+          role: (editRole && editRole.value) ? editRole.value : user.role,
+        };
 
-      editingEmail = null;
-      renderView(users);
-      closeModal(editModal);
+        // Update in backend
+        await updateUser(user._id, updates);
+
+        // Update locally
+        user.name = updates.fullName;
+        user.course = updates.courseYear;
+        user.role = updates.role;
+
+        editingEmail = null;
+        renderView(users);
+        closeModal(editModal);
+        
+        alert("User updated successfully!");
+        
+      } catch (error) {
+        alert("Failed to update user. Please try again.");
+        console.error("Error updating user:", error);
+      }
     });
   }
 
@@ -489,22 +730,46 @@ document.addEventListener("DOMContentLoaded", () => {
       closeModal(deleteModal);
     });
   }
+  
   if (confirmDelete) {
-    confirmDelete.addEventListener('click', () => {
-      if (!deletingEmail) { closeModal(deleteModal); return; }
-      const idx = users.findIndex(u => u.email === deletingEmail);
-      if (idx > -1) {
-        users.splice(idx, 1);
-        // reapply filters and reset page
-        currentPage = 1;
-        renderView(users);
+    confirmDelete.addEventListener('click', async () => {
+      if (!deletingEmail) { 
+        closeModal(deleteModal); 
+        return; 
       }
-      deletingEmail = null;
-      closeModal(deleteModal);
+      
+      const user = users.find(u => u.email === deletingEmail);
+      if (!user) { 
+        closeModal(deleteModal); 
+        return; 
+      }
+
+      try {
+        // Delete from backend
+        await deleteUser(user._id);
+
+        // Remove locally
+        const userIndex = users.findIndex(u => u.email === deletingEmail);
+        if (userIndex > -1) {
+          users.splice(userIndex, 1);
+          // reapply filters and reset page
+          currentPage = 1;
+          renderView(users);
+        }
+        
+        deletingEmail = null;
+        closeModal(deleteModal);
+        
+        alert("User deleted successfully!");
+        
+      } catch (error) {
+        alert("Failed to delete user. Please try again.");
+        console.error("Error deleting user:", error);
+      }
     });
   }
 
-  // backdrop click to close modals (requires modal markup to include .modal-backdrop with data-close-modal attribute)
+  // backdrop click to close modals
   document.querySelectorAll('[data-close-modal]').forEach(el => {
     el.addEventListener('click', (e) => {
       const modal = e.target.closest('.modal');
@@ -528,7 +793,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Attach click handlers to action icons (edit/delete)
   // -------------------------
   function attachModalRowActions() {
-    // For safety, remove previous listeners by replacing nodes with clones, then reattach
+    // Remove previous listeners by replacing nodes with clones, then reattach
     document.querySelectorAll('.action-icon.edit').forEach(original => {
       const clone = original.cloneNode(true);
       original.parentNode.replaceChild(clone, original);
@@ -542,27 +807,93 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('.action-icon.edit').forEach(el => {
       el.addEventListener('click', () => {
         const email = el.getAttribute('data-email');
-        if (email) openEditForEmail(email);
+        const userId = el.getAttribute('data-id');
+        if (email && userId) openEditForEmail(email, userId);
       });
     });
+    
     document.querySelectorAll('.action-icon.del').forEach(el => {
       el.addEventListener('click', () => {
         const email = el.getAttribute('data-email');
-        if (email) openDeleteForEmail(email);
+        const userId = el.getAttribute('data-id');
+        if (email && userId) openDeleteForEmail(email, userId);
       });
     });
   }
 
   // -------------------------
-  // Initialize (render first view)
+  // Initialize (fetch data and render first view)
   // -------------------------
-  renderView(users);
+  async function initialize() {
+    try {
+      console.log("Initializing user management...");
+      
+      // Show loading state
+      if (usersBody) {
+        usersBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 20px;">
+              <div>Loading users...</div>
+              <div style="font-size: 12px; margin-top: 8px;">Connecting to ${API_BASE}</div>
+            </td>
+          </tr>
+        `;
+      }
+      
+      // Fetch data from backend
+      console.log("Fetching data from API...");
+      users = await fetchUsersWithPrintStats();
+      console.log(`Retrieved ${users.length} users`);
+      
+      if (users.length === 0) {
+        console.log("No users found in database");
+        if (usersBody) {
+          usersBody.innerHTML = `
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 20px;">
+                No users found in the system
+              </td>
+            </tr>
+          `;
+        }
+        return;
+      }
+      
+      // Render the view
+      console.log("Rendering initial view...");
+      renderView(users);
+      console.log("User management initialized successfully");
+      
+    } catch (error) {
+      console.error("Error initializing user management:", error);
+      if (usersBody) {
+        usersBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 20px; color: #dc3545;">
+              <div>Error loading users</div>
+              <div style="font-size: 12px; margin-top: 8px;">${error.message}</div>
+            </td>
+          </tr>
+        `;
+      }
+    }
+  }
 
-  // Expose some helpers to console for quick testing (optional)
+  // Start the application
+  initialize();
+
+  // Expose some helpers to console for quick testing
   window.__adminDemo = {
-    users,
-    renderView,
+    users: () => users,
+    renderView: () => renderView(users),
     openEditForEmail,
-    openDeleteForEmail
+    openDeleteForEmail,
+    refreshData: async () => {
+      console.log("Manually refreshing data...");
+      users = await fetchUsersWithPrintStats();
+      renderView(users);
+    }
   };
+  
+  console.log("User management loaded. Use window.__adminDemo for debugging.");
 });
