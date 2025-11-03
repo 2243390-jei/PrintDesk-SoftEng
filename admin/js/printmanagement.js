@@ -1,53 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
-  // Sample data (for testing) - Updated to match queue data structure
-  // -------------------------
-  const printData = [
-    { 
-      no: 1, 
-      name: "Piamonte, Malech", 
-      course: "BSIT 3", 
-      date: "10/10/25", 
-      status: "Accepted",
-      details: {
-        submittedOn: "October 10, 2025",
-        totalCost: "15 tokens",
-        status: "Accepted",
-        requestId: "ROBF2D7B",
-        fileName: "Automobile_Anatomy.pdf",
-        pageCount: "1",
-        copies: "1",
-        paperSize: "A4",
-        printType: "Colored",
-        printingSide: "Single-Sided",
-        pickupDate: "October 20, 2025",
-        previewImage: "../../images/SLU_Logo.png"
-      }
-    },
-    { 
-      no: 2, 
-      name: "Argao, Jelloyd", 
-      course: "BSIT 3", 
-      date: "10/10/25", 
-      status: "Accepted",
-      details: {
-        submittedOn: "October 10, 2025",
-        totalCost: "18 tokens",
-        status: "Accepted",
-        requestId: "RABF207B",
-        fileName: "Data_Structures_Assignment.pdf",
-        pageCount: "3",
-        copies: "2",
-        paperSize: "Letter",
-        printType: "Black & White",
-        printingSide: "Double-Sided",
-        pickupDate: "October 18, 2025",
-        previewImage: "../../images/SLU_printdesk_logo.png"
-      }
-    }
-  ];
-
-  // -------------------------
   // DOM refs
   // -------------------------
   const recordsBody = document.getElementById("recordsBody");
@@ -88,12 +40,98 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   let perPage = 5;
   let currentPage = 1;
-  let filtered = [...printData];
+  let printData = []; // Will be populated from database
+  let filtered = [];
   let view = "table";
   let activeFilters = { course: null, dateFrom: null, dateTo: null };
   let currentRequestId = null;
 
+  // API endpoints
+  const API_BASE = "http://localhost:3000";
+  const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+
   if (curYear) curYear.textContent = new Date().getFullYear();
+
+  // -------------------------
+  // API Functions
+  // -------------------------
+  async function fetchPrintRequests() {
+    try {
+      const response = await fetch(REQUESTS_ENDPOINT);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      // Filter only accepted and completed requests for records
+      const filteredData = data.filter(request => 
+        request.status === "Accepted" || request.status === "Completed"
+      );
+      
+      // Sort by createdAt (newest first) for records
+      const sortedData = filteredData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      // Transform backend data to frontend format
+      return sortedData.map((request, index) => {
+        // Use the first document for display purposes
+        const primaryDoc = request.documents && request.documents.length > 0 
+          ? request.documents[0] 
+          : {
+              documentTitle: "Unknown",
+              pageCount: 0,
+              numberOfCopies: 1,
+              paperSize: "Unknown",
+              printType: "Unknown",
+              printingSide: "Unknown"
+            };
+        
+        // Format date for display
+        const createdDate = new Date(request.createdAt);
+        const formattedDate = `${createdDate.getMonth() + 1}/${createdDate.getDate()}/${createdDate.getFullYear().toString().slice(-2)}`;
+        
+        return {
+          no: index + 1,
+          name: request.fullName,
+          course: request.courseYear,
+          date: formattedDate,
+          status: request.status || "Accepted",
+          details: {
+            submittedOn: createdDate.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            }),
+            totalCost: `${request.totalTokens} tokens`,
+            status: request.status || "Accepted",
+            requestId: request._id,
+            fileName: primaryDoc.documentTitle,
+            pageCount: primaryDoc.pageCount,
+            copies: primaryDoc.numberOfCopies,
+            paperSize: primaryDoc.paperSize,
+            printType: primaryDoc.printType,
+            printingSide: primaryDoc.printingSide,
+            pickupDate: request.pickupDateTime ? 
+              new Date(request.pickupDateTime).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              }) : "Not specified",
+            previewImage: primaryDoc.filePath ? 
+              `${API_BASE}${primaryDoc.filePath}` : 
+              "../../images/SLU_Logo.png",
+            // Include all documents for details view
+            allDocuments: request.documents || [],
+            email: request.email,
+            totalTokens: request.totalTokens
+          }
+        };
+      });
+    } catch (error) {
+      console.error("Error fetching print requests:", error);
+      // Return empty array if API fails
+      return [];
+    }
+  }
 
   // -------------------------
   // Check for redirect from queue
@@ -153,12 +191,32 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.setAttribute('aria-hidden', 'true');
   }
 
+  function statusPill(status) {
+    const statusLower = status.toLowerCase();
+    if (statusLower === "completed") return `<span class="pill completed">${status}</span>`;
+    if (statusLower === "accepted") return `<span class="pill accepted">${status}</span>`;
+    if (statusLower === "rejected") return `<span class="pill rejected">${status}</span>`;
+    return `<span class="pill pending">${status}</span>`;
+  }
+
   // -------------------------
   // render table
   // -------------------------
   function renderTable(list) {
     if (!recordsBody) return;
     recordsBody.innerHTML = "";
+
+    // Show loading state if no data
+    if (list.length === 0) {
+      recordsBody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 40px; color: #6b7780;">
+            No print records found
+          </td>
+        </tr>
+      `;
+      return;
+    }
 
     // ensure table visible, hide cards & list
     const tableEl = recordsBody.closest("table");
@@ -177,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td style="font-weight:600">${rec.name}</td>
         <td>${rec.course}</td>
         <td>${rec.date}</td>
-        <td><span class="pill ${rec.status.toLowerCase()}">${rec.status}</span></td>
+        <td>${statusPill(rec.status)}</td>
         <td class="col-actions"><button class="action-btn view-details" data-requestid="${rec.details.requestId}">View Details</button></td>
       `;
       recordsBody.appendChild(tr);
@@ -219,7 +277,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function applyFiltersToList(list) {
     const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : "";
     return list.filter(r => {
-      const matchesSearch = q === "" || r.name.toLowerCase().includes(q) || r.course.toLowerCase().includes(q);
+      const matchesSearch = q === "" || 
+        r.name.toLowerCase().includes(q) || 
+        r.course.toLowerCase().includes(q) ||
+        r.details.requestId.toLowerCase().includes(q);
       const matchesCourse = activeFilters.course ? r.course === activeFilters.course : true;
       let matchesDate = true;
       if (activeFilters.dateFrom) matchesDate = matchesDate && (new Date(r.date) >= new Date(activeFilters.dateFrom));
@@ -295,7 +356,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (action === "open-filter") {
           openFilterPanel(btn.dataset.filter);
         } else if (action === "clear") {
-          activeFilters = { printer: null, printType: null, dateFrom: null, dateTo: null };
+          activeFilters = { course: null, dateFrom: null, dateTo: null };
           currentPage = 1; renderView(printData); hideFilterPanel();
         }
       });
@@ -312,11 +373,19 @@ document.addEventListener("DOMContentLoaded", () => {
     filterPanel.setAttribute("aria-hidden", "false");
 
     if (type === "course") {
-      const label = document.createElement("div"); label.textContent = "Course"; label.style.fontWeight = "700";
+      const label = document.createElement("div"); 
+      label.textContent = "Course"; 
+      label.style.fontWeight = "700";
+      label.style.color = "white";
+      label.style.marginBottom = "8px";
+      
       const courses = Array.from(new Set(printData.map(r => r.course)));
       filterPanel.appendChild(label);
+      
       courses.forEach(c => {
-        const b = document.createElement("button"); b.textContent = c; b.className = "small";
+        const b = document.createElement("button"); 
+        b.textContent = c; 
+        b.className = "small";
         if (activeFilters.course === c) b.classList.add("active");
         b.addEventListener("click", () => { 
           activeFilters.course = c; 
@@ -326,27 +395,71 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         filterPanel.appendChild(b);
       });
-      const clear = document.createElement("button"); clear.textContent = "Clear"; clear.className = "small";
-      clear.addEventListener("click", () => { activeFilters.course = null; currentPage = 1; renderView(printData); hideFilterPanel(); });
+      
+      const clear = document.createElement("button"); 
+      clear.textContent = "Clear"; 
+      clear.className = "small";
+      clear.addEventListener("click", () => { 
+        activeFilters.course = null; 
+        currentPage = 1; 
+        renderView(printData); 
+        hideFilterPanel(); 
+      });
       filterPanel.appendChild(clear);
     }
 
     if (type === "date") {
-      const label = document.createElement("div"); label.textContent = "Date range"; label.style.fontWeight = "700";
-      const from = document.createElement("input"); from.type = "date"; from.value = activeFilters.dateFrom || "";
-      const to = document.createElement("input"); to.type = "date"; to.value = activeFilters.dateTo || "";
-      const apply = document.createElement("button"); apply.textContent = "Apply";
-      const clear = document.createElement("button"); clear.textContent = "Clear";
+      const label = document.createElement("div"); 
+      label.textContent = "Date range"; 
+      label.style.fontWeight = "700";
+      label.style.color = "white";
+      label.style.marginBottom = "8px";
+      
+      const from = document.createElement("input"); 
+      from.type = "date"; 
+      from.value = activeFilters.dateFrom || "";
+      from.style.marginBottom = "8px";
+      from.style.padding = "6px";
+      from.style.borderRadius = "4px";
+      from.style.border = "1px solid #ccc";
+      
+      const to = document.createElement("input"); 
+      to.type = "date"; 
+      to.value = activeFilters.dateTo || "";
+      to.style.marginBottom = "8px";
+      to.style.padding = "6px";
+      to.style.borderRadius = "4px";
+      to.style.border = "1px solid #ccc";
+      
+      const apply = document.createElement("button"); 
+      apply.textContent = "Apply";
+      apply.className = "small";
+      
+      const clear = document.createElement("button"); 
+      clear.textContent = "Clear";
+      clear.className = "small";
+      
       apply.addEventListener("click", () => {
         activeFilters.dateFrom = from.value || null;
         activeFilters.dateTo = to.value || null;
-        currentPage = 1; renderView(printData); hideFilterPanel();
+        currentPage = 1; 
+        renderView(printData); 
+        hideFilterPanel();
       });
+      
       clear.addEventListener("click", () => {
-        activeFilters.dateFrom = null; activeFilters.dateTo = null;
-        currentPage = 1; renderView(printData); hideFilterPanel();
+        activeFilters.dateFrom = null; 
+        activeFilters.dateTo = null;
+        currentPage = 1; 
+        renderView(printData); 
+        hideFilterPanel();
       });
-      filterPanel.appendChild(label); filterPanel.appendChild(from); filterPanel.appendChild(to); filterPanel.appendChild(apply); filterPanel.appendChild(clear);
+      
+      filterPanel.appendChild(label); 
+      filterPanel.appendChild(from); 
+      filterPanel.appendChild(to); 
+      filterPanel.appendChild(apply); 
+      filterPanel.appendChild(clear);
     }
   }
 
@@ -395,6 +508,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (previewImage) {
       previewImage.src = rec.details.previewImage;
       previewImage.alt = `Preview of ${rec.details.fileName}`;
+      previewImage.onerror = function() {
+        // Fallback if image fails to load
+        this.src = "../../images/SLU_Logo.png";
+      };
     }
 
     // Show the modal
@@ -530,17 +647,53 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ------------------------- 
-  // init
+  // Initialize and fetch data
   // -------------------------
-  renderView(printData);
-  attachPrinterDetailHandlers();
-  checkForQueueRedirect();
+  async function initialize() {
+    try {
+      // Show loading state
+      if (recordsBody) {
+        recordsBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 40px; color: #6b7780;">
+              Loading print records...
+            </td>
+          </tr>
+        `;
+      }
+      
+      // Fetch data from database
+      printData = await fetchPrintRequests();
+      filtered = [...printData];
+      
+      // Render the view
+      renderView(printData);
+      attachPrinterDetailHandlers();
+      checkForQueueRedirect();
+      
+    } catch (error) {
+      console.error("Error initializing print records:", error);
+      if (recordsBody) {
+        recordsBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 40px; color: #ef4444;">
+              Error loading print records
+            </td>
+          </tr>
+        `;
+      }
+    }
+  }
+
+  // Start the application
+  initialize();
 
   // expose for debugging
   window.__printRecordDemo = { 
     printData, 
     renderView, 
     openFilterPanel: (t) => openFilterPanel(t),
-    showDetails 
+    showDetails,
+    fetchPrintRequests
   };
 });

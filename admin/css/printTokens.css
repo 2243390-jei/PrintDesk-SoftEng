@@ -806,4 +806,95 @@ body{
   color: #333;
 }
 
+/* ======== RESET BUTTON STYLES ======== */
+.reset-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+  font-size: 14px;
+}
+
+.reset-btn:hover {
+  background-color: #0056b3;
+}
+
+/* ======== SECONDARY BUTTON STYLES ======== */
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+  font-size: 14px;
+}
+
+.btn-secondary:hover {
+  background-color: #545b62;
+}
+
+/* ======== PRIMARY BUTTON STYLES ======== */
+.btn-primary {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+  font-size: 14px;
+}
+
+.btn-primary:hover {
+  background-color: #218838;
+}
+
+/* ======== DATE PICKER ======== */
+.reset-calendar {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  background: white;
+}
+
+/* ======== RESET STATUS STYLES ======== */
+#resetStatus {
+  margin-bottom: 15px;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 400;
+  transition: all 0.3s ease;
+}
+
+/* Responsive adjustments for buttons */
+@media (max-width: 768px) {
+  .controls {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  
+  .reset-btn,
+  .btn-secondary,
+  .btn-primary {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .reset-calendar {
+    width: 100%;
+  }
+}
 
