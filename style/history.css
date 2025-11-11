@@ -48,6 +48,23 @@
   min-height: 100vh;
 }
 
+/* NAVBAR */
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0.8rem 1.5rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e6eef7;
+  box-shadow: 0 2px 4px rgba(15,23,42,0.03);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+
+
+
 /* profile icon */
 .profile-icon img#nav-profile-pic {
   height: 40px;
