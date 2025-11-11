@@ -29,11 +29,12 @@
   opacity: 0.95;
 }
 
-/* local images (use these names in markup or fallback icons) */
 .icon-calendar::before { background-image: url('../images/student_img/history/calendar.png'); }
 .icon-location::before { background-image: url('../images/student_img/history/location.png'); }
 .icon-user::before     { background-image: url('../images/student_img/history/user.png'); }
 .icon-close::before    { background-image: url('../images/student_img/history/close.png'); }
+.icon-token::before    { background-image: url('../images/student_img/history/token.png'); }
+.icon-status::before    { background-image: url('../images/student_img/history/status.png'); }
 
 /* =========================
    Base layout / Body

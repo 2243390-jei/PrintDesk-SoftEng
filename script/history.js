@@ -119,8 +119,8 @@ function renderCards(requests) {
           <div class="event-meta">
             <span class="icon-calendar">Created: ${createdDate}</span>
             <span class="icon-location">Pickup: ${pickup}</span>
-            <span class="icon-user">Tokens: ${r.totalTokens ?? 0}</span>
-            <span class="icon-user">Status: ${status}</span>
+            <span class="icon-token">Tokens: ${r.totalTokens ?? 0}</span>
+            <span class="icon-status">Status: ${status}</span>
           </div>
         </div>
         <div class="submission-footer">
