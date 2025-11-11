@@ -47,49 +47,6 @@
   min-height: 100vh;
 }
 
-/* NAVBAR */
-.navbar {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 0.8rem 1.5rem;
-  background: #ffffff;
-  border-bottom: 1px solid #e6eef7;
-  box-shadow: 0 2px 4px rgba(15,23,42,0.03);
-  position: sticky;
-  top: 0;
-  z-index: 40;
-}
-
-.navbar .logo img {
-  height: 42px;
-  width: auto;
-  display: block;
-}
-
-nav ul {
-  display: flex;
-  gap: 1rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-nav a {
-  text-decoration: none;
-  color: #475569;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-nav a.active,
-nav a:hover {
-  color: #1e1362;
-  background: #f1f5fb;
-}
-
 /* profile icon */
 .profile-icon img#nav-profile-pic {
   height: 40px;
