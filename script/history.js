@@ -276,40 +276,36 @@ function applyStatusAndTimeFilters() {
   else if (selectedStatus === "Cancelled") result = result.filter(r => (r.status || "").toLowerCase() === "rejected" || (r.status || "").toLowerCase() === "cancelled");
   // "All Jobs" -> no filtering
 
-  // time filtering
-  if (selectedTime && selectedTime !== "") {
-    const now = new Date();
-    result = result.filter(r => {
-      if (!r.createdAt) return false;
-      const created = new Date(r.createdAt);
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      if (selectedTime === "This Week") {
-        // week starts Monday
-        const diff = (created - startOfToday) / (1000 * 60 * 60 * 24);
-        // find current weekday index (0 Sunday .. 6 Saturday) convert to Monday-based
-        const day = (startOfToday.getDay() + 6) % 7;
-        const weekStart = new Date(startOfToday);
-        weekStart.setDate(startOfToday.getDate() - day);
-        return created >= weekStart && created <= now;
-      } else if (selectedTime === "Last Week") {
-        const day = (startOfToday.getDay() + 6) % 7;
-        const thisWeekStart = new Date(startOfToday); thisWeekStart.setDate(startOfToday.getDate() - day);
-        const lastWeekStart = new Date(thisWeekStart); lastWeekStart.setDate(thisWeekStart.getDate() - 7);
-        const lastWeekEnd = new Date(thisWeekStart); lastWeekEnd.setDate(thisWeekStart.getDate() - 1);
-        return created >= lastWeekStart && created <= lastWeekEnd;
-      } else if (selectedTime === "This Month") {
-        const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        return created >= firstOfMonth && created <= now;
-      } else if (selectedTime === "Last Month") {
-        const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const firstOfLastMonth = new Date(firstOfThisMonth); firstOfLastMonth.setMonth(firstOfThisMonth.getMonth() - 1);
-        const lastOfLastMonth = new Date(firstOfThisMonth); lastOfLastMonth.setDate(0);
-        return created >= firstOfLastMonth && created <= lastOfLastMonth;
-      }
-      return true;
-    });
-  }
+// time filtering
+if (selectedTime && selectedTime !== "") {
+  const now = new Date();
+  result = result.filter(r => {
+    if (!r.createdAt) return false;
+    const created = new Date(r.createdAt);
 
+    if (selectedTime === "This Week") {
+      // Get Monday of current week
+      const day = (now.getDay() + 6) % 7;
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - day);
+      startOfWeek.setHours(0, 0, 0, 0);
+      return created >= startOfWeek && created <= now;
+
+    } else if (selectedTime === "This Month") {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      return created >= startOfMonth && created <= now;
+
+    } else if (selectedTime === "This Year") {
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      return created >= startOfYear && created <= now;
+
+    } else if (selectedTime === "All") {
+      return true; // No date filtering
+    }
+
+    return true;
+  });
+}
   filteredRequests = result;
   renderCards(filteredRequests);
 }
