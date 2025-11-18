@@ -110,6 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
           printType: primaryDoc.printType,
           status: request.status,
           details: {
+            printerUsed: "Epson L3210", // Not Specify
             submittedOn: createdDate.toLocaleDateString('en-US', { 
               year: 'numeric', 
               month: 'long', 
@@ -519,6 +520,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (printingSide) printingSide.textContent = rec.details.printingSide;
     if (pickupDate) pickupDate.textContent = rec.details.pickupDate;
 
+    const printerUsed = document.getElementById('printerUsed');
+    if (printerUsed) printerUsed.textContent = rec.details.printerUsed || "Not specified";  
     // Set preview image
     if (previewImage) {
       previewImage.src = rec.details.previewImage;
