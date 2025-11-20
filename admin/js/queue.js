@@ -931,7 +931,7 @@ document.addEventListener("DOMContentLoaded", () => {
     confirmLogout.addEventListener('click', function() {
       // Perform logout actions here
       // For now, just redirect to login page
-      window.location.href = '../html/login.html';
+      window.location.href = '/index.html';
     });
   }
 
