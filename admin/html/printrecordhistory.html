@@ -1,21 +1,12 @@
 <!doctype html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Admin — Print Record History</title>
-
-  <!-- CSS (from admin/css/) -->
   <link rel="stylesheet" href="../css/printrecordhistory.css" />
-
-  <!-- JS -->
   <script src="../js/printrecordhistory.js" defer></script>
-
-  <!-- FontAwesome (optional icons) -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
-
 <body>
   <div class="app">
     <!-- Navigation Sidebar -->
@@ -31,6 +22,7 @@
         <li class="nav-item ">
           <a href="../html/queue.html">
             <span class="text">QUEUE</span>
+            <span class="queue-count" id="sidebarQueueCount">0</span>                        
           </a>
         </li>
         <li class="nav-item">

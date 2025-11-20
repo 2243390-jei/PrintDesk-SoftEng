@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const prevPageBtn = document.getElementById("prevPage");
   const nextPageBtn = document.getElementById("nextPage");
   const selectAll = document.getElementById("selectAll");
+  const sidebarQueueCount = document.getElementById("sidebarQueueCount");  
 
   const filterBtn = document.getElementById("filterBtn");
   const filterMenu = document.getElementById("filterMenu");
@@ -165,6 +166,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
+  // Queue Count Update
+  // -------------------------
+  async function updateQueueCount() {
+    try {
+      const response = await fetch(REQUESTS_ENDPOINT);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      // Count pending requests
+      const pendingCount = data.filter(request => request.status === "Pending").length;
+      
+      // Update sidebar queue count
+      if (sidebarQueueCount) {
+        sidebarQueueCount.textContent = pendingCount;
+        if (pendingCount === 0) {
+          sidebarQueueCount.style.display = 'none';
+        } else {
+          sidebarQueueCount.style.display = 'flex';
+        }
+      }
+    } catch (error) {
+      console.error("Error updating queue count:", error);
+    }
+  }
+
+  // -------------------------
   // Check for redirect from queue
   // -------------------------
   function checkForQueueRedirect() {
@@ -205,29 +234,6 @@ document.addEventListener("DOMContentLoaded", () => {
         showDetails(record);
       }
     }
-  }
-
-  // -------------------------
-  // Utility functions
-  // -------------------------
-  function openModal(modal) {
-    if (!modal) return;
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-  }
-
-  function closeModal(modal) {
-    if (!modal) return;
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
-  }
-
-  function statusPill(status) {
-    const statusLower = status.toLowerCase();
-    if (statusLower === "completed") return `<span class="pill completed">${status}</span>`;
-    if (statusLower === "accepted") return `<span class="pill accepted">${status}</span>`;
-    if (statusLower === "rejected") return `<span class="pill rejected">${status}</span>`;
-    return `<span class="pill pending">${status}</span>`;
   }
 
   // -------------------------
@@ -697,6 +703,9 @@ document.addEventListener("DOMContentLoaded", () => {
       printData = await fetchPrintRequests();
       filtered = [...printData];
 
+      // Update queue count
+      await updateQueueCount();
+
       // Render the view
       renderView(printData);
       attachPrinterDetailHandlers();
@@ -717,7 +726,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ------------------------- 
-  // LOGOUT FUNCTIONALITY (NEW - ADD THIS AT THE END)
+  // LOGOUT FUNCTIONALITY
   // -------------------------
   if (logoutBtn) {
     logoutBtn.addEventListener("click", (e) => {
@@ -764,12 +773,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // Start the app
   initialize();
 
+  // Set up periodic queue count updates (every 30 seconds)
+  setInterval(updateQueueCount, 30000);
+
   // expose for debugging
   window.__printRecordDemo = {
     printData,
     renderView,
     openFilterPanel: (t) => openFilterPanel(t),
     showDetails,
-    fetchPrintRequests
+    fetchPrintRequests,
+    updateQueueCount
   };
 });
