@@ -549,7 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (cancelLogout) cancelLogout.addEventListener('click', () => closeModal(logoutModal));
     if (confirmLogout) confirmLogout.addEventListener('click', () => {
       closeModal(logoutModal);
-      window.location.href = '/admin/login.html';
+      window.location.href = '/index.html';
     });
     if (refreshBtn) refreshBtn.addEventListener('click', async () => {
       await fetchAnalyticsData();
