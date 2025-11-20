@@ -1,4 +1,4 @@
-// usermanagement.js (cleaned - table view only)
+// usermanagement.js (updated roles)
 document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   // DOM references
@@ -22,8 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const editEmail = document.getElementById('editEmail');
   const editName = document.getElementById('editName');
   const editCourse = document.getElementById('editCourse');
-  const editStatus = document.getElementById('editStatus');
   const editRole = document.getElementById('editRole');
+  const editRoleDisplay = document.getElementById('editRoleDisplay');
   const cancelEdit = document.getElementById('cancelEdit');
 
   const deleteModal = document.getElementById('deleteModal');
@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentPage = 1;
   let users = [];
   let filtered = [];
-  let activeFilters = { role: null, status: null, dateFrom: null, dateTo: null };
+  let activeFilters = { role: null, dateFrom: null, dateTo: null };
 
   let editingEmail = null;
   let deletingEmail = null;
@@ -75,10 +75,16 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.style.overflow = '';
   }
 
-  function statusPill(text) {
-    if (!text) return '';
-    if (text.toLowerCase() === "accepted") return `<span class="pill accepted">${text}</span>`;
-    return `<span class="pill pending">${text}</span>`;
+  // Role display helper
+  function getDisplayRole(role) {
+    if (role === 'User') return 'Student';
+    return role;
+  }
+
+  function getRolePill(role) {
+    const displayRole = getDisplayRole(role);
+    const roleClass = role === 'User' ? 'student' : 'admin';
+    return `<span class="role-pill ${roleClass}">${displayRole}</span>`;
   }
 
   // -------------------------
@@ -104,7 +110,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const completedRequests = userRequests.filter(req => req.status === "Completed").length;
         const rejectedRequests = userRequests.filter(req => req.status === "Rejected").length;
         
-        const userStatus = user.lastLogin ? "Accepted" : "Pending";
         const course = user.courseYear || extractCourseFromEmail(user.email) || "Unknown Course";
         
         return {
@@ -112,7 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
           name: user.fullName || "Unknown User",
           email: user.email,
           course: course,
-          status: userStatus,
           role: user.role || "User",
           lastActive: user.lastLogin ? new Date(user.lastLogin).toISOString().split('T')[0] : "Never",
           tokenBalance: user.tokenBalance || 0,
@@ -133,7 +137,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (usersBody) {
         usersBody.innerHTML = `
           <tr>
-            <td colspan="7" style="text-align: center; padding: 20px; color: #dc3545;">
+            <td colspan="6" style="text-align: center; padding: 20px; color: #dc3545;">
               <div>Error loading users</div>
               <div style="font-size: 12px; margin-top: 8px;">${error.message}</div>
             </td>
@@ -218,7 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pageItems.length === 0) {
       usersBody.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align: center; padding: 20px;">
+          <td colspan="6" style="text-align: center; padding: 20px;">
             No users found
           </td>
         </tr>
@@ -244,8 +248,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </td>
         <td>${u.email}</td>
         <td>${u.course}</td>
-        <td>${statusPill(u.status)}</td>
-        <td>${u.role}</td>
+        <td>${getRolePill(u.role)}</td>
         <td class="col-actions">
           <img src="../../images/admin_img/write.png" alt="edit" title="Edit" class="action-icon edit" data-email="${u.email}" data-id="${u._id}" />
           <img src="../../images/admin_img/delete.png" alt="delete" title="Delete" class="action-icon del" data-email="${u.email}" data-id="${u._id}" />
@@ -305,17 +308,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const matchesSearch = q === "" || 
         u.name.toLowerCase().includes(q) || 
         u.email.toLowerCase().includes(q) || 
-        u.course.toLowerCase().includes(q) || 
-        u.status.toLowerCase().includes(q);
+        u.course.toLowerCase().includes(q);
 
       const matchesRole = activeFilters.role ? u.role === activeFilters.role : true;
-      const matchesStatus = activeFilters.status ? u.status === activeFilters.status : true;
       
       let matchesDate = true;
       if (activeFilters.dateFrom) matchesDate = matchesDate && (new Date(u.lastActive) >= new Date(activeFilters.dateFrom));
       if (activeFilters.dateTo) matchesDate = matchesDate && (new Date(u.lastActive) <= new Date(activeFilters.dateTo));
 
-      return matchesSearch && matchesRole && matchesStatus && matchesDate;
+      return matchesSearch && matchesRole && matchesDate;
     });
   }
 
@@ -399,34 +400,46 @@ document.addEventListener("DOMContentLoaded", () => {
     filterPanel.setAttribute("aria-hidden", "false");
 
     if (type === "role") {
-      const label = document.createElement("div"); label.textContent = "Role"; label.style.fontWeight = "700";
-      const userBtn = document.createElement("button"); userBtn.textContent = "User"; userBtn.className = "small";
-      const orgBtn = document.createElement("button"); orgBtn.textContent = "Organization"; orgBtn.className = "small";
-      const clearBtn = document.createElement("button"); clearBtn.textContent = "Clear"; clearBtn.className = "small";
+      const label = document.createElement("div"); 
+      label.textContent = "Role"; 
+      label.style.fontWeight = "700";
+      
+      const studentBtn = document.createElement("button"); 
+      studentBtn.textContent = "Student"; 
+      studentBtn.className = "small";
+      
+      const adminBtn = document.createElement("button"); 
+      adminBtn.textContent = "Admin"; 
+      adminBtn.className = "small";
+      
+      const clearBtn = document.createElement("button"); 
+      clearBtn.textContent = "Clear"; 
+      clearBtn.className = "small";
 
-      userBtn.addEventListener("click", () => { activeFilters.role = "User"; currentPage = 1; renderView(users); hideFilterPanel(); });
-      orgBtn.addEventListener("click", () => { activeFilters.role = "Organization"; currentPage = 1; renderView(users); hideFilterPanel(); });
-      clearBtn.addEventListener("click", () => { activeFilters.role = null; currentPage = 1; renderView(users); hideFilterPanel(); });
+      studentBtn.addEventListener("click", () => { 
+        activeFilters.role = "User"; 
+        currentPage = 1; 
+        renderView(users); 
+        hideFilterPanel(); 
+      });
+      
+      adminBtn.addEventListener("click", () => { 
+        activeFilters.role = "Admin"; 
+        currentPage = 1; 
+        renderView(users); 
+        hideFilterPanel(); 
+      });
+      
+      clearBtn.addEventListener("click", () => { 
+        activeFilters.role = null; 
+        currentPage = 1; 
+        renderView(users); 
+        hideFilterPanel(); 
+      });
 
       filterPanel.appendChild(label);
-      filterPanel.appendChild(userBtn);
-      filterPanel.appendChild(orgBtn);
-      filterPanel.appendChild(clearBtn);
-    }
-
-    if (type === "status") {
-      const label = document.createElement("div"); label.textContent = "Status"; label.style.fontWeight = "700";
-      const accBtn = document.createElement("button"); accBtn.textContent = "Accepted";
-      const pendBtn = document.createElement("button"); pendBtn.textContent = "Pending";
-      const clearBtn = document.createElement("button"); clearBtn.textContent = "Clear";
-
-      accBtn.addEventListener("click", () => { activeFilters.status = "Accepted"; currentPage = 1; renderView(users); hideFilterPanel(); });
-      pendBtn.addEventListener("click", () => { activeFilters.status = "Pending"; currentPage = 1; renderView(users); hideFilterPanel(); });
-      clearBtn.addEventListener("click", () => { activeFilters.status = null; currentPage = 1; renderView(users); hideFilterPanel(); });
-
-      filterPanel.appendChild(label);
-      filterPanel.appendChild(accBtn);
-      filterPanel.appendChild(pendBtn);
+      filterPanel.appendChild(studentBtn);
+      filterPanel.appendChild(adminBtn);
       filterPanel.appendChild(clearBtn);
     }
 
@@ -494,8 +507,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (editEmail) editEmail.value = user.email || '';
     if (editName) editName.value = user.name || '';
     if (editCourse) editCourse.value = user.course || '';
-    if (editStatus) editStatus.value = user.status || 'Pending';
-    if (editRole) editRole.value = user.role || 'User';
+    
+    // Set role display (non-editable)
+    if (editRoleDisplay) {
+      editRoleDisplay.textContent = getDisplayRole(user.role);
+    }
+    if (editRole) {
+      editRole.value = user.role; // Keep the actual value in hidden field
+    }
 
     openModal(editModal);
   }
@@ -521,14 +540,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const updates = {
           fullName: (editName && editName.value) ? editName.value.trim() : user.name,
           courseYear: (editCourse && editCourse.value) ? editCourse.value.trim() : user.course,
-          role: (editRole && editRole.value) ? editRole.value : user.role,
+          // Role is not included in updates since it's not editable
         };
 
         await updateUser(user._id, updates);
 
         user.name = updates.fullName;
         user.course = updates.courseYear;
-        user.role = updates.role;
+        // Role remains unchanged
 
         editingEmail = null;
         renderView(users);
@@ -632,7 +651,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (usersBody) {
         usersBody.innerHTML = `
           <tr>
-            <td colspan="7" style="text-align: center; padding: 20px;">
+            <td colspan="6" style="text-align: center; padding: 20px;">
               <div>Loading users...</div>
             </td>
           </tr>
@@ -651,7 +670,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (usersBody) {
         usersBody.innerHTML = `
           <tr>
-            <td colspan="7" style="text-align: center; padding: 20px; color: #dc3545;">
+            <td colspan="6" style="text-align: center; padding: 20px; color: #dc3545;">
               <div>Error loading users</div>
             </td>
           </tr>

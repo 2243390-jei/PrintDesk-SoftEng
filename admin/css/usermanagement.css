@@ -304,6 +304,40 @@ body{
   background: transparent;
 }
 
+/* Read-only field styles */
+.read-only-field {
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 6px;
+  border-radius: 8px;
+  border: 1px solid #e8eef1;
+  background: #f8f9fa;
+  font-size: 14px;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Role pill styles for table display */
+.role-pill {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  display: inline-block;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-pill.student {
+  background: #e8f6ea;
+  color: #1f7a2f;
+}
+
+.role-pill.admin {
+  background: #e8f0ff;
+  color: #1e40af;
+}
+
 /* inner dark frame (rounded) */
 .card-inner{
   background: var(--deep);
@@ -341,12 +375,7 @@ body{
   width:36px; height:36px; border-radius:8px; background:#e9eef0; display:inline-flex;align-items:center;justify-content:center;color:#788b92;
 }
 
-/* status pill */
-.pill{
-  padding:6px 10px; border-radius:999px; font-size:13px; display:inline-block; font-weight:600;
-}
-.pill.accepted{ background:#e8f6ea; color:#1f7a2f; }
-.pill.pending{ background:#fff6e6; color:#a46300; }
+/* REMOVED: Status pill styles */
 
 /* action icons (use your pngs) */
 .action-icon{
@@ -673,33 +702,7 @@ body{
   background-color: #059669;
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.status-pending {
-  background-color: #FEF3C7;
-  color: #92400E;
-}
-
-.status-completed {
-  background-color: #D1FAE5;
-  color: #065F46;
-}
-
-.status-rejected {
-  background-color: #FEE2E2;
-  color: #991B1B;
-}
-
-.status-accepted {
-  background-color: #DBEAFE;
-  color: #1E40AF;
-}
+/* REMOVED: Status badge styles */
 
 /* Edit/Delete Modal Styles */
 .modal-content.small { 

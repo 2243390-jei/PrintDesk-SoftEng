@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -7,6 +8,7 @@
   <link rel="stylesheet" href="../css/usermanagement.css" />
   <script src="../js/usermanagement.js" defer></script>
 </head>
+
 <body>
   <div class="app">
     <!-- Navigation Sidebar -->
@@ -22,7 +24,7 @@
         <li class="nav-item ">
           <a href="../html/queue.html">
             <span class="text">QUEUE</span>
-            <span class="queue-count" id="sidebarQueueCount">0</span>            
+            <span class="queue-count" id="sidebarQueueCount">0</span>
           </a>
         </li>
         <li class="nav-item">
@@ -95,7 +97,7 @@
                 <!-- filters that open the small inline filter panel -->
                 <button type="button" data-action="open-filter" data-filter="role" role="menuitem">Role</button>
                 <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
-                <button type="button" data-action="open-filter" data-filter="status" role="menuitem">Status</button>
+                <!-- REMOVED: Status filter button -->
                 <div class="divider" aria-hidden="true"></div>
 
                 <button type="button" data-action="apply" class="primary" role="menuitem">Filter</button>
@@ -116,7 +118,7 @@
                     <th>Name</th>
                     <th>Email</th>
                     <th>Course & Year</th>
-                    <th>Status</th>
+                    <!-- REMOVED: Status column -->
                     <th>Role</th>
                     <th class="col-actions">Actions</th>
                   </tr>
@@ -161,18 +163,10 @@
         <label for="editCourse">Course &amp; Year</label>
         <input type="text" id="editCourse" name="course" />
 
-        <label for="editStatus">Status</label>
-        <select id="editStatus" name="status">
-          <option value="Accepted">Accepted</option>
-          <option value="Pending">Pending</option>
-        </select>
-
+        <!-- Role field - changed to display only -->
         <label for="editRole">Role</label>
-        <select id="editRole" name="role">
-          <option value="User">User</option>
-          <option value="Organization">Organization</option>
-          <option value="Admin">Admin</option>
-        </select>
+        <div id="editRoleDisplay" class="read-only-field"></div>
+        <input type="hidden" id="editRole" name="role" />
 
         <div class="modal-actions">
           <button type="button" id="cancelEdit" class="btn secondary">Cancel</button>
@@ -212,7 +206,6 @@
       </div>
     </div>
   </div>
-</body>
 </body>
 
 </html>
