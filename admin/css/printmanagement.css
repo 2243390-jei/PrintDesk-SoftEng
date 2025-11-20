@@ -301,14 +301,14 @@ body {
   color: #0d6efd;
 }
 
-/* modal */
-.modal { 
-  position: fixed; 
-  inset: 0; 
-  display: none; 
-  align-items: center; 
-  justify-content: center; 
-  z-index: 400; 
+/* Modal Styles - Matching Queue Design */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
   overflow: hidden;
 }
 
@@ -337,21 +337,35 @@ body {
   margin: 20px;
 }
 
+.small-modal {
+  width: 400px;
+}
+
 .modal-header {
   background: #f8f9fa;
   padding: 20px;
   border-bottom: 1px solid #e9ecef;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .back-btn {
   background: none;
   border: none;
-  font-size: 20px;
   cursor: pointer;
   color: #6c757d;
-  padding: 4px 8px;
-  margin-bottom: 15px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .back-btn:hover {
@@ -367,7 +381,7 @@ body {
 .modal-body {
   padding: 20px;
   overflow-y: auto;
-  max-height: calc(90vh - 80px); /* 90vh - header height */
+  max-height: calc(90vh - 80px);
   scrollbar-width: thin;
   scrollbar-color: #90A4AE #CFD8DC;
 }
@@ -441,11 +455,48 @@ body {
   font-weight: 600;
 }
 
+/* Documents container for multiple documents */
+.documents-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.document-item {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.document-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.document-title {
+  font-weight: 600;
+  color: #343a40;
+}
+
+.document-number {
+  background: #4A90E2;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
 .preview-image {
   width: 100%;
   max-height: 300px;
   object-fit: contain;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   background: white;
   border: 1px solid #dee2e6;
   border-radius: 4px;
@@ -455,12 +506,12 @@ body {
 .preview-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
+  gap: 12px;
 }
 
 .preview-item {
-  background: white;
-  padding: 12px;
+  background: #f8f9fa;
+  padding: 10px;
   border-radius: 6px;
   border: 1px solid #dee2e6;
 }
@@ -477,52 +528,96 @@ body {
   font-weight: 500;
 }
 
+.download-btn {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.download-btn:hover {
+  background-color: #0056b3;
+  color: white;
+  text-decoration: none;
+}
+
 .action-buttons {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e9ecef;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 30px;
 }
 
 .reject-btn, .accept-btn {
-  padding: 8px 24px;
+  padding: 12px 40px;
+  border: none;
   border-radius: 6px;
-  font-weight: 600;
-  font-size: 14px;
   cursor: pointer;
-  border: 1px solid transparent;
+  font-weight: 600;
+  transition: all 0.3s;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btn-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 
 .reject-btn {
-  background: #fff;
-  color: #dc3545;
-  border-color: #dc3545;
+  background-color: #EF4444;
+  color: white;
 }
 
 .reject-btn:hover {
-  background: #dc3545;
-  color: #fff;
+  background-color: #DC2626;
 }
 
 .accept-btn {
-  background: #0d6efd;
-  color: #fff;
-  border-color: #0a58ca;
+  background-color: #10B981;
+  color: white;
 }
 
 .accept-btn:hover {
-  background: #0b5ed7;
+  background-color: #059669;
 }
 
 .status-badge {
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 12px;
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
   font-weight: 600;
-  background: #fff3cd;
-  color: #856404;
+}
+
+.status-pending {
+  background-color: #FEF3C7;
+  color: #92400E;
+}
+
+.status-completed {
+  background-color: #D1FAE5;
+  color: #065F46;
+}
+
+.status-rejected {
+  background-color: #FEE2E2;
+  color: #991B1B;
+}
+
+.status-accepted {
+  background-color: #DBEAFE;
+  color: #1E40AF;
 }
 
 .modal-header {
@@ -649,6 +744,129 @@ body {
 
 /* helpers */
 .footer{ margin-top:20px; color:var(--muted); text-align:right; font-size:13px; padding-right:6px; }
+
+/* Responsive Styles */
+@media (max-width: 1200px) {
+  .brand-right { width: 160px; }
+  .card-header .search { min-width: 180px; gap: 8px; padding: 6px 8px; }
+  .card-header .search input { width: 120px; font-size: 13px; }
+}
+
+@media (max-width: 992px) {
+  .sidebar {
+    width: 70px;
+  }
+  
+  .sidebar .text {
+    display: none;
+  }
+  
+  .page-title h2 {
+    font-size: 1rem;
+    text-align: center;
+  }
+  
+  .sidebar-header {
+    padding: 15px;
+  }
+  
+  .logo h1 {
+    font-size: 1.2rem;
+  }
+  
+  .admin-profile {
+    display: none;
+  }
+  
+  .main-area {
+    margin-left: 70px;
+  }
+  
+  .queue-count {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 0;
+    display: none;
+  }
+  
+  .main-area {
+    margin-left: 0;
+  }
+  
+  .content-area {
+    padding: 14px;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .search {
+    width: 100%;
+  }
+  
+  .search input {
+    width: 100%;
+  }
+  
+  .brand-right {
+    display: none;
+  }
+  
+  .title {
+    font-size: 36px;
+  }
+  
+  .subtitle {
+    font-size: 16px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    margin: 20px auto;
+  }
+  
+  .details-top-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .preview-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .reject-btn, .accept-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px){
+  .filter-menu { right: 8px; left: 8px; width: auto; top: calc(100% + 6px); }
+  .modal-content { width: calc(100% - 24px); padding: 16px; }
+  .details-top-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .small-modal {
+    width: calc(100% - 24px);
+  }
+  
+  .reject-btn, .accept-btn {
+    padding: 10px 20px;
+  }
+}
 
 @media (max-width: 920px){
   .search input{ width:160px; }
