@@ -34,6 +34,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const cancelDelete = document.getElementById('cancelDelete');
   const confirmDelete = document.getElementById('confirmDelete');
 
+  // Logout elements
+  const logoutBtn = document.getElementById("logoutBtn");
+  const logoutModal = document.getElementById("logoutModal");
+  const cancelLogout = document.getElementById("cancelLogout");
+  const confirmLogout = document.getElementById("confirmLogout");
+
   // -------------------------
   // State
   // -------------------------
@@ -63,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!modal) return;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
     // focus first focusable element
     const focusable = modal.querySelector('input,button,select,textarea');
     if (focusable) focusable.focus();
@@ -72,6 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!modal) return;
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
   }
 
   function statusPill(text) {
@@ -640,6 +648,30 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
+  // Logout functionality
+  // -------------------------
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      openModal(logoutModal);
+    });
+  }
+
+  if (cancelLogout) {
+    cancelLogout.addEventListener('click', function() {
+      closeModal(logoutModal);
+    });
+  }
+
+  if (confirmLogout) {
+    confirmLogout.addEventListener('click', function() {
+      // Perform logout actions here
+      // For now, just redirect to login page
+      window.location.href = '/index.html';
+    });
+  }
+
+  // -------------------------
   // Modals: Edit & Delete
   // -------------------------
   function openEditForEmail(email, userId) {
@@ -776,6 +808,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (modal) {
         if (modal === editModal) editingEmail = null;
         if (modal === deleteModal) deletingEmail = null;
+        if (modal === logoutModal) {
+          // No state to clear for logout modal
+        }
         closeModal(modal);
       }
     });
@@ -786,6 +821,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === 'Escape') {
       if (editModal && editModal.classList.contains('open')) { editingEmail = null; closeModal(editModal); }
       if (deleteModal && deleteModal.classList.contains('open')) { deletingEmail = null; closeModal(deleteModal); }
+      if (logoutModal && logoutModal.classList.contains('open')) { closeModal(logoutModal); }
     }
   });
 

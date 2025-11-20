@@ -20,6 +20,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const detailsModal = document.getElementById("detailsModal");
   const backBtn = document.getElementById("backBtn");
 
+  // Logout elements
+  const logoutBtn = document.getElementById("logoutBtn");
+  const logoutModal = document.getElementById("logoutModal");
+  const cancelLogout = document.getElementById("cancelLogout");
+  const confirmLogout = document.getElementById("confirmLogout");
+
   // Detail elements
   const submittedDate = document.getElementById('submittedDate');
   const totalCost = document.getElementById('totalCost');
@@ -52,6 +58,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
 
   if (curYear) curYear.textContent = new Date().getFullYear();
+
+  // -------------------------
+  // Utility functions
+  // -------------------------
+  function openModal(modal) {
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  function statusPill(status) {
+    const statusLower = status.toLowerCase();
+    if (statusLower === "completed") return `<span class="pill completed">${status}</span>`;
+    if (statusLower === "accepted") return `<span class="pill accepted">${status}</span>`;
+    if (statusLower === "rejected") return `<span class="pill rejected">${status}</span>`;
+    return `<span class="pill pending">${status}</span>`;
+  }
 
   // -------------------------
   // API Functions
@@ -148,29 +179,6 @@ document.addEventListener("DOMContentLoaded", () => {
       // Return empty array if API fails
       return [];
     }
-  }
-
-  // -------------------------
-  // Utility functions
-  // -------------------------
-  function openModal(modal) {
-    if (!modal) return;
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-  }
-  
-  function closeModal(modal) {
-    if (!modal) return;
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
-  }
-
-  function statusPill(status) {
-    const statusLower = status.toLowerCase();
-    if (statusLower === "completed") return `<span class="pill completed">${status}</span>`;
-    if (statusLower === "accepted") return `<span class="pill accepted">${status}</span>`;
-    if (statusLower === "rejected") return `<span class="pill rejected">${status}</span>`;
-    return `<span class="pill pending">${status}</span>`;
   }
 
   // -------------------------
@@ -537,6 +545,30 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
+  // Logout functionality
+  // -------------------------
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      openModal(logoutModal);
+    });
+  }
+
+  if (cancelLogout) {
+    cancelLogout.addEventListener('click', function() {
+      closeModal(logoutModal);
+    });
+  }
+
+  if (confirmLogout) {
+    confirmLogout.addEventListener('click', function() {
+      // Perform logout actions here
+      // For now, just redirect to login page
+      window.location.href = '/index.html';
+    });
+  }
+
+  // -------------------------
   // Event listeners for modals
   // -------------------------
   if (backBtn) {
@@ -560,6 +592,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === 'Escape') {
       if (detailsModal && detailsModal.classList.contains('open')) {
         closeModal(detailsModal);
+      }
+      if (logoutModal && logoutModal.classList.contains('open')) {
+        closeModal(logoutModal);
       }
     }
   });

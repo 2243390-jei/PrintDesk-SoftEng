@@ -52,9 +52,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const API_BASE = "http://localhost:3000";
   const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
 
-  // set footer year if element exists
-  if (curYear) curYear.textContent = new Date().getFullYear();
-
   // -------------------------
   // Utility helpers
   // -------------------------
@@ -991,6 +988,9 @@ document.addEventListener("DOMContentLoaded", () => {
       // Fetch data from backend
       queueData = await fetchPrintRequests();
       console.log("Fetched queue data:", queueData);
+      
+      // set footer year if element exists
+      if (curYear) curYear.textContent = new Date().getFullYear();
       
       // Render the view
       renderView(queueData);

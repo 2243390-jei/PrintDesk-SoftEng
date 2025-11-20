@@ -1,235 +1,264 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Admin — Print Record History</title>
 
-    <!-- CSS (from admin/css/) -->
-    <link rel="stylesheet" href="../css/printrecordhistory.css" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — Print Record History</title>
 
-    <!-- JS -->
-    <script src="../js/printrecordhistory.js" defer></script>
+  <!-- CSS (from admin/css/) -->
+  <link rel="stylesheet" href="../css/printrecordhistory.css" />
 
-    <!-- FontAwesome (optional icons) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  </head>
-  <body>
-    <div class="app">
-      <!-- Navigation Sidebar -->
-      <nav class="sidebar">
-        <div class="sidebar-header">
-          <div class="admin-profile">
-            <div class="admin-role">ADMIN</div>
-            <div class="admin-name">Admin Name</div>
+  <!-- JS -->
+  <script src="../js/printrecordhistory.js" defer></script>
+
+  <!-- FontAwesome (optional icons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+
+<body>
+  <div class="app">
+    <!-- Navigation Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="admin-profile">
+          <div class="admin-role">ADMIN</div>
+          <div class="admin-name">Admin Name</div>
+        </div>
+      </div>
+
+      <ul class="nav-links">
+        <li class="nav-item ">
+          <a href="../html/queue.html">
+            <span class="text">QUEUE</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printmanagement.html">
+            <span class="text">PRINT</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/statistics.html">
+            <span class="text">STATISTICS</span>
+          </a>
+        </li>
+        <li class="nav-item active">
+          <a href="../html/printrecordhistory.html">
+            <span class="text">RECORDS</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/usermanagement.html">
+            <span class="text">MANAGE</span>
+          </a>
+        </li>
+        <li class="nav-item ">
+          <a href="../html/printTokens.html">
+            <span class="text">User Tokens</span>
+          </a>
+        </li>
+        <li class="nav-item logout-item">
+          <a href="#" id="logoutBtn">
+            <span class="text">LOGOUT</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- MAIN AREA -->
+    <main class="main-area" role="main">
+      <div class="content-area">
+        <header class="header">
+          <div class="title-block">
+            <h1 class="title">ADMIN DASHBOARD</h1>
+            <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span>
+            </p>
+          </div>
+
+          <div class="brand-right">
+            <!-- images folder is outside admin/, so go up two levels -->
+            <img src="../../images/SLU_printdesk_logo.png" alt="SLU LOGO" />
+          </div>
+        </header>
+
+        <section class="card">
+          <div class="card-header">
+            <h2>Print Record History</h2>
+
+            <div class="controls">
+              <div class="search" role="search" aria-label="Search print records">
+                <img src="../../images/admin_img/loupe.png" alt="loupe icon" />
+                <input id="searchInput" type="search" placeholder="Search..." aria-label="Search records" />
+              </div>
+
+              <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false"
+                aria-controls="filterMenu">
+                <img src="../../images/admin_img/filter.png" alt="filter" />
+              </button>
+
+              <!-- Filter Dropdown -->
+              <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
+                <button type="button" data-action="open-filter" data-filter="course" role="menuitem">Course</button>
+                <button type="button" data-action="open-filter" data-filter="printType" role="menuitem">Print
+                  Type</button>
+                <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
+                <div class="divider" aria-hidden="true"></div>
+                <button type="button" data-action="clear" class="small" role="menuitem">Clear Filters</button>
+                <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-inner">
+            <div class="table-wrap">
+              <!-- Table view -->
+              <table class="users-table" aria-describedby="print-record-table">
+                <thead>
+                  <tr>
+                    <th class="col-check"><input id="selectAll" type="checkbox" /></th>
+                    <th>No.</th>
+                    <th>Name</th>
+                    <th>Course and Year</th>
+                    <th>Date</th>
+                    <th>Pages</th>
+                    <th>Copies</th>
+                    <th>Print Type</th>
+                    <th>Status</th>
+                    <th class="col-actions">Details</th>
+                  </tr>
+                </thead>
+                <tbody id="recordsBody"></tbody>
+              </table>
+
+              <!-- Board & List containers (hidden by default) -->
+              <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
+              <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
+            </div>
+
+            <div class="table-footer">
+              <div class="pagination">
+                <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
+                <div id="pageNumbers" class="page-numbers"></div>
+                <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="footer muted">© <span id="curYear"></span> PrintDesk — Print Record History</footer>
+      </div>
+    </main>
+  </div>
+
+  <!-- Details Modal -->
+  <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"
+    aria-labelledby="detailsTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <button id="backBtn" class="back-btn">&larr;</button>
+        <h2>Print Record Details</h2>
+      </div>
+
+      <div class="modal-body">
+        <div class="details-top-row">
+          <div class="detail-item">
+            <div class="detail-label">Submitted on</div>
+            <div class="detail-value" id="submittedDate">October 10, 2025</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Total Cost</div>
+            <div class="detail-value" id="totalCost">15 tokens</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Status</div>
+            <div class="detail-value">
+              <span class="status-badge" id="statusBadge">Completed</span>
+            </div>
           </div>
         </div>
-        
-        <ul class="nav-links">
-          <li class="nav-item ">
-            <a href="../html/queue.html">
-              <span class="text">QUEUE</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printmanagement.html">
-              <span class="text">PRINT</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/statistics.html">
-              <span class="text">STATISTICS</span>
-            </a>
-          </li>
-          <li class="nav-item active">
-            <a href="../html/printrecordhistory.html">
-              <span class="text">RECORDS</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/usermanagement.html">
-              <span class="text">MANAGE</span>
-            </a>
-          </li>
-          <li class="nav-item ">
-            <a href="../html/printTokens.html">
-              <span class="text">User Tokens</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
 
-      <!-- MAIN AREA -->
-      <main class="main-area" role="main">
-        <div class="content-area">
-          <header class="header">
-            <div class="title-block">
-              <h1 class="title">ADMIN DASHBOARD</h1>
-              <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
-            </div>
-
-            <div class="brand-right">
-              <!-- images folder is outside admin/, so go up two levels -->
-              <img src="../../images/SLU_printdesk_logo.png" alt="SLU LOGO" />
-            </div>
-          </header>
-
-          <section class="card">
-            <div class="card-header">
-              <h2>Print Record History</h2>
-
-              <div class="controls">
-                <div class="search" role="search" aria-label="Search print records">
-                  <img src="../../images/admin_img/loupe.png" alt="loupe icon" />
-                  <input id="searchInput" type="search" placeholder="Search..." aria-label="Search records" />
-                </div>
-
-                <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="filterMenu">
-                  <img src="../../images/admin_img/filter.png" alt="filter" />
-                </button>
-
-                <!-- Filter Dropdown -->
-                <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
-                  <button type="button" data-action="open-filter" data-filter="course" role="menuitem">Course</button>
-                  <button type="button" data-action="open-filter" data-filter="printType" role="menuitem">Print Type</button>
-                  <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
-                  <div class="divider" aria-hidden="true"></div>
-                  <button type="button" data-action="clear" class="small" role="menuitem">Clear Filters</button>
-                  <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card-inner">
-              <div class="table-wrap">
-                <!-- Table view -->
-                <table class="users-table" aria-describedby="print-record-table">
-                  <thead>
-                    <tr>
-                      <th class="col-check"><input id="selectAll" type="checkbox" /></th>
-                      <th>No.</th>
-                      <th>Name</th>
-                      <th>Course and Year</th>
-                      <th>Date</th>
-                      <th>Pages</th>
-                      <th>Copies</th>
-                      <th>Print Type</th>
-                      <th>Status</th>
-                      <th class="col-actions">Details</th>
-                    </tr>
-                  </thead>
-                  <tbody id="recordsBody"></tbody>
-                </table>
-
-                <!-- Board & List containers (hidden by default) -->
-                <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
-                <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
-              </div>
-
-              <div class="table-footer">
-                <div class="pagination">
-                  <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
-                  <div id="pageNumbers" class="page-numbers"></div>
-                  <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <footer class="footer muted">© <span id="curYear"></span> PrintDesk — Print Record History</footer>
+        <div class="request-id">
+          Request ID: <span id="requestId">RQRF2D7B</span>
         </div>
-      </main>
-    </div>
 
-    <!-- Details Modal -->
-    <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="detailsTitle">
-      <div class="modal-backdrop" data-close-modal></div>
-      <div class="modal-content">
-        <div class="modal-header">
-          <button id="backBtn" class="back-btn">&larr;</button>
-          <h2>Print Record Details</h2>
+        <div class="user-info">
+          <h3>User Information</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">Full Name</div>
+              <div class="info-value" id="userName">John Doe</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Course & Year</div>
+              <div class="info-value" id="userCourse">BSIT - 3</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Email</div>
+              <div class="info-value" id="userEmail">john.doe@example.com</div>
+            </div>
+          </div>
         </div>
-        
-        <div class="modal-body">
-          <div class="details-top-row">
-            <div class="detail-item">
-              <div class="detail-label">Submitted on</div>
-              <div class="detail-value" id="submittedDate">October 10, 2025</div>
+
+        <div class="document-preview">
+          <h3>Print Details</h3>
+          <img id="previewImage" src="" alt="Document preview" class="preview-image" />
+          <div class="preview-grid">
+            <div class="preview-item">
+              <div class="preview-label">File Name</div>
+              <div class="preview-value" id="fileName">Automobile_Anatomy.pdf</div>
             </div>
-            <div class="detail-item">
-              <div class="detail-label">Total Cost</div>
-              <div class="detail-value" id="totalCost">15 tokens</div>
+            <div class="preview-item">
+              <div class="preview-label">Page Count</div>
+              <div class="preview-value" id="pageCount">1</div>
             </div>
-            <div class="detail-item">
-              <div class="detail-label">Status</div>
-              <div class="detail-value">
-                <span class="status-badge" id="statusBadge">Completed</span>
-              </div>
+            <div class="preview-item">
+              <div class="preview-label">Number of Copies</div>
+              <div class="preview-value" id="copiesCount">1</div>
             </div>
-          </div>
-          
-          <div class="request-id">
-            Request ID: <span id="requestId">RQRF2D7B</span>
-          </div>
-          
-          <div class="user-info">
-            <h3>User Information</h3>
-            <div class="info-grid">
-              <div class="info-item">
-                <div class="info-label">Full Name</div>
-                <div class="info-value" id="userName">John Doe</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Course & Year</div>
-                <div class="info-value" id="userCourse">BSIT - 3</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">Email</div>
-                <div class="info-value" id="userEmail">john.doe@example.com</div>
-              </div>
+            <div class="preview-item">
+              <div class="preview-label">Paper Size</div>
+              <div class="preview-value" id="paperSize">A4</div>
             </div>
-          </div>
-          
-          <div class="document-preview">
-            <h3>Print Details</h3>
-            <img id="previewImage" src="" alt="Document preview" class="preview-image" />
-            <div class="preview-grid">
-              <div class="preview-item">
-                <div class="preview-label">File Name</div>
-                <div class="preview-value" id="fileName">Automobile_Anatomy.pdf</div>
-              </div>
-              <div class="preview-item">
-                <div class="preview-label">Page Count</div>
-                <div class="preview-value" id="pageCount">1</div>
-              </div>
-              <div class="preview-item">
-                <div class="preview-label">Number of Copies</div>
-                <div class="preview-value" id="copiesCount">1</div>
-              </div>
-              <div class="preview-item">
-                <div class="preview-label">Paper Size</div>
-                <div class="preview-value" id="paperSize">A4</div>
-              </div>
-              <div class="preview-item">
-                <div class="preview-label">Print Type</div>
-                <div class="preview-value" id="printType">Colored</div>
-              </div>
-              <div class="preview-item">
-                <div class="preview-label">Printing Side</div>
-                <div class="preview-value" id="printingSide">Single-Sided</div>
-              </div>
-              <div class="preview-item">
-                <div class="preview-label">Pickup Date</div>
-                <div class="preview-value" id="pickupDate">October 20, 2025</div>
-              </div>
-              <div class="preview-item">
-                <div class="preview-label">Printer Used</div>
-                <div class="preview-value" id="printerUsed">Epson L3210</div>
-              </div>
+            <div class="preview-item">
+              <div class="preview-label">Print Type</div>
+              <div class="preview-value" id="printType">Colored</div>
+            </div>
+            <div class="preview-item">
+              <div class="preview-label">Printing Side</div>
+              <div class="preview-value" id="printingSide">Single-Sided</div>
+            </div>
+            <div class="preview-item">
+              <div class="preview-label">Pickup Date</div>
+              <div class="preview-value" id="pickupDate">October 20, 2025</div>
+            </div>
+            <div class="preview-item">
+              <div class="preview-label">Printer Used</div>
+              <div class="preview-value" id="printerUsed">Epson L3210</div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </body>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content small-modal">
+      <div class="modal-header">
+        <h2>Confirm Logout</h2>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to logout?</p>
+        <div class="action-buttons">
+          <button class="reject-btn" id="cancelLogout">Cancel</button>
+          <button class="accept-btn" id="confirmLogout">Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
 </html>
