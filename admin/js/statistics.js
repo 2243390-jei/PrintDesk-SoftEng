@@ -3,634 +3,612 @@ document.addEventListener("DOMContentLoaded", () => {
   // DOM references
   // -------------------------
   const curYear = document.getElementById("curYear");
-  const timeRange = document.getElementById("timeRange");
-  const semesterFilter = document.getElementById("semesterFilter");
   const refreshBtn = document.getElementById("refreshBtn");
   const recentActivityList = document.getElementById("recentActivityList");
-
-  // Statistics elements
   const totalUsers = document.getElementById("totalUsers");
   const totalPrints = document.getElementById("totalPrints");
   const totalLeads = document.getElementById("totalLeads");
   const usersChange = document.getElementById("usersChange");
   const printsChange = document.getElementById("printsChange");
   const leadsChange = document.getElementById("leadsChange");
+  const statsContent = document.getElementById("statsContent");
 
-  // Chart elements
-  const chartPeriods = document.querySelectorAll(".chart-period");
-  let dailyChart, trendsChart;
+  // filters UI
+  const semesterSelect = document.getElementById('semesterSelect');
+  const termSelect = document.getElementById('termSelect');
+  const activeFilterLabel = document.getElementById('activeFilterLabel');
 
-  // Current data state
-  let currentTimeRange = 'week';
-  let currentSemester = 'prelim';
-  let currentChartPeriod = 'day';
-  let analyticsData = {};
-  let recentActivities = [];
-
-  // API endpoints
+  // Charts state
+  let analyticsData = { daily: null, trends: null };
+  let lastFetchedRequests = [];     // raw requests for client-side filtering
+  let currentSemester = 'All';
+  let currentTerm = 'All';
   const API_BASE = "http://localhost:3000";
   const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
 
+  // Modal elements
+  const logoutModal = document.getElementById('logoutModal');
+  const cancelLogout = document.getElementById('cancelLogout');
+  const confirmLogout = document.getElementById('confirmLogout');
+
+  // init
+  if (curYear) curYear.textContent = new Date().getFullYear();
+  initialize();
+
   // -------------------------
-  // Initialize
+  // Initialize everything
   // -------------------------
-  async function initializeAnalytics() {
-    // Set current year
-    if (curYear) curYear.textContent = new Date().getFullYear();
-    
-    // Fetch initial data from database
+  async function initialize() {
     await fetchAnalyticsData();
-    
-    // Update statistics with initial data
-    updateStatistics();
-    
-    // Update recent activity
-    updateRecentActivity();
-    
-    // Initialize charts
-    initializeCharts();
-    
-    // Set up event listeners
     setupEventListeners();
+    initializeCharts();
+    updateCharts();
+    fetchQueueCount();
+    buildSemesterOptions(lastFetchedRequests);
+    buildTermOptions(lastFetchedRequests);
+    updateFilterLabel();
   }
 
   // -------------------------
-  // Fetch Analytics Data from Database
+  // Fetch analytics / requests
   // -------------------------
   async function fetchAnalyticsData() {
     try {
-      // Fetch all print requests
-      const response = await fetch(REQUESTS_ENDPOINT);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const res = await fetch(REQUESTS_ENDPOINT);
+      if (!res.ok) {
+        console.warn('requests fetch failed', res.status);
+        analyticsData = createEmptyAnalyticsData();
+        updateStatistics();
+        updateRecentActivity([]);
+        return;
       }
-      const requests = await response.json();
-
-      // Process data for analytics
-      analyticsData = processAnalyticsData(requests);
-      
-      // Process recent activities
-      recentActivities = processRecentActivities(requests);
-      
-    } catch (error) {
-      console.error("Error fetching analytics data:", error);
-      // Fallback to empty data structure
+      const data = await res.json();
+      lastFetchedRequests = Array.isArray(data) ? data : [];
+      buildSemesterOptions(lastFetchedRequests);
+      buildTermOptions(lastFetchedRequests);
+      const filtered = applyFilters(lastFetchedRequests);
+      processAnalyticsData(filtered);
+    } catch (err) {
+      console.error('fetchAnalyticsData error', err);
       analyticsData = createEmptyAnalyticsData();
-      recentActivities = [];
+      updateStatistics();
+      updateRecentActivity([]);
     }
   }
 
   // -------------------------
-  // Process Recent Activities
+  // Semester / Term derivation & builders
   // -------------------------
-  function processRecentActivities(requests) {
-    // Sort requests by creation date (newest first)
-    const sortedRequests = requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
-    // Take the 10 most recent requests
-    return sortedRequests.slice(0, 10).map(request => {
-      const primaryDoc = request.documents && request.documents.length > 0 ? request.documents[0] : null;
-      const date = new Date(request.createdAt);
-      
-      return {
-        id: request._id,
-        userName: request.fullName,
-        userCourse: request.courseYear,
-        action: 'submitted print request',
-        documentName: primaryDoc ? primaryDoc.documentTitle : 'Unknown Document',
-        pageCount: primaryDoc ? primaryDoc.pageCount : 0,
-        copies: primaryDoc ? primaryDoc.numberOfCopies : 0,
-        timestamp: date,
-        timeAgo: getTimeAgo(date),
-        status: request.status || 'Pending',
-        totalTokens: request.totalTokens || 0
-      };
-    });
+  function deriveSemesterLabel(req) {
+    if (!req) return 'Unknown';
+    if (req.semester) return String(req.semester);
+    if (req.details && req.details.semester) return String(req.details.semester);
+    const d = req.createdAt ? new Date(req.createdAt) : new Date();
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    // Sem 1: Aug(8) - Dec(12), Sem 2: Jan(1) - Jul(7)
+    if (month >= 8 && month <= 12) return `${year} Sem 1`;
+    return `${year} Sem 2`;
   }
 
-  function getTimeAgo(date) {
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-    
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
-    return date.toLocaleDateString();
-  }
+  function deriveTermLabel(req) {
+    if (!req) return 'Unknown';
+    if (req.term) return String(req.term);
+    if (req.details && req.details.term) return String(req.details.term);
 
-  // -------------------------
-  // Update Recent Activity
-  // -------------------------
-  function updateRecentActivity() {
-    if (!recentActivityList) return;
+    const d = req.createdAt ? new Date(req.createdAt) : new Date();
+    const month = d.getMonth() + 1;
+    const year = d.getFullYear();
     
-    recentActivityList.innerHTML = '';
-    
-    if (recentActivities.length === 0) {
-      recentActivityList.innerHTML = '<div class="no-activity">No recent activity</div>';
-      return;
+    // Determine semester first (Sem1 or Sem2)
+    const sem = (month >= 8 && month <= 12) ? 1 : 2;
+
+    if (sem === 1) {
+      // Sem 1 (Aug-Dec)
+      if (month >= 8 && month <= 9) return 'Prelims';
+      if (month >= 10 && month <= 11) return 'Midterms';
+      // treat Dec as Finals
+      return 'Finals';
+    } else {
+      // Sem 2 (Jan-Jul) - two-month windows
+      if (month >= 1 && month <= 2) return 'Prelims';
+      if (month >= 3 && month <= 4) return 'Midterms';
+      if (month >= 5 && month <= 6) return 'Finals';
+      // month 7 -> treat as Finals / End
+      return 'Finals';
     }
-    
-    recentActivities.forEach(activity => {
-      const activityItem = document.createElement('div');
-      activityItem.className = 'activity-item';
-      activityItem.innerHTML = `
-        <div class="activity-avatar">${activity.userName.split(' ')[0].slice(0,1)}</div>
-        <div class="activity-content">
-          <div class="activity-text">
-            <strong>${activity.userName}</strong> ${activity.action}
-            <span class="document-name">"${activity.documentName}"</span>
-          </div>
-          <div class="activity-details">
-            ${activity.pageCount} pages • ${activity.copies} copies • ${activity.totalTokens} tokens
-            <span class="activity-status status-${activity.status.toLowerCase()}">${activity.status}</span>
-          </div>
-          <div class="activity-time">${activity.timeAgo}</div>
-        </div>
-      `;
-      recentActivityList.appendChild(activityItem);
+  }
+
+  function buildSemesterOptions(requests) {
+    if (!semesterSelect) return;
+    const labels = new Set();
+    requests.forEach(r => labels.add(deriveSemesterLabel(r)));
+    const arr = Array.from(labels).sort().reverse();
+    semesterSelect.innerHTML = `<option value="All">All Semesters</option>`;
+    arr.forEach(lbl => {
+      const opt = document.createElement('option');
+      opt.value = lbl;
+      opt.textContent = lbl;
+      semesterSelect.appendChild(opt);
     });
+    semesterSelect.value = currentSemester || 'All';
+  }
+
+  function buildTermOptions(requests) {
+    if (!termSelect) return;
+    // if a specific semester is selected, restrict terms to that semester's requests
+    const source = (currentSemester && currentSemester !== 'All')
+      ? requests.filter(r => deriveSemesterLabel(r) === currentSemester)
+      : requests;
+
+    const labels = new Set();
+    source.forEach(r => labels.add(deriveTermLabel(r)));
+    const arr = Array.from(labels).sort().reverse();
+    termSelect.innerHTML = `<option value="All">All Terms</option>`;
+    arr.forEach(lbl => {
+      const opt = document.createElement('option');
+      opt.value = lbl;
+      opt.textContent = lbl;
+      termSelect.appendChild(opt);
+    });
+    termSelect.value = currentTerm || 'All';
+  }
+
+  function applyFilters(requests) {
+    let out = requests.slice();
+    if (currentSemester && currentSemester !== 'All') {
+      out = out.filter(r => deriveSemesterLabel(r) === currentSemester);
+    }
+    if (currentTerm && currentTerm !== 'All') {
+      out = out.filter(r => deriveTermLabel(r) === currentTerm);
+    }
+    return out;
+  }
+
+  function updateFilterLabel() {
+    if (!activeFilterLabel) return;
+    const sem = currentSemester || 'All';
+    const term = currentTerm || 'All';
+    activeFilterLabel.textContent = `Showing: ${sem} / ${term}`;
   }
 
   // -------------------------
-  // Process Analytics Data from Database
+  // Process analytics uses the passed-in (already filtered) requests
   // -------------------------
   function processAnalyticsData(requests) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const oneMonthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    // recent activities (most recent 8)
+    const recent = requests
+      .slice()
+      .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 8);
+    updateRecentActivity(recent);
 
-    // Initialize data structure
-    const data = {
-      today: initializeTimePeriod(),
-      week: initializeTimePeriod(),
-      month: initializeTimePeriod(),
-      semester: {
-        prelim: initializeTimePeriod(),
-        midterm: initializeTimePeriod(),
-        finals: initializeTimePeriod()
-      }
-    };
+    // daily: last 7 days labels + totals (prints = totalPages across docs)
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(formatDayLabel(d));
+    }
+    const dayTotals = days.map(() => 0);
+    const dayUsers = days.map(() => 0);
+    // map date->index
+    const dayIndex = {};
+    days.forEach((lbl, i) => dayIndex[lbl] = i);
 
-    // Process each request
-    requests.forEach(request => {
-      const requestDate = new Date(request.createdAt);
-      const totalPages = request.documents.reduce((sum, doc) => sum + (doc.pageCount * doc.numberOfCopies), 0);
-      
-      // Categorize by time period
-      categorizeRequest(data, request, requestDate, totalPages, today, oneWeekAgo, oneMonthAgo);
-      
-      // Categorize by semester
-      categorizeBySemester(data, request, requestDate, totalPages);
+    // trends: counts by status
+    const statusCounts = {};
+    requests.forEach(r => {
+      const created = new Date(r.createdAt);
+      const lbl = formatDayLabel(created);
+      const idx = dayIndex[lbl];
+      const pages = (r.documents || []).reduce((s, doc) => s + (doc.pageCount || 0) * (doc.numberOfCopies || 1), 0);
+      if (idx !== undefined) dayTotals[idx] += pages;
+      // unique users per day (by email or name)
+      // simple approach: count requests as users
+      if (idx !== undefined) dayUsers[idx] += 1;
+
+      const st = String(r.status || 'unknown');
+      statusCounts[st] = (statusCounts[st] || 0) + 1;
     });
 
-    // Calculate trends and format data
-    return formatAnalyticsData(data);
-  }
-
-  function initializeTimePeriod() {
-    return {
-      users: new Set(),
-      prints: 0,
-      leads: 0,
-      dailyStats: {
-        labels: [],
-        users: [],
-        prints: [],
-        leads: []
-      }
-    };
-  }
-
-  function categorizeRequest(data, request, requestDate, totalPages, today, oneWeekAgo, oneMonthAgo) {
-    // Today
-    if (requestDate >= today) {
-      updateTimePeriod(data.today, request, totalPages, requestDate);
-    }
-    
-    // This week
-    if (requestDate >= oneWeekAgo) {
-      updateTimePeriod(data.week, request, totalPages, requestDate);
-    }
-    
-    // This month
-    if (requestDate >= oneMonthAgo) {
-      updateTimePeriod(data.month, request, totalPages, requestDate);
-    }
-  }
-
-  function categorizeBySemester(data, request, requestDate, totalPages) {
-    const month = requestDate.getMonth() + 1;
-    
-    // Determine semester period based on month
-    let period;
-    
-    if (month >= 8 && month <= 9) {
-      period = 'prelim'; // August to September
-    } else if (month >= 10 && month <= 11) {
-      period = 'midterm'; // October to November
-    } else if (month === 12 || (month >= 1 && month <= 1)) {
-      period = 'finals'; // December to January (adjust as needed)
-    }
-    
-    if (period) {
-      updateTimePeriod(data.semester[period], request, totalPages, requestDate);
-    }
-  }
-
-  function updateTimePeriod(period, request, totalPages, requestDate) {
-    // Count unique users (by email)
-    period.users.add(request.email);
-    
-    // Count total prints (pages × copies)
-    period.prints += totalPages;
-    
-    // Count leads (each request is a lead)
-    period.leads++;
-    
-    // Update daily/weekly stats
-    updateTimeSeriesStats(period, requestDate, totalPages);
-  }
-
-  function updateTimeSeriesStats(period, date, pages) {
-    const dayKey = date.toLocaleDateString();
-    
-    if (!period.dailyStats.labels.includes(dayKey)) {
-      period.dailyStats.labels.push(dayKey);
-      period.dailyStats.users.push(1);
-      period.dailyStats.prints.push(pages);
-      period.dailyStats.leads.push(1);
-    } else {
-      const index = period.dailyStats.labels.indexOf(dayKey);
-      period.dailyStats.users[index]++;
-      period.dailyStats.prints[index] += pages;
-      period.dailyStats.leads[index]++;
-    }
-  }
-
-  function formatAnalyticsData(data) {
-    const formatted = {
-      today: formatTimePeriod(data.today),
-      week: formatTimePeriod(data.week),
-      month: formatTimePeriod(data.month),
-      semester: {
-        prelim: formatTimePeriod(data.semester.prelim),
-        midterm: formatTimePeriod(data.semester.midterm),
-        finals: formatTimePeriod(data.semester.finals)
-      }
+    analyticsData.daily = {
+      labels: days,
+      series: [
+        { label: 'Users', data: dayUsers, color: '#4A90E2' },
+        { label: 'Prints', data: dayTotals, color: '#10B981' }
+      ]
     };
 
-    // Add trend data
-    Object.keys(formatted).forEach(key => {
-      if (key === 'semester') {
-        Object.keys(formatted.semester).forEach(sem => {
-          formatted.semester[sem].trends = createTrendData(formatted.semester[sem]);
-        });
-      } else {
-        formatted[key].trends = createTrendData(formatted[key]);
-      }
-    });
-
-    return formatted;
-  }
-
-  function formatTimePeriod(period) {
-    return {
-      users: period.users.size,
-      prints: period.prints,
-      leads: period.leads,
-      dailyStats: {
-        labels: period.dailyStats.labels.slice(-7), // Last 7 entries
-        users: period.dailyStats.users.slice(-7),
-        prints: period.dailyStats.prints.slice(-7),
-        leads: period.dailyStats.leads.slice(-7)
-      }
+    analyticsData.trends = {
+      labels: Object.keys(statusCounts).length ? Object.keys(statusCounts) : ['Pending','Accepted','Completed'],
+      data: Object.keys(statusCounts).length ? Object.values(statusCounts) : [0,0,0],
+      colors: ['#F59E0B','#10B981','#6EE7B7']
     };
-  }
 
-  function createTrendData(period) {
-    return {
-      labels: ['Users', 'Prints', 'Leads'],
-      data: [period.users, period.prints, period.leads],
-      colors: ['#4A90E2', '#10B981', '#8B5CF6']
-    };
+    updateStatistics(requests);
   }
 
   function createEmptyAnalyticsData() {
     return {
-      today: { users: 0, prints: 0, leads: 0, dailyStats: { labels: [], users: [], prints: [], leads: [] }, trends: { labels: [], data: [], colors: [] } },
-      week: { users: 0, prints: 0, leads: 0, dailyStats: { labels: [], users: [], prints: [], leads: [] }, trends: { labels: [], data: [], colors: [] } },
-      month: { users: 0, prints: 0, leads: 0, dailyStats: { labels: [], users: [], prints: [], leads: [] }, trends: { labels: [], data: [], colors: [] } },
-      semester: {
-        prelim: { users: 0, prints: 0, leads: 0, dailyStats: { labels: [], users: [], prints: [], leads: [] }, trends: { labels: [], data: [], colors: [] } },
-        midterm: { users: 0, prints: 0, leads: 0, dailyStats: { labels: [], users: [], prints: [], leads: [] }, trends: { labels: [], data: [], colors: [] } },
-        finals: { users: 0, prints: 0, leads: 0, dailyStats: { labels: [], users: [], prints: [], leads: [] }, trends: { labels: [], data: [], colors: [] } }
-      }
+      daily: { labels: ['No Data'], series: [{label:'Users', data:[0], color:'#4A90E2'},{label:'Prints', data:[0], color:'#10B981'}] },
+      trends: { labels:['No Data'], data:[0], colors:['#999'] }
     };
   }
 
+  function formatDayLabel(date) {
+    const d = new Date(date);
+    return `${d.getMonth()+1}/${d.getDate()}`; // short M/D label
+  }
+
   // -------------------------
-  // Update Statistics
+  // Update the stat cards
   // -------------------------
-  function updateStatistics() {
-    let data;
-    
-    if (currentTimeRange === 'semester') {
-      data = analyticsData.semester[currentSemester];
-    } else {
-      data = analyticsData[currentTimeRange];
+  function updateStatistics(requests = []) {
+    // simple totals
+    const totalReq = Array.isArray(requests) ? requests.length : 0;
+    const pending = requests.filter(r => String(r.status).toLowerCase() === 'pending').length;
+    const accepted = requests.filter(r => String(r.status).toLowerCase() === 'accepted').length;
+    if (totalUsers) totalUsers.textContent = String(new Set(requests.map(r => r.email || r.fullName)).size || pending);
+    if (totalPrints) totalPrints.textContent = String(requests.reduce((s, r) => s + ((r.documents || []).reduce((a,d)=>(a + (d.pageCount||0)*(d.numberOfCopies||1)),0)), 0) || 0);
+    if (totalLeads) totalLeads.textContent = String(accepted || 0);
+
+    // simple percent changes placeholders
+    if (usersChange) usersChange.textContent = '';
+    if (printsChange) printsChange.textContent = '';
+    if (leadsChange) leadsChange.textContent = '';
+
+    // ensure analyticsData has values
+    if (!analyticsData.daily) analyticsData = createEmptyAnalyticsData();
+  }
+
+  // -------------------------
+  // Recent Activity DOM
+  // -------------------------
+  function updateRecentActivity(requests = []) {
+    if (!recentActivityList) return;
+    recentActivityList.innerHTML = '';
+    if (!requests || requests.length === 0) {
+      recentActivityList.innerHTML = `<div class="no-activity">No recent activity</div>`;
+      return;
     }
-    
-    if (totalUsers) totalUsers.textContent = data.users.toLocaleString();
-    if (totalPrints) totalPrints.textContent = data.prints.toLocaleString();
-    if (totalLeads) totalLeads.textContent = data.leads.toLocaleString();
-    
-    // Update percentage changes
-    updatePercentageChanges();
+    requests.forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'activity-item';
+      const avatar = document.createElement('div');
+      avatar.className = 'activity-avatar';
+      avatar.textContent = (r.fullName || r.email || 'U').slice(0,1).toUpperCase();
+      const content = document.createElement('div');
+      content.className = 'activity-content';
+      const name = document.createElement('div');
+      name.className = 'activity-text';
+      name.textContent = r.fullName || r.email || 'Unknown';
+      const details = document.createElement('div');
+      details.className = 'activity-details muted';
+      details.textContent = `${r.status || 'Pending'} • ${new Date(r.createdAt).toLocaleString()}`;
+      content.appendChild(name);
+      content.appendChild(details);
+      item.appendChild(avatar);
+      item.appendChild(content);
+      recentActivityList.appendChild(item);
+    });
   }
 
   // -------------------------
-  // Update Percentage Changes
-  // -------------------------
-  function updatePercentageChanges() {
-    const changes = calculatePercentageChanges();
-    
-    if (usersChange) usersChange.textContent = changes[0];
-    if (printsChange) printsChange.textContent = changes[1];
-    if (leadsChange) leadsChange.textContent = changes[2];
-  }
-
-  function calculatePercentageChanges() {
-    // Simplified percentage calculation based on current time range
-    const baseChanges = {
-      today: ['+12% from yesterday', '+8% from yesterday', '+15% from yesterday'],
-      week: ['+5% from last week', '+12% from last week', '+8% from last week'],
-      month: ['+18% from last month', '+22% from last month', '+25% from last month'],
-      semester: ['+8% from last period', '+15% from last period', '+12% from last period']
-    };
-    
-    return baseChanges[currentTimeRange] || ['+0%', '+0%', '+0%'];
-  }
-
-  // -------------------------
-  // Toggle Semester Filter
-  // -------------------------
-  function toggleSemesterFilter(show) {
-    if (semesterFilter) {
-      semesterFilter.style.display = show ? 'block' : 'none';
-    }
-  }
-
-  // -------------------------
-  // Initialize Charts
+  // Charts: initialize, resize, draw, hover
   // -------------------------
   function initializeCharts() {
-    // Daily Overview Chart
-    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
-    dailyChart = new Chart(dailyCtx, {
-      type: 'line',
-      data: getDailyChartData(),
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              color: 'white'
-            }
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: 'rgba(255,255,255,0.1)'
-            },
-            ticks: {
-              color: 'white'
-            }
-          },
-          x: {
-            grid: {
-              display: false
-            },
-            ticks: {
-              color: 'white'
-            }
-          }
-        }
-      }
-    });
+    // remove existing
+    const existing = document.getElementById('chartsContainer');
+    if (existing) existing.remove();
 
-    // Trends Chart
-    const trendsCtx = document.getElementById('trendsChart').getContext('2d');
-    trendsChart = new Chart(trendsCtx, {
-      type: 'bar',
-      data: getTrendsChartData(),
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: {
-              color: 'rgba(255,255,255,0.1)'
-            },
-            ticks: {
-              color: 'white'
-            }
-          },
-          x: {
-            grid: {
-              display: false
-            },
-            ticks: {
-              color: 'white'
-            }
-          }
-        }
-      }
-    });
+    const chartsContainer = document.createElement('div');
+    chartsContainer.id = 'chartsContainer';
+    chartsContainer.className = 'charts-container';
+
+    // tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = 'chart-tooltip';
+    tooltip.style.display = 'none';
+    tooltip.style.position = 'absolute';
+    chartsContainer.appendChild(tooltip);
+
+    // daily
+    const dailyCard = document.createElement('div');
+    dailyCard.className = 'chart-card';
+    dailyCard.innerHTML = `<div class="chart-header"><h3>Daily Overview</h3></div>`;
+    const dailyCanvas = document.createElement('canvas');
+    dailyCanvas.id = 'dailyChart';
+    dailyCard.appendChild(dailyCanvas);
+    chartsContainer.appendChild(dailyCard);
+
+    // trends
+    const trendsCard = document.createElement('div');
+    trendsCard.className = 'chart-card';
+    trendsCard.innerHTML = `<div class="chart-header"><h3>Trends</h3></div>`;
+    const trendsCanvas = document.createElement('canvas');
+    trendsCanvas.id = 'trendsChart';
+    trendsCard.appendChild(trendsCanvas);
+    chartsContainer.appendChild(trendsCard);
+
+    statsContent.parentNode.insertBefore(chartsContainer, statsContent.nextSibling);
+
+    // responsive canvases
+    rescaleCanvases();
+    updateCharts();
+
+    attachChartHoverHandlers(document.getElementById('dailyChart'), lineHover, tooltip);
+    attachChartHoverHandlers(document.getElementById('trendsChart'), barHover, tooltip);
   }
 
-  // -------------------------
-  // Chart Data Helpers
-  // -------------------------
-  function getDailyChartData() {
-    let data;
-    
-    if (currentTimeRange === 'semester') {
-      data = analyticsData.semester[currentSemester].dailyStats;
-    } else {
-      data = analyticsData[currentTimeRange].dailyStats;
-    }
-    
-    // If no data, create empty dataset
-    if (data.labels.length === 0) {
-      return {
-        labels: ['No Data'],
-        datasets: [
-          {
-            label: 'Users',
-            data: [0],
-            borderColor: '#4A90E2',
-            backgroundColor: 'rgba(74, 144, 226, 0.1)',
-            tension: 0.4,
-            fill: true
-          }
-        ]
-      };
-    }
-    
-    return {
-      labels: data.labels,
-      datasets: [
-        {
-          label: 'Users',
-          data: data.users,
-          borderColor: '#4A90E2',
-          backgroundColor: 'rgba(74, 144, 226, 0.1)',
-          tension: 0.4,
-          fill: true
-        },
-        {
-          label: 'Prints',
-          data: data.prints,
-          borderColor: '#10B981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          tension: 0.4,
-          fill: true
-        },
-        {
-          label: 'Leads',
-          data: data.leads,
-          borderColor: '#8B5CF6',
-          backgroundColor: 'rgba(139, 92, 246, 0.1)',
-          tension: 0.4,
-          fill: true
-        }
-      ]
-    };
+  function rescaleCanvasToDisplay(canvas) {
+    if (!canvas) return;
+    const ratio = window.devicePixelRatio || 1;
+    const parent = canvas.parentElement;
+    const width = parent.clientWidth;
+    const style = getComputedStyle(canvas);
+    const cssHeight = parseFloat(style.height) || 220;
+    canvas.width = Math.max(300, Math.floor(width * ratio));
+    canvas.height = Math.max(120, Math.floor(cssHeight * ratio));
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${cssHeight}px`;
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  }
+  function rescaleCanvases() {
+    rescaleCanvasToDisplay(document.getElementById('dailyChart'));
+    rescaleCanvasToDisplay(document.getElementById('trendsChart'));
   }
 
-  function getTrendsChartData() {
-    let data;
-    
-    if (currentTimeRange === 'semester') {
-      data = analyticsData.semester[currentSemester].trends;
-    } else {
-      data = analyticsData[currentTimeRange].trends;
-    }
-    
-    return {
-      labels: data.labels,
-      datasets: [{
-        data: data.data,
-        backgroundColor: data.colors,
-        borderWidth: 0,
-        borderRadius: 4
-      }]
-    };
-  }
-
-  // -------------------------
-  // Update Charts
-  // -------------------------
   function updateCharts() {
-    dailyChart.data = getDailyChartData();
-    dailyChart.update();
-    
-    trendsChart.data = getTrendsChartData();
-    trendsChart.update();
+    if (!analyticsData.daily) analyticsData = createEmptyAnalyticsData();
+    rescaleCanvases();
+    const daily = document.getElementById('dailyChart');
+    const trends = document.getElementById('trendsChart');
+    if (daily) drawLineChart(daily, analyticsData.daily);
+    if (trends) drawBarChart(trends, analyticsData.trends);
+  }
+
+  function drawLineChart(canvas, chartData) {
+    const ctx = canvas.getContext('2d');
+    const padding = 30;
+    const w = canvas.clientWidth;
+    const h = parseFloat(getComputedStyle(canvas).height);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const labels = chartData.labels || ['No Data'];
+    const series = chartData.series || [];
+    const max = Math.max(1, ...series.flatMap(s => s.data || [0]));
+    const xStep = (w - padding*2) / Math.max(1, labels.length - 1);
+    const yScale = (h - padding*2) / max;
+
+    // grid
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    for (let i=0;i<=4;i++){
+      const y = padding + (h - padding*2) * (i/4);
+      ctx.beginPath(); ctx.moveTo(padding,y); ctx.lineTo(w-padding,y); ctx.stroke();
+    }
+
+    // series
+    series.forEach(seriesItem => {
+      ctx.beginPath();
+      ctx.strokeStyle = seriesItem.color || '#4A90E2';
+      ctx.lineWidth = 2;
+      (seriesItem.data || []).forEach((val, i) => {
+        const x = padding + i * xStep;
+        const y = h - padding - (val * yScale);
+        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+      // points
+      ctx.fillStyle = seriesItem.color || '#4A90E2';
+      (seriesItem.data || []).forEach((val,i)=>{
+        const x = padding + i * xStep;
+        const y = h - padding - (val * yScale);
+        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+      });
+    });
+
+    // x labels
+    ctx.fillStyle = '#333';
+    ctx.font = '12px system-ui, Arial';
+    ctx.textAlign = 'center';
+    labels.forEach((lbl,i)=>{
+      const x = padding + i * xStep;
+      ctx.fillText(lbl, x, h-6);
+    });
+  }
+
+  function drawBarChart(canvas, chartData) {
+    const ctx = canvas.getContext('2d');
+    const padding = 30;
+    const w = canvas.clientWidth;
+    const h = parseFloat(getComputedStyle(canvas).height);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const labels = chartData.labels || ['No Data'];
+    const data = chartData.data || [0];
+    const colors = chartData.colors || ['#999'];
+    const max = Math.max(1, ...data);
+    const slot = (w - padding*2) / data.length;
+    const barW = slot * 0.6;
+    const gap = slot - barW;
+    const yScale = (h - padding*2) / max;
+
+    // grid
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    for (let i=0;i<=4;i++){
+      const y = padding + (h - padding*2) * (i/4);
+      ctx.beginPath(); ctx.moveTo(padding,y); ctx.lineTo(w-padding,y); ctx.stroke();
+    }
+
+    data.forEach((val,i)=>{
+      const x = padding + i * slot + gap/2;
+      const barH = val * yScale;
+      const y = h - padding - barH;
+      ctx.fillStyle = colors[i] || '#999';
+      ctx.fillRect(x,y,barW,barH);
+      ctx.fillStyle = '#333';
+      ctx.font = '12px system-ui, Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(labels[i], x+barW/2, h-8);
+      ctx.fillText(String(val), x+barW/2, y-6);
+    });
+  }
+
+  // Hover helpers
+  function attachChartHoverHandlers(canvas, hoverFn, tooltipEl) {
+    if (!canvas) return;
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const info = hoverFn(canvas, mx, my);
+      if (info && info.show) {
+        tooltipEl.style.display = 'block';
+        tooltipEl.innerHTML = info.html;
+        // position tooltip relative to chartsContainer
+        const container = canvas.parentElement.parentElement;
+        const crect = container.getBoundingClientRect();
+        let left = e.clientX - crect.left + 10;
+        let top = e.clientY - crect.top + 10;
+        if (left + 240 > crect.width) left = crect.width - 250;
+        if (top + 120 > crect.height) top = crect.height - 130;
+        tooltipEl.style.left = `${left}px`; tooltipEl.style.top = `${top}px`;
+      } else {
+        tooltipEl.style.display = 'none';
+      }
+    });
+    canvas.addEventListener('mouseleave', () => tooltipEl.style.display = 'none');
+  }
+
+  function lineHover(canvas, mx, my) {
+    const padding = 30;
+    const w = canvas.clientWidth;
+    const h = parseFloat(getComputedStyle(canvas).height);
+    const data = analyticsData.daily || createEmptyAnalyticsData().daily;
+    const labels = data.labels || [];
+    const xStep = (w - padding*2) / Math.max(1, labels.length - 1);
+    let found = null;
+    data.series.forEach(series => {
+      (series.data || []).forEach((val,i) => {
+        const x = padding + i * xStep;
+        const y = h - padding - (val * ((h - padding*2) / Math.max(1, ...data.series.flatMap(s=>s.data))));
+        if (Math.abs(mx - x) < 8 && Math.abs(my - y) < 10) {
+          found = { label: series.label, value: val, index: i, color: series.color };
+        }
+      });
+    });
+    if (found) return { show: true, html: `<div style="min-width:120px"><strong style="color:${found.color}">${found.label}</strong><div>${data.labels[found.index]} — <strong>${found.value}</strong></div></div>`};
+    return { show: false };
+  }
+
+  function barHover(canvas, mx, my) {
+    const padding = 30;
+    const w = canvas.clientWidth;
+    const h = parseFloat(getComputedStyle(canvas).height);
+    const data = analyticsData.trends || createEmptyAnalyticsData().trends;
+    const labels = data.labels || [];
+    const vals = data.data || [];
+    const max = Math.max(1, ...vals);
+    const slot = (w - padding*2) / vals.length;
+    const barW = slot * 0.6;
+    const gap = slot - barW;
+    const yScale = (h - padding*2) / max;
+    for (let i=0;i<vals.length;i++){
+      const x = padding + i * slot + gap/2;
+      const barH = vals[i] * yScale;
+      const y = h - padding - barH;
+      if (mx >= x && mx <= x + barW && my >= y && my <= h - padding) {
+        return { show: true, html: `<div style="min-width:140px"><strong style="color:${(data.colors||[])[i]||'#444'}">${labels[i]}</strong><div>Count: <strong>${vals[i]}</strong></div></div>` };
+      }
+    }
+    return { show: false };
   }
 
   // -------------------------
-  // Event Listeners
+  // Event listeners & logout + semester select
   // -------------------------
   function setupEventListeners() {
-    // Time range filter
-    if (timeRange) {
-      timeRange.addEventListener('change', (e) => {
-        currentTimeRange = e.target.value;
-        
-        // Show/hide semester filter based on selection
-        toggleSemesterFilter(currentTimeRange === 'semester');
-        
-        updateStatistics();
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn && logoutModal) {
+      logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openModal(logoutModal);
+      });
+    }
+    // close modal when clicking backdrop(s)
+    document.querySelectorAll('[data-close-modal]').forEach(el => {
+      el.addEventListener('click', () => closeModal(logoutModal));
+    });
+    // allow ESC to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal(logoutModal);
+    });
+
+    if (cancelLogout) cancelLogout.addEventListener('click', () => closeModal(logoutModal));
+    if (confirmLogout) confirmLogout.addEventListener('click', () => {
+      closeModal(logoutModal);
+      window.location.href = '/admin/login.html';
+    });
+    if (refreshBtn) refreshBtn.addEventListener('click', async () => {
+      await fetchAnalyticsData();
+      updateCharts();
+      fetchQueueCount();
+    });
+
+    if (semesterSelect) {
+      semesterSelect.addEventListener('change', () => {
+        currentSemester = semesterSelect.value || 'All';
+        // rebuild term options for this semester and update filter label
+        buildTermOptions(lastFetchedRequests);
+        updateFilterLabel();
+        const filtered = applyFilters(lastFetchedRequests);
+        processAnalyticsData(filtered);
+      });
+    }
+    if (termSelect) {
+      termSelect.addEventListener('change', () => {
+        currentTerm = termSelect.value || 'All';
+        updateFilterLabel();
+        const filtered = applyFilters(lastFetchedRequests);
+        processAnalyticsData(filtered);
+      });
+    }
+
+    window.addEventListener('resize', () => {
+      clearTimeout(window._statsResizeTimer);
+      window._statsResizeTimer = setTimeout(()=> {
+        rescaleCanvases();
         updateCharts();
-      });
-    }
-
-    // Semester filter
-    if (semesterFilter) {
-      semesterFilter.addEventListener('change', (e) => {
-        currentSemester = e.target.value;
-        updateStatistics();
-        updateCharts();
-      });
-    }
-
-    // Refresh button
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', async () => {
-        // Refresh data from database
-        refreshBtn.style.animation = 'spin 1s linear';
-        try {
-          await fetchAnalyticsData();
-          updateStatistics();
-          updateRecentActivity();
-          updateCharts();
-          console.log('Analytics data refreshed from database');
-        } catch (error) {
-          console.error('Error refreshing data:', error);
-        } finally {
-          setTimeout(() => {
-            refreshBtn.style.animation = '';
-          }, 1000);
-        }
-      });
-    }
-
-    // Chart period buttons
-    chartPeriods.forEach(button => {
-      button.addEventListener('click', (e) => {
-        // Remove active class from all buttons
-        chartPeriods.forEach(btn => btn.classList.remove('active'));
-        // Add active class to clicked button
-        e.target.classList.add('active');
-        currentChartPeriod = e.target.dataset.period;
-        
-        // Update chart data based on period
-        updateChartForPeriod(currentChartPeriod);
-      });
+      }, 120);
     });
   }
 
-  // -------------------------
-  // Update Chart for Period
-  // -------------------------
-  function updateChartForPeriod(period) {
-    // In a real application, you would fetch different data based on the period
-    console.log('Updating chart for period:', period);
-    
-    // For demo purposes, we'll just update the existing data
-    updateCharts();
+  function openModal(modal) {
+    if (!modal) return;
+    modal.setAttribute('aria-hidden','false');
+    modal.classList.add('open');
+  }
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.setAttribute('aria-hidden','true');
+    modal.classList.remove('open');
   }
 
-  // -------------------------
-  // Initialize the dashboard
-  // -------------------------
-  initializeAnalytics();
+  async function fetchQueueCount() {
+    try {
+      const res = await fetch(REQUESTS_ENDPOINT);
+      if (!res.ok) return;
+      const data = await res.json();
+      const pending = Array.isArray(data) ? data.filter(r => String(r.status).toLowerCase() === 'pending').length : 0;
+      const sidebarCount = document.getElementById('sidebarQueueCount');
+      if (sidebarCount) {
+        sidebarCount.textContent = pending;
+        sidebarCount.classList.toggle('has-count', pending > 0);
+      }
+    } catch (err) {
+      console.warn('fetchQueueCount err', err);
+    }
+  }
 });
