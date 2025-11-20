@@ -351,70 +351,6 @@ body{
 /* footer */
 .footer{ margin-top:20px; color:var(--muted); text-align:right; font-size:13px; padding-right:6px; }
 
-/* cards grid (board view) */
-.cards-container{
-  display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap:12px;
-  padding: 12px;
-}
-.card-item{
-  background:#fff;
-  border-radius:10px;
-  padding:12px;
-  box-shadow: 0 6px 14px rgba(16,22,25,0.04);
-  border:1px solid #eef2f2;
-  display:flex;
-  gap:12px;
-  align-items:flex-start;
-}
-.card-item .avatar{
-  width:44px;
-  height:44px;
-  border-radius:8px;
-  background:#eef3f4;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:700;
-  color:#577072;
-}
-.card-item .meta{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-}
-.card-item .meta .name{ font-weight:700; }
-.card-item .meta .email{ font-size:13px; color:#6b7780; }
-
-/* list view (compact rows) */
-.list-container{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  padding:12px;
-}
-.list-row{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  padding:10px;
-  border-radius:8px;
-  background:#fff;
-  border:1px solid #f1f2f3;
-}
-.list-row .avatar{
-  width:36px;
-  height:36px;
-  border-radius:6px;
-  background:#eef3f4;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:700;
-  color:#577072;
-}
-
 /* small inline filter panel used inside the dropdown */
 .filter-panel{
   margin-top:6px;
@@ -854,12 +790,6 @@ body{
   
   .main-area {
     margin-left: 70px;
-  }
-  
-  .queue-count {
-    position: absolute;
-    top: 8px;
-    right: 8px;
   }
 }
 
