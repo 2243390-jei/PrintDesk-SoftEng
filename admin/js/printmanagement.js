@@ -95,6 +95,116 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
+  // File Preview Functions
+  // -------------------------
+  function getFileExtension(filename) {
+    return filename.split('.').pop().toLowerCase();
+  }
+
+  function isImageFile(filename) {
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+    return imageExtensions.includes(getFileExtension(filename));
+  }
+
+  function isPDFFile(filename) {
+    return getFileExtension(filename) === 'pdf';
+  }
+
+  function isWordFile(filename) {
+    const wordExtensions = ['doc', 'docx'];
+    return wordExtensions.includes(getFileExtension(filename));
+  }
+
+  function isExcelFile(filename) {
+    const excelExtensions = ['xls', 'xlsx'];
+    return excelExtensions.includes(getFileExtension(filename));
+  }
+
+  function isPowerPointFile(filename) {
+    const pptExtensions = ['ppt', 'pptx'];
+    return pptExtensions.includes(getFileExtension(filename));
+  }
+
+  function createFilePreview(fileUrl, filename, documentTitle) {
+    // Clear previous preview
+    previewArea.innerHTML = '';
+    
+    const fileExt = getFileExtension(filename);
+    
+    if (isImageFile(filename)) {
+      // Handle images
+      const img = document.createElement('img');
+      img.src = fileUrl;
+      img.alt = `Preview of ${documentTitle}`;
+      img.className = 'preview-image';
+      img.style.display = 'block';
+      img.onerror = () => showPreviewUnavailable(filename);
+      previewArea.appendChild(img);
+      
+    } else if (isPDFFile(filename)) {
+      // Handle PDF files using PDF.js or embed
+      const pdfContainer = document.createElement('div');
+      pdfContainer.className = 'pdf-preview-container';
+      pdfContainer.innerHTML = `
+        <embed src="${fileUrl}" type="application/pdf" width="100%" height="400px" />
+        <div class="pdf-alternative">
+          <p>Can't view the PDF? <a href="${fileUrl}" target="_blank" download="${filename}">Download instead</a></p>
+        </div>
+      `;
+      previewArea.appendChild(pdfContainer);
+      
+    } else if (isWordFile(filename) || isExcelFile(filename) || isPowerPointFile(filename)) {
+      // Handle Office documents using Microsoft Office Online Viewer
+      const officeContainer = document.createElement('div');
+      officeContainer.className = 'office-preview-container';
+      
+      // Microsoft Office Online Viewer URL
+      const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+      
+      officeContainer.innerHTML = `
+        <iframe src="${officeViewerUrl}" width="100%" height="400px" frameborder="0"></iframe>
+        <div class="office-alternative">
+          <p>Can't view the document? <a href="${fileUrl}" target="_blank" download="${filename}">Download instead</a></p>
+        </div>
+      `;
+      previewArea.appendChild(officeContainer);
+      
+    } else {
+      // Handle other file types
+      showPreviewUnavailable(filename);
+    }
+  }
+
+  function showPreviewUnavailable(filename) {
+    previewArea.innerHTML = `
+      <div class="preview-placeholder">
+        <img src="../../images/admin_img/document-preview.png" alt="Document" />
+        <p>No preview available for ${filename}</p>
+        <p class="file-download-text">Please download the file to view its contents</p>
+        <button class="download-btn" onclick="downloadCurrentDocument()">Download Document</button>
+      </div>
+    `;
+  }
+
+  function downloadCurrentDocument() {
+    if (currentDocuments.length === 0 || currentDocumentIndex >= currentDocuments.length) return;
+    
+    const currentDoc = currentDocuments[currentDocumentIndex];
+    if (!currentDoc.filePath) return;
+    
+    const fileUrl = `${API_BASE}${currentDoc.filePath}`;
+    const filename = currentDoc.documentTitle || 'document';
+    
+    // Create a temporary anchor element to trigger download
+    const a = document.createElement('a');
+    a.href = fileUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  // -------------------------
   // API Functions
   // -------------------------
   async function fetchPrintRequests() {
@@ -120,7 +230,8 @@ document.addEventListener("DOMContentLoaded", () => {
             numberOfCopies: 1,
             paperSize: "Unknown",
             printType: "Unknown",
-            printingSide: "Unknown"
+            printingSide: "Unknown",
+            filePath: null
           };
 
         const createdDate = new Date(request.createdAt);
@@ -524,7 +635,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-function showDetails(rec) {
+  function showDetails(rec) {
     if (!detailsModal || !rec || !rec.details) return;
 
     currentRequestId = rec.details.requestId;
@@ -603,30 +714,14 @@ function showDetails(rec) {
     if (printType) printType.textContent = doc.printType || 'Unknown';
     if (printingSide) printingSide.textContent = doc.printingSide || 'Unknown';
 
-    // Update preview image
-    if (previewImage && previewPlaceholder) {
-      const imageUrl = doc.filePath ? 
-        `${API_BASE}${doc.filePath}` : 
-        "../../images/SLU_Logo.png";
-
-      previewImage.src = imageUrl;
-      previewImage.alt = `Preview of ${doc.documentTitle}`;
-      
-      // Show/hide based on image load
-      previewImage.onload = function() {
-        previewImage.style.display = 'block';
-        previewPlaceholder.style.display = 'none';
-      };
-      
-      previewImage.onerror = function() {
-        previewImage.style.display = 'none';
-        previewPlaceholder.style.display = 'flex';
-      };
-
-      // Trigger load check
-      if (previewImage.complete) {
-        previewImage.onerror();
-      }
+    // Update preview based on file type
+    if (doc.filePath) {
+      const fileUrl = `${API_BASE}${doc.filePath}`;
+      const filename = doc.documentTitle || 'document';
+      createFilePreview(fileUrl, filename, doc.documentTitle);
+    } else {
+      // No file path available
+      showPreviewUnavailable(doc.documentTitle || 'Unknown document');
     }
 
     // Update active tab
@@ -672,7 +767,6 @@ function showDetails(rec) {
       }
     });
   }
-
 
   // -------------------------
   // Printer Details Modal logic
@@ -902,6 +996,7 @@ function showDetails(rec) {
     openFilterPanel: (t) => openFilterPanel(t),
     showDetails,
     fetchPrintRequests,
-    updateQueueCount
+    updateQueueCount,
+    downloadCurrentDocument
   };
 });
