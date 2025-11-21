@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const addForm = document.getElementById("addForm");
   const addEmail = document.getElementById("addEmail");
   const addName = document.getElementById("addName");
+  const addPassword = document.getElementById("addPassword");
   const addRole = document.getElementById("addRole");
   const cancelAdd = document.getElementById("cancelAdd");
 
@@ -368,11 +369,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         const email = addEmail.value.trim();
+        const password = addPassword.value; // Get password value
         const name = addName.value.trim();
         const role = addRole.value;
 
-        if (!email || !name) {
+        if (!email || !name || !password) {
           alert("Please fill in all required fields.");
+          return;
+        }
+
+        // Validate password length
+        if (password.length < 6) {
+          alert("Password must be at least 6 characters long.");
           return;
         }
 
@@ -381,6 +389,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const userData = {
           email: email,
+          password: password, // Include password
           fullName: name,
           role: backendRole
         };
@@ -393,7 +402,7 @@ document.addEventListener("DOMContentLoaded", () => {
           _id: newUser._id,
           name: newUser.fullName,
           email: newUser.email,
-          role: newUser.role === 'student' ? 'User' : 'Admin', // Map back for frontend display
+          role: newUser.role === 'student' ? 'User' : 'Admin',
           lastActive: newUser.lastLogin ? new Date(newUser.lastLogin).toISOString().split('T')[0] : "Never",
           tokenBalance: newUser.tokenBalance || 0,
           printStats: {
@@ -413,12 +422,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       } catch (error) {
         console.error("Full error details:", error);
-        
+
         // Handle specific error cases
         if (error.message.includes("409") || error.message.includes("already exists")) {
           alert("A user with this email already exists.");
         } else if (error.message.includes("400")) {
-          alert("Please check the form data and try again.");
+          if (error.message.includes("Password must be at least 6 characters")) {
+            alert("Password must be at least 6 characters long.");
+          } else {
+            alert("Please check the form data and try again.");
+          }
         } else {
           alert(`Failed to add user: ${error.message}`);
         }

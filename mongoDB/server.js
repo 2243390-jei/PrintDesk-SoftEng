@@ -192,13 +192,13 @@ app.post("/users", async (req, res) => {
   try {
     console.log("POST /users - Creating new user", req.body);
     
-    const { email, fullName, role } = req.body;
+    const { email, fullName, role, password } = req.body; // Added password
 
     // Validation
-    if (!email || !fullName || !role) {
+    if (!email || !fullName || !role || !password) { // Added password validation
       return res.status(400).json({ 
         error: "Missing required fields", 
-        required: ["email", "fullName", "role"] 
+        required: ["email", "fullName", "role", "password"] 
       });
     }
 
@@ -220,10 +220,18 @@ app.post("/users", async (req, res) => {
       });
     }
 
-    // Create new user
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: "Password must be at least 6 characters long"
+      });
+    }
+
+    // Create new user with password
     const newUser = new User({
       email,
       fullName,
+      password, // Store the password
       role,
       authProvider: "manual",
       tokenBalance: 500, // Default token balance

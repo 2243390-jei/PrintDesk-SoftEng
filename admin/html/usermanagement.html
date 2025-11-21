@@ -83,7 +83,7 @@
                 <img src="/images/admin_img/search (1).png" alt="Search" class="search-icon" />
                 <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
               </div>
-              
+
               <!-- Add User Button -->
               <button id="addUserBtn" class="add-user-btn" title="Add User">
                 <img src="../../images/admin_img/plus.png" alt="Add User" />
@@ -134,6 +134,11 @@
       <form id="addForm">
         <label for="addEmail">Email</label>
         <input type="email" id="addEmail" name="email" required />
+
+        <!-- Add Password Field -->
+        <label for="addPassword">Password</label>
+        <input type="password" id="addPassword" name="password" required minlength="6"
+          placeholder="Minimum 6 characters" />
 
         <label for="addName">Full Name</label>
         <input type="text" id="addName" name="name" required />
