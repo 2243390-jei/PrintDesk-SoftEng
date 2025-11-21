@@ -11,7 +11,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const prevPageBtn = document.getElementById("prevPage");
   const nextPageBtn = document.getElementById("nextPage");
   const selectAll = document.getElementById("selectAll");
-  const sidebarQueueCount = document.getElementById("sidebarQueueCount");  
+  const sidebarQueueCount = document.getElementById("sidebarQueueCount");
+  const documentNavigation = document.getElementById('documentNavigation');
+  const documentTabs = document.getElementById('documentTabs');
+  const documentCounter = document.getElementById('documentCounter');
+  const currentDocumentName = document.getElementById('currentDocumentName');
+  const prevDocumentBtn = document.getElementById('prevDocument');
+  const nextDocumentBtn = document.getElementById('nextDocument');
+  const previewArea = document.querySelector('.preview-area');
+  const previewPlaceholder = document.getElementById('previewPlaceholder');    
 
   const filterBtn = document.getElementById("filterBtn");
   const filterMenu = document.getElementById("filterMenu");
@@ -52,6 +60,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let view = "table";
   let activeFilters = { course: null, dateFrom: null, dateTo: null };
   let currentRequestId = null;
+  let currentDocuments = []; // Array of all documents for current request
+  let currentDocumentIndex = 0; // Current document index  
 
   // API endpoints
   const API_BASE = "http://localhost:3000";
@@ -95,17 +105,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const data = await response.json();
 
-      // Filter only accepted and completed requests for records
       const filteredData = data.filter(request =>
         request.status === "Accepted" || request.status === "Completed"
       );
 
-      // Sort by createdAt (newest first) for records
       const sortedData = filteredData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-      // Transform backend data to frontend format
       return sortedData.map((request, index) => {
-        // Use the first document for display purposes
         const primaryDoc = request.documents && request.documents.length > 0
           ? request.documents[0]
           : {
@@ -117,7 +123,6 @@ document.addEventListener("DOMContentLoaded", () => {
             printingSide: "Unknown"
           };
 
-        // Format date for display
         const createdDate = new Date(request.createdAt);
         const formattedDate = `${createdDate.getMonth() + 1}/${createdDate.getDate()}/${createdDate.getFullYear().toString().slice(-2)}`;
 
@@ -151,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
             previewImage: primaryDoc.filePath ?
               `${API_BASE}${primaryDoc.filePath}` :
               "../../images/SLU_Logo.png",
-            // Include all documents for details view
+            // IMPORTANT: Store ALL documents for the request
             allDocuments: request.documents || [],
             email: request.email,
             totalTokens: request.totalTokens
@@ -160,7 +165,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     } catch (error) {
       console.error("Error fetching print requests:", error);
-      // Return empty array if API fails
       return [];
     }
   }
@@ -520,12 +524,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function showDetails(rec) {
+function showDetails(rec) {
     if (!detailsModal || !rec || !rec.details) return;
 
     currentRequestId = rec.details.requestId;
+    currentDocuments = rec.details.allDocuments || [];
+    currentDocumentIndex = 0;
 
-    // Update all detail elements
+    // Update request-level details (non-document specific)
     if (submittedDate) submittedDate.textContent = rec.details.submittedOn;
     if (totalCost) totalCost.textContent = rec.details.totalCost;
     if (statusBadge) {
@@ -533,27 +539,140 @@ document.addEventListener("DOMContentLoaded", () => {
       statusBadge.className = `status-badge status-${rec.details.status.toLowerCase()}`;
     }
     if (requestId) requestId.textContent = rec.details.requestId;
-    if (fileName) fileName.textContent = rec.details.fileName;
-    if (pageCount) pageCount.textContent = rec.details.pageCount;
-    if (copiesCount) copiesCount.textContent = rec.details.copies;
-    if (paperSize) paperSize.textContent = rec.details.paperSize;
-    if (printType) printType.textContent = rec.details.printType;
-    if (printingSide) printingSide.textContent = rec.details.printingSide;
     if (pickupDate) pickupDate.textContent = rec.details.pickupDate;
 
-    // Set preview image
-    if (previewImage) {
-      previewImage.src = rec.details.previewImage;
-      previewImage.alt = `Preview of ${rec.details.fileName}`;
-      previewImage.onerror = function () {
-        // Fallback if image fails to load
-        this.src = "../../images/SLU_Logo.png";
-      };
-    }
+    // Setup document navigation
+    setupDocumentNavigation(currentDocuments);
+
+    // Show first document
+    showDocument(currentDocumentIndex);
 
     // Show the modal
     openModal(detailsModal);
   }
+
+  function setupDocumentNavigation(documents) {
+    if (!documentNavigation || !documentTabs) return;
+
+    // Clear existing tabs
+    documentTabs.innerHTML = '';
+
+    if (documents.length > 1) {
+      // Show navigation for multiple documents
+      documentNavigation.style.display = 'block';
+
+      // Create tabs for each document
+      documents.forEach((doc, index) => {
+        const tab = document.createElement('button');
+        tab.className = `document-tab ${index === 0 ? 'active' : ''}`;
+        tab.textContent = `Doc ${index + 1}`;
+        tab.title = doc.documentTitle || `Document ${index + 1}`;
+        tab.addEventListener('click', () => switchDocument(index));
+        documentTabs.appendChild(tab);
+      });
+
+      // Enable/disable navigation buttons
+      updateNavigationButtons();
+    } else {
+      // Hide navigation for single document
+      documentNavigation.style.display = 'none';
+    }
+  }
+
+  function showDocument(index) {
+    if (index < 0 || index >= currentDocuments.length) return;
+
+    const doc = currentDocuments[index];
+    currentDocumentIndex = index;
+
+    // Update document counter
+    if (documentCounter) {
+      documentCounter.textContent = `Document ${index + 1} of ${currentDocuments.length}`;
+    }
+
+    // Update current document name
+    if (currentDocumentName) {
+      currentDocumentName.textContent = doc.documentTitle || 'Unknown Document';
+    }
+
+    // Update document-specific details
+    if (fileName) fileName.textContent = doc.documentTitle || 'Unknown';
+    if (pageCount) pageCount.textContent = doc.pageCount || 0;
+    if (copiesCount) copiesCount.textContent = doc.numberOfCopies || 1;
+    if (paperSize) paperSize.textContent = doc.paperSize || 'Unknown';
+    if (printType) printType.textContent = doc.printType || 'Unknown';
+    if (printingSide) printingSide.textContent = doc.printingSide || 'Unknown';
+
+    // Update preview image
+    if (previewImage && previewPlaceholder) {
+      const imageUrl = doc.filePath ? 
+        `${API_BASE}${doc.filePath}` : 
+        "../../images/SLU_Logo.png";
+
+      previewImage.src = imageUrl;
+      previewImage.alt = `Preview of ${doc.documentTitle}`;
+      
+      // Show/hide based on image load
+      previewImage.onload = function() {
+        previewImage.style.display = 'block';
+        previewPlaceholder.style.display = 'none';
+      };
+      
+      previewImage.onerror = function() {
+        previewImage.style.display = 'none';
+        previewPlaceholder.style.display = 'flex';
+      };
+
+      // Trigger load check
+      if (previewImage.complete) {
+        previewImage.onerror();
+      }
+    }
+
+    // Update active tab
+    updateActiveTab();
+    updateNavigationButtons();
+  }
+
+  function switchDocument(index) {
+    showDocument(index);
+  }
+
+  function updateActiveTab() {
+    const tabs = documentTabs.querySelectorAll('.document-tab');
+    tabs.forEach((tab, index) => {
+      tab.classList.toggle('active', index === currentDocumentIndex);
+    });
+  }
+
+  function updateNavigationButtons() {
+    if (prevDocumentBtn) {
+      prevDocumentBtn.disabled = currentDocumentIndex === 0;
+    }
+    if (nextDocumentBtn) {
+      nextDocumentBtn.disabled = currentDocumentIndex === currentDocuments.length - 1;
+    }
+  }
+
+  // -------------------------
+  // Event Listeners for Document Navigation
+  // -------------------------
+  if (prevDocumentBtn) {
+    prevDocumentBtn.addEventListener('click', () => {
+      if (currentDocumentIndex > 0) {
+        switchDocument(currentDocumentIndex - 1);
+      }
+    });
+  }
+
+  if (nextDocumentBtn) {
+    nextDocumentBtn.addEventListener('click', () => {
+      if (currentDocumentIndex < currentDocuments.length - 1) {
+        switchDocument(currentDocumentIndex + 1);
+      }
+    });
+  }
+
 
   // -------------------------
   // Printer Details Modal logic
