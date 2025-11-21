@@ -204,13 +204,14 @@ body{
   display: flex;
   align-items: center;
   gap: 12px;                  /* space between icon and input */
-  min-width: 260px;           /* reduce minimum width so it doesn't blow up */
+  min-width: 240px;           /* reduce minimum width so it doesn't blow up */
+  height: 40px;
 }
 
 /* constrain the loupe image so it doesn't become huge */
 .card-header .search img {
-  width: 28px;                /* icon size inside pill */
-  height: 28px;
+  width: 20px;                /* icon size inside pill */
+  height: 20px;
   object-fit: contain;
   flex: 0 0 28px;             /* no growing/shrinking */
   display: block;
