@@ -205,78 +205,112 @@
     </div>
   </div>
 
-  <!-- Details Modal -->
-  <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal-backdrop" data-close-modal></div>
-    <div class="modal-content">
-      <div class="modal-header">
-        <button id="backBtn" class="back-btn">&larr;</button>
-        <h2>Document Details</h2>
+<!-- Details Modal -->
+<div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal-backdrop" data-close-modal></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <button id="backBtn" class="back-btn">&larr;</button>
+      <h2>Document Details</h2>
+    </div>
+
+    <div class="modal-body">
+      <div class="details-top-row">
+        <div class="detail-item">
+          <div class="detail-label">Submitted on</div>
+          <div class="detail-value" id="submittedDate">October 10, 2025</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Total Cost</div>
+          <div class="detail-value" id="totalCost">15 tokens</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Status</div>
+          <div class="detail-value">
+            <span class="status-badge" id="statusBadge">Pending</span>
+          </div>
+        </div>
       </div>
 
-      <div class="modal-body">
-        <div class="details-top-row">
-          <div class="detail-item">
-            <div class="detail-label">Submitted on</div>
-            <div class="detail-value" id="submittedDate">October 10, 2025</div>
+      <div class="request-id">
+        Request ID: <span id="requestId">RQRF2D7B</span>
+      </div>
+
+      <!-- Document Navigation -->
+      <div class="document-navigation" id="documentNavigation" style="display: none;">
+        <h3>Documents</h3>
+        <div class="document-tabs" id="documentTabs">
+          <!-- Document tabs will be generated here -->
+        </div>
+      </div>
+
+      <div class="document-preview">
+        <h3>Document Preview</h3>
+        
+        <!-- Document Info -->
+        <div class="preview-header">
+          <div class="document-info">
+            <span class="document-counter" id="documentCounter">Document 1 of 3</span>
+            <span class="document-name" id="currentDocumentName">document.pdf</span>
           </div>
-          <div class="detail-item">
-            <div class="detail-label">Total Cost</div>
-            <div class="detail-value" id="totalCost">15 tokens</div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">Status</div>
-            <div class="detail-value">
-              <span class="status-badge" id="statusBadge">Pending</span>
-            </div>
+          <div class="preview-controls">
+            <button class="nav-btn" id="prevDocument" disabled>
+              <img src="../../images/admin_img/left-chevron.png" alt="Previous" />
+            </button>
+            <button class="nav-btn" id="nextDocument">
+              <img src="../../images/admin_img/right-chevron.png" alt="Next" />
+            </button>
           </div>
         </div>
 
-        <div class="request-id">
-          Request ID: <span id="requestId">RQRF2D7B</span>
-        </div>
-
-        <div class="document-preview">
-          <h3>Document Preview</h3>
+        <!-- Preview Area -->
+        <div class="preview-area">
           <img id="previewImage" src="" alt="Document preview" class="preview-image" />
-          <div class="preview-grid">
-            <div class="preview-item">
-              <div class="preview-label">File Name</div>
-              <div class="preview-value" id="fileName">Automobile_Anatomy.pdf</div>
-            </div>
-            <div class="preview-item">
-              <div class="preview-label">Page Count</div>
-              <div class="preview-value" id="pageCount">1</div>
-            </div>
-            <div class="preview-item">
-              <div class="preview-label">Number of Copies</div>
-              <div class="preview-value" id="copiesCount">1</div>
-            </div>
-            <div class="preview-item">
-              <div class="preview-label">Paper Size</div>
-              <div class="preview-value" id="paperSize">A4</div>
-            </div>
-            <div class="preview-item">
-              <div class="preview-label">Print Type</div>
-              <div class="preview-value" id="printType">Colored</div>
-            </div>
-            <div class="preview-item">
-              <div class="preview-label">Printing Side</div>
-              <div class="preview-value" id="printingSide">Single-Sided</div>
-            </div>
-            <div class="preview-item">
-              <div class="preview-label">Pickup Date</div>
-              <div class="preview-value" id="pickupDate">October 20, 2025</div>
-            </div>
+          <div class="preview-placeholder" id="previewPlaceholder">
+            <img src="../../images/admin_img/document-preview.png" alt="Document" />
+            <p>No preview available</p>
           </div>
         </div>
 
-        <div class="action-buttons">
-          <button class="accept-btn" id="acceptBtn">Print</button>
+        <!-- Document Details Grid -->
+        <div class="preview-grid">
+          <div class="preview-item">
+            <div class="preview-label">File Name</div>
+            <div class="preview-value" id="fileName">Automobile_Anatomy.pdf</div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">Page Count</div>
+            <div class="preview-value" id="pageCount">1</div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">Number of Copies</div>
+            <div class="preview-value" id="copiesCount">1</div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">Paper Size</div>
+            <div class="preview-value" id="paperSize">A4</div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">Print Type</div>
+            <div class="preview-value" id="printType">Colored</div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">Printing Side</div>
+            <div class="preview-value" id="printingSide">Single-Sided</div>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">Pickup Date</div>
+            <div class="preview-value" id="pickupDate">October 20, 2025</div>
+          </div>
         </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="accept-btn" id="acceptBtn">Print</button>
       </div>
     </div>
   </div>
+</div>
 
   <!-- Logout Confirmation Modal -->
   <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
