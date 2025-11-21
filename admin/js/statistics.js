@@ -44,8 +44,8 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeCharts();
     updateCharts();
     fetchQueueCount();
-    buildSemesterOptions(lastFetchedRequests);
-    buildTermOptions(lastFetchedRequests);
+    buildSemesterOptions();
+    buildTermOptions();
     updateFilterLabel();
   }
 
@@ -64,8 +64,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const data = await res.json();
       lastFetchedRequests = Array.isArray(data) ? data : [];
-      buildSemesterOptions(lastFetchedRequests);
-      buildTermOptions(lastFetchedRequests);
+      buildSemesterOptions();
+      buildTermOptions();
       const filtered = applyFilters(lastFetchedRequests);
       processAnalyticsData(filtered);
     } catch (err) {
@@ -77,91 +77,128 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // Semester / Term derivation & builders
+  // Semester / Term derivation & builders - FIXED VERSION
   // -------------------------
+  function getSemesterFromDate(date) {
+    const month = date.getMonth() + 1; // 1-12
+    
+    // Semester 1: August (8) to December (12)
+    // Semester 2: January (1) to June (6)
+    // July (7) can be considered as break or part of Semester 2
+    if (month >= 8 && month <= 12) {
+      return 'Semester 1';
+    } else if (month >= 1 && month <= 7) {
+      return 'Semester 2';
+    }
+    return 'Unknown';
+  }
+
+  function getTermFromDate(date) {
+    const month = date.getMonth() + 1;
+    
+    // Semester 1 (Aug-Dec)
+    if (month >= 8 && month <= 12) {
+      if (month >= 8 && month <= 9) return 'Prelims';
+      if (month >= 10 && month <= 11) return 'Midterms';
+      if (month === 12) return 'Finals';
+    }
+    // Semester 2 (Jan-Jun)
+    else if (month >= 1 && month <= 6) {
+      if (month >= 1 && month <= 2) return 'Prelims';
+      if (month >= 3 && month <= 4) return 'Midterms';
+      if (month >= 5 && month <= 6) return 'Finals';
+    }
+    // July (7) - treat as Finals or break
+    return 'Finals';
+  }
+
   function deriveSemesterLabel(req) {
     if (!req) return 'Unknown';
-    if (req.semester) return String(req.semester);
-    if (req.details && req.details.semester) return String(req.details.semester);
-    const d = req.createdAt ? new Date(req.createdAt) : new Date();
-    const year = d.getFullYear();
-    const month = d.getMonth() + 1;
-    // Sem 1: Aug(8) - Dec(12), Sem 2: Jan(1) - Jul(7)
-    if (month >= 8 && month <= 12) return `${year} Sem 1`;
-    return `${year} Sem 2`;
+    
+    // First check if semester is explicitly defined in request
+    if (req.semester) {
+      return String(req.semester).includes('1') ? 'Semester 1' : 
+             String(req.semester).includes('2') ? 'Semester 2' : 
+             String(req.semester);
+    }
+    if (req.details && req.details.semester) {
+      return String(req.details.semester).includes('1') ? 'Semester 1' : 
+             String(req.details.semester).includes('2') ? 'Semester 2' : 
+             String(req.details.semester);
+    }
+    
+    // Derive from date
+    const requestDate = req.createdAt ? new Date(req.createdAt) : new Date();
+    return getSemesterFromDate(requestDate);
   }
 
   function deriveTermLabel(req) {
     if (!req) return 'Unknown';
+    
+    // First check if term is explicitly defined in request
     if (req.term) return String(req.term);
     if (req.details && req.details.term) return String(req.details.term);
 
-    const d = req.createdAt ? new Date(req.createdAt) : new Date();
-    const month = d.getMonth() + 1;
-    const year = d.getFullYear();
-    
-    // Determine semester first (Sem1 or Sem2)
-    const sem = (month >= 8 && month <= 12) ? 1 : 2;
-
-    if (sem === 1) {
-      // Sem 1 (Aug-Dec)
-      if (month >= 8 && month <= 9) return 'Prelims';
-      if (month >= 10 && month <= 11) return 'Midterms';
-      // treat Dec as Finals
-      return 'Finals';
-    } else {
-      // Sem 2 (Jan-Jul) - two-month windows
-      if (month >= 1 && month <= 2) return 'Prelims';
-      if (month >= 3 && month <= 4) return 'Midterms';
-      if (month >= 5 && month <= 6) return 'Finals';
-      // month 7 -> treat as Finals / End
-      return 'Finals';
-    }
+    // Derive from date
+    const requestDate = req.createdAt ? new Date(req.createdAt) : new Date();
+    return getTermFromDate(requestDate);
   }
 
-  function buildSemesterOptions(requests) {
+  function buildSemesterOptions() {
     if (!semesterSelect) return;
-    const labels = new Set();
-    requests.forEach(r => labels.add(deriveSemesterLabel(r)));
-    const arr = Array.from(labels).sort().reverse();
-    semesterSelect.innerHTML = `<option value="All">All Semesters</option>`;
-    arr.forEach(lbl => {
+    
+    // Predefined semesters - don't derive from data
+    const semesters = ['All', 'Semester 1', 'Semester 2'];
+    
+    semesterSelect.innerHTML = '';
+    semesters.forEach(semester => {
       const opt = document.createElement('option');
-      opt.value = lbl;
-      opt.textContent = lbl;
+      opt.value = semester;
+      opt.textContent = semester;
       semesterSelect.appendChild(opt);
     });
+    
+    // Set current selection
     semesterSelect.value = currentSemester || 'All';
   }
 
-  function buildTermOptions(requests) {
+  function buildTermOptions() {
     if (!termSelect) return;
-    // if a specific semester is selected, restrict terms to that semester's requests
-    const source = (currentSemester && currentSemester !== 'All')
-      ? requests.filter(r => deriveSemesterLabel(r) === currentSemester)
-      : requests;
-
-    const labels = new Set();
-    source.forEach(r => labels.add(deriveTermLabel(r)));
-    const arr = Array.from(labels).sort().reverse();
-    termSelect.innerHTML = `<option value="All">All Terms</option>`;
-    arr.forEach(lbl => {
+    
+    // Predefined terms
+    const allTerms = ['All', 'Prelims', 'Midterms', 'Finals'];
+    
+    termSelect.innerHTML = '';
+    allTerms.forEach(term => {
       const opt = document.createElement('option');
-      opt.value = lbl;
-      opt.textContent = lbl;
+      opt.value = term;
+      opt.textContent = term;
       termSelect.appendChild(opt);
     });
+    
+    // Set current selection
     termSelect.value = currentTerm || 'All';
   }
 
   function applyFilters(requests) {
     let out = requests.slice();
+    
+    // Filter by semester
     if (currentSemester && currentSemester !== 'All') {
-      out = out.filter(r => deriveSemesterLabel(r) === currentSemester);
+      out = out.filter(r => {
+        const requestSemester = deriveSemesterLabel(r);
+        return requestSemester === currentSemester;
+      });
     }
+    
+    // Filter by term
     if (currentTerm && currentTerm !== 'All') {
-      out = out.filter(r => deriveTermLabel(r) === currentTerm);
+      out = out.filter(r => {
+        const requestTerm = deriveTermLabel(r);
+        return requestTerm === currentTerm;
+      });
     }
+    
     return out;
   }
 
@@ -249,7 +286,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalReq = Array.isArray(requests) ? requests.length : 0;
     const pending = requests.filter(r => String(r.status).toLowerCase() === 'pending').length;
     const accepted = requests.filter(r => String(r.status).toLowerCase() === 'accepted').length;
-    if (totalUsers) totalUsers.textContent = String(new Set(requests.map(r => r.email || r.fullName)).size || pending);
+    
+    // Count unique users (by email)
+    const uniqueUsers = new Set();
+    requests.forEach(r => {
+      if (r.email) uniqueUsers.add(r.email);
+    });
+    
+    if (totalUsers) totalUsers.textContent = String(uniqueUsers.size || 0);
     if (totalPrints) totalPrints.textContent = String(requests.reduce((s, r) => s + ((r.documents || []).reduce((a,d)=>(a + (d.pageCount||0)*(d.numberOfCopies||1)),0)), 0) || 0);
     if (totalLeads) totalLeads.textContent = String(accepted || 0);
 
@@ -560,11 +604,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (semesterSelect) {
       semesterSelect.addEventListener('change', () => {
         currentSemester = semesterSelect.value || 'All';
-        // rebuild term options for this semester and update filter label
-        buildTermOptions(lastFetchedRequests);
         updateFilterLabel();
         const filtered = applyFilters(lastFetchedRequests);
         processAnalyticsData(filtered);
+        updateCharts();
       });
     }
     if (termSelect) {
@@ -573,6 +616,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateFilterLabel();
         const filtered = applyFilters(lastFetchedRequests);
         processAnalyticsData(filtered);
+        updateCharts();
       });
     }
 
