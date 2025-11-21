@@ -11,6 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const nextPageBtn = document.getElementById("nextPage");
   const selectAll = document.getElementById("selectAll");
   const sidebarQueueCount = document.getElementById("sidebarQueueCount");
+  const passwordFieldContainer = document.getElementById("passwordFieldContainer");
+  const editPassword = document.getElementById("editPassword");
 
   // Add User elements
   const addUserBtn = document.getElementById("addUserBtn");
@@ -119,6 +121,7 @@ document.addEventListener("DOMContentLoaded", () => {
           name: user.fullName || "Unknown User",
           email: user.email,
           role: user.role || "User",
+          authProvider: user.authProvider, // Add this line
           lastActive: user.lastLogin ? new Date(user.lastLogin).toISOString().split('T')[0] : "Never",
           tokenBalance: user.tokenBalance || 0,
           printStats: {
@@ -137,13 +140,13 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error fetching users:", error);
       if (usersBody) {
         usersBody.innerHTML = `
-          <tr>
-            <td colspan="5" style="text-align: center; padding: 20px; color: #dc3545;">
-              <div>Error loading users</div>
-              <div style="font-size: 12px; margin-top: 8px;">${error.message}</div>
-            </td>
-          </tr>
-        `;
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 20px; color: #dc3545;">
+            <div>Error loading users</div>
+            <div style="font-size: 12px; margin-top: 8px;">${error.message}</div>
+          </td>
+        </tr>
+      `;
       }
       return [];
     }
@@ -478,6 +481,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (editEmail) editEmail.value = user.email || '';
     if (editName) editName.value = user.name || '';
 
+    // Show/hide password field based on authProvider
+    if (passwordFieldContainer) {
+      if (user.authProvider === 'manual') {
+        passwordFieldContainer.style.display = 'block';
+        if (editPassword) editPassword.value = ''; // Clear password field
+      } else {
+        passwordFieldContainer.style.display = 'none';
+      }
+    }
+
     // Set role display (non-editable)
     if (editRoleDisplay) {
       editRoleDisplay.textContent = getDisplayRole(user.role);
@@ -510,6 +523,15 @@ document.addEventListener("DOMContentLoaded", () => {
         const updates = {
           fullName: (editName && editName.value) ? editName.value.trim() : user.name,
         };
+
+        // Add password to updates if it's a manual user and password field is filled
+        if (user.authProvider === 'manual' && editPassword && editPassword.value) {
+          if (editPassword.value.length < 6) {
+            alert("Password must be at least 6 characters long.");
+            return;
+          }
+          updates.password = editPassword.value;
+        }
 
         await updateUser(user._id, updates);
 

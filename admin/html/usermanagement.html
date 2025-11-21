@@ -169,6 +169,12 @@
         <label for="editName">Name</label>
         <input type="text" id="editName" name="name" required />
 
+        <!-- Add Password Field (initially hidden) -->
+        <div id="passwordFieldContainer" style="display: none;">
+          <label for="editPassword">New Password (leave blank to keep current)</label>
+          <input type="password" id="editPassword" name="password" minlength="6" placeholder="Minimum 6 characters" />
+        </div>
+
         <label for="editRole">Role</label>
         <div id="editRoleDisplay" class="read-only-field"></div>
         <input type="hidden" id="editRole" name="role" />

@@ -284,12 +284,13 @@ app.patch("/users/:id", async (req, res) => {
   try {
     console.log(`PATCH /users/${req.params.id}`, req.body);
     
-    const { fullName, courseYear, role } = req.body;
+    const { fullName, courseYear, role, password } = req.body; // Add password
     const updates = {};
     
     if (fullName) updates.fullName = fullName;
     if (courseYear) updates.courseYear = courseYear;
     if (role) updates.role = role;
+    if (password) updates.password = password; // Add password update
     
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
@@ -304,7 +305,7 @@ app.patch("/users/:id", async (req, res) => {
     console.log(`Updated user ${req.params.id}`);
     res.json(updatedUser);
   } catch (err) {
-    console.error("Error updating user:", err);
+    console.error("Error updating user:", error);
     res.status(500).json({ error: "Failed to update user", details: err.message });
   }
 });

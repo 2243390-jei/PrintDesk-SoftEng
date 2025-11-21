@@ -479,6 +479,32 @@ input[type="password"]::placeholder {
   font-size: 13px;
 }
 
+/* Add to usermanagement.css */
+#passwordFieldContainer {
+  transition: all 0.3s ease;
+}
+
+#editPassword {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+#editPassword:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+#editPassword::placeholder {
+  color: #999;
+  font-size: 13px;
+}
+
 .request-id {
   font-size: 14px;
   color: #6c757d;
