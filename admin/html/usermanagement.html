@@ -97,7 +97,6 @@
                 <!-- filters that open the small inline filter panel -->
                 <button type="button" data-action="open-filter" data-filter="role" role="menuitem">Role</button>
                 <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
-                <!-- REMOVED: Status filter button -->
                 <div class="divider" aria-hidden="true"></div>
 
                 <button type="button" data-action="apply" class="primary" role="menuitem">Filter</button>
@@ -117,8 +116,6 @@
                     <th class="col-check"><input id="selectAll" type="checkbox" /></th>
                     <th>Name</th>
                     <th>Email</th>
-                    <th>Course & Year</th>
-                    <!-- REMOVED: Status column -->
                     <th>Role</th>
                     <th class="col-actions">Actions</th>
                   </tr>
@@ -159,9 +156,6 @@
 
         <label for="editName">Name</label>
         <input type="text" id="editName" name="name" required />
-
-        <label for="editCourse">Course &amp; Year</label>
-        <input type="text" id="editCourse" name="course" />
 
         <!-- Role field - changed to display only -->
         <label for="editRole">Role</label>

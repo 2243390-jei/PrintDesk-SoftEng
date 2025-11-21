@@ -1,4 +1,3 @@
-// usermanagement.js (updated roles)
 document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   // DOM references
@@ -21,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const editForm = document.getElementById('editForm');
   const editEmail = document.getElementById('editEmail');
   const editName = document.getElementById('editName');
-  const editCourse = document.getElementById('editCourse');
   const editRole = document.getElementById('editRole');
   const editRoleDisplay = document.getElementById('editRoleDisplay');
   const cancelEdit = document.getElementById('cancelEdit');
@@ -110,13 +108,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const completedRequests = userRequests.filter(req => req.status === "Completed").length;
         const rejectedRequests = userRequests.filter(req => req.status === "Rejected").length;
         
-        const course = user.courseYear || extractCourseFromEmail(user.email) || "Unknown Course";
-        
         return {
           _id: user._id,
           name: user.fullName || "Unknown User",
           email: user.email,
-          course: course,
           role: user.role || "User",
           lastActive: user.lastLogin ? new Date(user.lastLogin).toISOString().split('T')[0] : "Never",
           tokenBalance: user.tokenBalance || 0,
@@ -137,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (usersBody) {
         usersBody.innerHTML = `
           <tr>
-            <td colspan="6" style="text-align: center; padding: 20px; color: #dc3545;">
+            <td colspan="5" style="text-align: center; padding: 20px; color: #dc3545;">
               <div>Error loading users</div>
               <div style="font-size: 12px; margin-top: 8px;">${error.message}</div>
             </td>
@@ -146,11 +141,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       return [];
     }
-  }
-
-  function extractCourseFromEmail(email) {
-    if (email.includes('@slu.edu.ph')) return "SLU Student";
-    return "Student";
   }
 
   async function updateUser(userId, updates) {
@@ -222,7 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pageItems.length === 0) {
       usersBody.innerHTML = `
         <tr>
-          <td colspan="6" style="text-align: center; padding: 20px;">
+          <td colspan="5" style="text-align: center; padding: 20px;">
             No users found
           </td>
         </tr>
@@ -247,7 +237,6 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         </td>
         <td>${u.email}</td>
-        <td>${u.course}</td>
         <td>${getRolePill(u.role)}</td>
         <td class="col-actions">
           <img src="../../images/admin_img/write.png" alt="edit" title="Edit" class="action-icon edit" data-email="${u.email}" data-id="${u._id}" />
@@ -307,8 +296,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return list.filter(u => {
       const matchesSearch = q === "" || 
         u.name.toLowerCase().includes(q) || 
-        u.email.toLowerCase().includes(q) || 
-        u.course.toLowerCase().includes(q);
+        u.email.toLowerCase().includes(q);
 
       const matchesRole = activeFilters.role ? u.role === activeFilters.role : true;
       
@@ -506,7 +494,6 @@ document.addEventListener("DOMContentLoaded", () => {
     editingEmail = user.email;
     if (editEmail) editEmail.value = user.email || '';
     if (editName) editName.value = user.name || '';
-    if (editCourse) editCourse.value = user.course || '';
     
     // Set role display (non-editable)
     if (editRoleDisplay) {
@@ -539,14 +526,12 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const updates = {
           fullName: (editName && editName.value) ? editName.value.trim() : user.name,
-          courseYear: (editCourse && editCourse.value) ? editCourse.value.trim() : user.course,
           // Role is not included in updates since it's not editable
         };
 
         await updateUser(user._id, updates);
 
         user.name = updates.fullName;
-        user.course = updates.courseYear;
         // Role remains unchanged
 
         editingEmail = null;
@@ -651,7 +636,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (usersBody) {
         usersBody.innerHTML = `
           <tr>
-            <td colspan="6" style="text-align: center; padding: 20px;">
+            <td colspan="5" style="text-align: center; padding: 20px;">
               <div>Loading users...</div>
             </td>
           </tr>
@@ -670,7 +655,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (usersBody) {
         usersBody.innerHTML = `
           <tr>
-            <td colspan="6" style="text-align: center; padding: 20px; color: #dc3545;">
+            <td colspan="5" style="text-align: center; padding: 20px; color: #dc3545;">
               <div>Error loading users</div>
             </td>
           </tr>
