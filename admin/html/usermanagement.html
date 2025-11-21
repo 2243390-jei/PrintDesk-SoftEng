@@ -83,6 +83,12 @@
                 <img src="/images/admin_img/search (1).png" alt="Search" class="search-icon" />
                 <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
               </div>
+              
+              <!-- Add User Button -->
+              <button id="addUserBtn" class="add-user-btn" title="Add User">
+                <img src="../../images/admin_img/plus.png" alt="Add User" />
+                <span>Add User</span>
+              </button>
             </div>
           </div>
 
@@ -118,6 +124,32 @@
         <footer class="footer muted">© <span id="curYear"></span> Admin User Management</footer>
       </div>
     </main>
+  </div>
+
+  <!-- Add User Modal -->
+  <div id="addModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="addModalTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content">
+      <h3 id="addModalTitle">Add New User</h3>
+      <form id="addForm">
+        <label for="addEmail">Email</label>
+        <input type="email" id="addEmail" name="email" required />
+
+        <label for="addName">Full Name</label>
+        <input type="text" id="addName" name="name" required />
+
+        <label for="addRole">Role</label>
+        <select id="addRole" name="role" required>
+          <option value="User">Student</option>
+          <option value="Admin">Admin</option>
+        </select>
+
+        <div class="modal-actions">
+          <button type="button" id="cancelAdd" class="btn secondary">Cancel</button>
+          <button type="submit" id="saveAdd" class="btn primary">Add</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <!-- Edit User Modal -->

@@ -257,7 +257,7 @@ body{
 
 .role-pill.student {
   background: #e8f6ea;
-  color: #1f7a2f;
+  color: #1e40af;
 }
 
 .role-pill.admin {
@@ -614,6 +614,39 @@ body{
 
 .accept-btn:hover {
   background-color: #059669;
+}
+
+/* Add User Button Styles */
+.add-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #10B981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.add-user-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.add-user-btn:active {
+  transform: translateY(0);
+}
+
+.add-user-btn img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 /* REMOVED: Status badge styles */

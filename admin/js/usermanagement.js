@@ -1,3 +1,4 @@
+// usermanagement.js - FRONTEND ONLY
 document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   // DOM references
@@ -9,7 +10,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const prevPageBtn = document.getElementById("prevPage");
   const nextPageBtn = document.getElementById("nextPage");
   const selectAll = document.getElementById("selectAll");
-  const sidebarQueueCount = document.getElementById("sidebarQueueCount");  
+  const sidebarQueueCount = document.getElementById("sidebarQueueCount");
+
+  // Add User elements
+  const addUserBtn = document.getElementById("addUserBtn");
+  const addModal = document.getElementById("addModal");
+  const addForm = document.getElementById("addForm");
+  const addEmail = document.getElementById("addEmail");
+  const addName = document.getElementById("addName");
+  const addRole = document.getElementById("addRole");
+  const cancelAdd = document.getElementById("cancelAdd");
 
   // Modals
   const editModal = document.getElementById('editModal');
@@ -60,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const focusable = modal.querySelector('input,button,select,textarea');
     if (focusable) focusable.focus();
   }
-  
+
   function closeModal(modal) {
     if (!modal) return;
     modal.classList.remove('open');
@@ -88,21 +98,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const usersResponse = await fetch(USERS_ENDPOINT);
       if (!usersResponse.ok) throw new Error(`HTTP error! status: ${usersResponse.status}`);
       const usersData = await usersResponse.json();
-      
+
       const requestsResponse = await fetch(REQUESTS_ENDPOINT);
       if (!requestsResponse.ok) throw new Error(`HTTP error! status: ${requestsResponse.status}`);
       const requestsData = await requestsResponse.json();
-      
+
       const transformedUsers = usersData.map(user => {
-        const userRequests = requestsData.filter(request => 
+        const userRequests = requestsData.filter(request =>
           request.email === user.email || request.userId === user._id
         );
-        
+
         const pendingRequests = userRequests.filter(req => req.status === "Pending").length;
         const acceptedRequests = userRequests.filter(req => req.status === "Accepted").length;
         const completedRequests = userRequests.filter(req => req.status === "Completed").length;
         const rejectedRequests = userRequests.filter(req => req.status === "Rejected").length;
-        
+
         return {
           _id: user._id,
           name: user.fullName || "Unknown User",
@@ -119,9 +129,9 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         };
       });
-      
+
       return transformedUsers;
-      
+
     } catch (error) {
       console.error("Error fetching users:", error);
       if (usersBody) {
@@ -138,6 +148,32 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function createUser(userData) {
+    try {
+      console.log("Sending user data:", userData);
+
+      const response = await fetch(USERS_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Server response error:", errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      return await response.json();
+
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
+  }
+
   async function updateUser(userId, updates) {
     try {
       const response = await fetch(`${USERS_ENDPOINT}/${userId}`, {
@@ -145,10 +181,10 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
       });
-      
+
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return await response.json();
-      
+
     } catch (error) {
       console.error("Error updating user:", error);
       throw error;
@@ -160,7 +196,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(`${USERS_ENDPOINT}/${userId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       return await response.json();
-      
+
     } catch (error) {
       console.error("Error deleting user:", error);
       throw error;
@@ -177,10 +213,10 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Count pending requests
       const pendingCount = data.filter(request => request.status === "Pending").length;
-      
+
       // Update sidebar queue count
       if (sidebarQueueCount) {
         sidebarQueueCount.textContent = pendingCount;
@@ -200,7 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   function renderTable(list) {
     if (!usersBody) return;
-    
+
     const start = (currentPage - 1) * perPage;
     const pageItems = list.slice(start, start + perPage);
 
@@ -224,7 +260,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td class="col-check"><input type="checkbox" /></td>
         <td>
           <div class="user-name">
-            <div class="user-avatar" aria-hidden="true">${u.name.split(",")[0]?.slice(0,1) || 'U'}</div>
+            <div class="user-avatar" aria-hidden="true">${u.name.split(",")[0]?.slice(0, 1) || 'U'}</div>
             <div>
               <div style="font-weight:700; font-size:14px;">${u.name}</div>
               <div style="font-size:13px; color: #6b7780;">${u.email}</div>
@@ -250,10 +286,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   function renderPagination(totalItems) {
     if (!pageNumbers) return;
-    
+
     const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
     pageNumbers.innerHTML = "";
-    
+
     for (let i = 1; i <= totalPages; i++) {
       const btn = document.createElement("button");
       btn.textContent = i;
@@ -264,7 +300,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       pageNumbers.appendChild(btn);
     }
-    
+
     if (prevPageBtn) prevPageBtn.disabled = currentPage === 1;
     if (nextPageBtn) nextPageBtn.disabled = currentPage === totalPages;
   }
@@ -274,7 +310,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (currentPage > 1) { currentPage--; renderView(users); }
     });
   }
-  
+
   if (nextPageBtn) {
     nextPageBtn.addEventListener("click", () => {
       const totalPages = Math.ceil(filtered.length / perPage);
@@ -287,11 +323,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   function applySearchFilter(list) {
     const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : "";
-    
+
     if (q === "") return list;
-    
-    return list.filter(u => 
-      u.name.toLowerCase().includes(q) || 
+
+    return list.filter(u =>
+      u.name.toLowerCase().includes(q) ||
       u.email.toLowerCase().includes(q)
     );
   }
@@ -306,7 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (searchInput) {
     searchInput.addEventListener("input", () => { currentPage = 1; renderView(users); });
   }
-  
+
   if (selectAll) {
     selectAll.addEventListener("change", (e) => {
       const checked = e.target.checked;
@@ -315,23 +351,105 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
+  // Add User Functionality
+  // -------------------------
+  if (addUserBtn) {
+    addUserBtn.addEventListener('click', () => {
+      // Reset form
+      if (addForm) addForm.reset();
+      if (addRole) addRole.value = 'User'; // Default to Student
+      openModal(addModal);
+    });
+  }
+
+  if (addForm) {
+    addForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      try {
+        const email = addEmail.value.trim();
+        const name = addName.value.trim();
+        const role = addRole.value;
+
+        if (!email || !name) {
+          alert("Please fill in all required fields.");
+          return;
+        }
+
+        // Map role from frontend to backend values
+        const backendRole = role === 'User' ? 'student' : 'admin';
+
+        const userData = {
+          email: email,
+          fullName: name,
+          role: backendRole
+        };
+
+        const newUser = await createUser(userData);
+        console.log("User created successfully:", newUser);
+
+        // Add the new user to our local state
+        const transformedUser = {
+          _id: newUser._id,
+          name: newUser.fullName,
+          email: newUser.email,
+          role: newUser.role === 'student' ? 'User' : 'Admin', // Map back for frontend display
+          lastActive: newUser.lastLogin ? new Date(newUser.lastLogin).toISOString().split('T')[0] : "Never",
+          tokenBalance: newUser.tokenBalance || 0,
+          printStats: {
+            total: 0,
+            pending: 0,
+            accepted: 0,
+            completed: 0,
+            rejected: 0
+          }
+        };
+
+        users.unshift(transformedUser);
+        currentPage = 1;
+        renderView(users);
+        closeModal(addModal);
+        alert("User added successfully!");
+
+      } catch (error) {
+        console.error("Full error details:", error);
+        
+        // Handle specific error cases
+        if (error.message.includes("409") || error.message.includes("already exists")) {
+          alert("A user with this email already exists.");
+        } else if (error.message.includes("400")) {
+          alert("Please check the form data and try again.");
+        } else {
+          alert(`Failed to add user: ${error.message}`);
+        }
+      }
+    });
+  }
+
+  if (cancelAdd) {
+    cancelAdd.addEventListener('click', () => {
+      closeModal(addModal);
+    });
+  }
+
+  // -------------------------
   // Logout functionality
   // -------------------------
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', function(e) {
+    logoutBtn.addEventListener('click', function (e) {
       e.preventDefault();
       openModal(logoutModal);
     });
   }
 
   if (cancelLogout) {
-    cancelLogout.addEventListener('click', function() {
+    cancelLogout.addEventListener('click', function () {
       closeModal(logoutModal);
     });
   }
 
   if (confirmLogout) {
-    confirmLogout.addEventListener('click', function() {
+    confirmLogout.addEventListener('click', function () {
       window.location.href = '/index.html';
     });
   }
@@ -346,7 +464,7 @@ document.addEventListener("DOMContentLoaded", () => {
     editingEmail = user.email;
     if (editEmail) editEmail.value = user.email || '';
     if (editName) editName.value = user.name || '';
-    
+
     // Set role display (non-editable)
     if (editRoleDisplay) {
       editRoleDisplay.textContent = getDisplayRole(user.role);
@@ -361,7 +479,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function openDeleteForEmail(email, userId) {
     const user = users.find(u => u.email === email && u._id === userId);
     if (!user) return;
-    
+
     deletingEmail = email;
     if (deleteMessage) deleteMessage.textContent = `Are you sure you want to delete ${user.name}? This action cannot be undone.`;
     openModal(deleteModal);
@@ -371,7 +489,7 @@ document.addEventListener("DOMContentLoaded", () => {
     editForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!editingEmail) { closeModal(editModal); return; }
-      
+
       const user = users.find(u => u.email === editingEmail);
       if (!user) { closeModal(editModal); return; }
 
@@ -387,7 +505,7 @@ document.addEventListener("DOMContentLoaded", () => {
         renderView(users);
         closeModal(editModal);
         alert("User updated successfully!");
-        
+
       } catch (error) {
         alert("Failed to update user. Please try again.");
         console.error("Error updating user:", error);
@@ -397,11 +515,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (cancelEdit) cancelEdit.addEventListener('click', () => { editingEmail = null; closeModal(editModal); });
   if (cancelDelete) cancelDelete.addEventListener('click', () => { deletingEmail = null; closeModal(deleteModal); });
-  
+
   if (confirmDelete) {
     confirmDelete.addEventListener('click', async () => {
       if (!deletingEmail) { closeModal(deleteModal); return; }
-      
+
       const user = users.find(u => u.email === deletingEmail);
       if (!user) { closeModal(deleteModal); return; }
 
@@ -414,11 +532,11 @@ document.addEventListener("DOMContentLoaded", () => {
           currentPage = 1;
           renderView(users);
         }
-        
+
         deletingEmail = null;
         closeModal(deleteModal);
         alert("User deleted successfully!");
-        
+
       } catch (error) {
         alert("Failed to delete user. Please try again.");
         console.error("Error deleting user:", error);
@@ -431,6 +549,7 @@ document.addEventListener("DOMContentLoaded", () => {
     el.addEventListener('click', (e) => {
       const modal = e.target.closest('.modal');
       if (modal) {
+        if (modal === addModal) closeModal(addModal);
         if (modal === editModal) editingEmail = null;
         if (modal === deleteModal) deletingEmail = null;
         closeModal(modal);
@@ -441,6 +560,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Escape closes modals
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      if (addModal && addModal.classList.contains('open')) closeModal(addModal);
       if (editModal && editModal.classList.contains('open')) { editingEmail = null; closeModal(editModal); }
       if (deleteModal && deleteModal.classList.contains('open')) { deletingEmail = null; closeModal(deleteModal); }
       if (logoutModal && logoutModal.classList.contains('open')) { closeModal(logoutModal); }
@@ -467,7 +587,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (email && userId) openEditForEmail(email, userId);
       });
     });
-    
+
     document.querySelectorAll('.action-icon.del').forEach(el => {
       el.addEventListener('click', () => {
         const email = el.getAttribute('data-email');
@@ -491,14 +611,14 @@ document.addEventListener("DOMContentLoaded", () => {
           </tr>
         `;
       }
-      
+
       users = await fetchUsersWithPrintStats();
-      
+
       // Update queue count
       await updateQueueCount();
-      
+
       renderView(users);
-      
+
     } catch (error) {
       console.error("Error initializing user management:", error);
       if (usersBody) {

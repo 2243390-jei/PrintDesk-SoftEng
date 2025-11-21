@@ -187,6 +187,90 @@ app.get("/users", async (req, res) => {
   }
 });
 
+// --- CREATE new user ---
+app.post("/users", async (req, res) => {
+  try {
+    console.log("POST /users - Creating new user", req.body);
+    
+    const { email, fullName, role } = req.body;
+
+    // Validation
+    if (!email || !fullName || !role) {
+      return res.status(400).json({ 
+        error: "Missing required fields", 
+        required: ["email", "fullName", "role"] 
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ 
+        error: "User already exists",
+        existingEmail: email 
+      });
+    }
+
+    // Validate role
+    const validRoles = ["student", "admin"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ 
+        error: "Invalid role", 
+        validRoles 
+      });
+    }
+
+    // Create new user
+    const newUser = new User({
+      email,
+      fullName,
+      role,
+      authProvider: "manual",
+      tokenBalance: 500, // Default token balance
+      createdAt: new Date(),
+      lastLogin: new Date()
+    });
+
+    const savedUser = await newUser.save();
+    console.log(`User created successfully: ${savedUser.email}`);
+
+    // Return user without sensitive data
+    const userResponse = {
+      _id: savedUser._id,
+      fullName: savedUser.fullName,
+      email: savedUser.email,
+      role: savedUser.role,
+      tokenBalance: savedUser.tokenBalance,
+      authProvider: savedUser.authProvider,
+      createdAt: savedUser.createdAt,
+      lastLogin: savedUser.lastLogin
+    };
+
+    res.status(201).json(userResponse);
+
+  } catch (err) {
+    console.error("Error creating user:", err);
+    
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ 
+        error: "Validation error", 
+        details: err.message 
+      });
+    }
+    
+    if (err.code === 11000) {
+      return res.status(409).json({ 
+        error: "Email already exists" 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: "Failed to create user", 
+      details: err.message 
+    });
+  }
+});
+
 // --- UPDATE user ---
 app.patch("/users/:id", async (req, res) => {
   try {
