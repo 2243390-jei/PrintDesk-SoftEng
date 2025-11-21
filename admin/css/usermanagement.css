@@ -230,79 +230,6 @@ body{
 
 .card-header h2{ font-size:24px; letter-spacing:1px; margin:0; font-weight:700; color:#2b3336; }
 
-/* filter icon button */
-.icon-btn{
-  width:44px;height:44px;border-radius:12px;border:none;background:#fff;display:inline-flex;align-items:center;justify-content:center;
-  box-shadow: 0 4px 12px rgba(20,28,32,0.06);
-  cursor:pointer;
-}
-.icon-btn img{ width:20px;height:20px; object-fit:contain; }
-
-/* --- Filter dropdown panel --- */
-.filter-menu {
-  position: absolute;
-  right: 0;                  /* align to right edge of .controls */
-  top: calc(100% + 8px);     /* space below the filter button */
-  width: 140px;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 12px 30px rgba(16,22,25,0.12);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transform-origin: top right;
-  transform: translateY(-6px) scale(0.98);
-  opacity: 0;
-  pointer-events: none;
-  transition: transform 180ms ease, opacity 160ms ease;
-  border: 1px solid rgba(33,37,41,0.06);
-  min-width: 120px;
-  z-index: 30;
-}
-
-/* visible state */
-.filter-menu.open {
-  transform: translateY(0) scale(1);
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* buttons inside the menu */
-.filter-menu button {
-  background: #f7f8f9;
-  border: 1px solid #e7e9eb;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 13px;
-  text-align: center;
-  cursor: pointer;
-  color: #28323a;
-  width: 100%;
-  box-shadow: none;
-}
-
-/* primary action styling */
-.filter-menu button.primary {
-  background: #f0f6ff;
-  border-color: #d7e7ff;
-  font-weight: 700;
-}
-
-/* hover/focus states for keyboard users */
-.filter-menu button:hover,
-.filter-menu button:focus {
-  background: #eef2f4;
-  outline: none;
-}
-
-/* small dividing rule */
-.filter-menu .divider{
-  height: 8px;
-  border-top-left-radius: 6px;
-  border-top-right-radius: 6px;
-  background: transparent;
-}
 
 /* Read-only field styles */
 .read-only-field {
@@ -394,19 +321,6 @@ body{
 
 /* footer */
 .footer{ margin-top:20px; color:var(--muted); text-align:right; font-size:13px; padding-right:6px; }
-
-/* small inline filter panel used inside the dropdown */
-.filter-panel{
-  margin-top:6px;
-  padding:8px;
-  background:#fff;
-  border-radius:8px;
-  box-shadow: 0 8px 20px rgba(18,22,25,0.06);
-  border:1px solid #eef0f2;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
 
 /* helper used by JS to show/hide elements */
 .visually-hidden{ display:none; }

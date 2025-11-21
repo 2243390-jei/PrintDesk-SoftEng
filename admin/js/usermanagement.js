@@ -11,10 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const selectAll = document.getElementById("selectAll");
   const sidebarQueueCount = document.getElementById("sidebarQueueCount");  
 
-  const filterBtn = document.getElementById("filterBtn");
-  const filterMenu = document.getElementById("filterMenu");
-  const filterPanel = document.getElementById("filterPanel");
-
   // Modals
   const editModal = document.getElementById('editModal');
   const editForm = document.getElementById('editForm');
@@ -42,7 +38,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentPage = 1;
   let users = [];
   let filtered = [];
-  let activeFilters = { role: null, dateFrom: null, dateTo: null };
 
   let editingEmail = null;
   let deletingEmail = null;
@@ -288,28 +283,21 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // Filters
+  // Search Filter
   // -------------------------
-  function applyFiltersToList(list) {
+  function applySearchFilter(list) {
     const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : "";
     
-    return list.filter(u => {
-      const matchesSearch = q === "" || 
-        u.name.toLowerCase().includes(q) || 
-        u.email.toLowerCase().includes(q);
-
-      const matchesRole = activeFilters.role ? u.role === activeFilters.role : true;
-      
-      let matchesDate = true;
-      if (activeFilters.dateFrom) matchesDate = matchesDate && (new Date(u.lastActive) >= new Date(activeFilters.dateFrom));
-      if (activeFilters.dateTo) matchesDate = matchesDate && (new Date(u.lastActive) <= new Date(activeFilters.dateTo));
-
-      return matchesSearch && matchesRole && matchesDate;
-    });
+    if (q === "") return list;
+    
+    return list.filter(u => 
+      u.name.toLowerCase().includes(q) || 
+      u.email.toLowerCase().includes(q)
+    );
   }
 
   function renderView(list) {
-    filtered = applyFiltersToList(list);
+    filtered = applySearchFilter(list);
     const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
     if (currentPage > totalPages) currentPage = 1;
     renderTable(filtered);
@@ -324,142 +312,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const checked = e.target.checked;
       document.querySelectorAll("#usersBody input[type='checkbox']").forEach(cb => cb.checked = checked);
     });
-  }
-
-  // -------------------------
-  // Filter menu
-  // -------------------------
-  if (filterBtn && filterMenu) {
-    filterBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const open = filterMenu.classList.toggle("open");
-      filterMenu.setAttribute("aria-hidden", String(!open));
-      filterBtn.setAttribute("aria-expanded", String(open));
-      if (open) {
-        const first = filterMenu.querySelector("button");
-        if (first) first.focus();
-      } else {
-        if (filterPanel) { filterPanel.classList.add("visually-hidden"); filterPanel.setAttribute("aria-hidden", "true"); }
-      }
-    });
-
-    filterMenu.addEventListener("click", (e) => e.stopPropagation());
-
-    document.addEventListener("click", () => {
-      if (filterMenu.classList.contains("open")) {
-        filterMenu.classList.remove("open");
-        filterMenu.setAttribute("aria-hidden", "true");
-        filterBtn.setAttribute("aria-expanded", "false");
-        if (filterPanel) { filterPanel.classList.add("visually-hidden"); filterPanel.setAttribute("aria-hidden", "true"); }
-      }
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && filterMenu.classList.contains("open")) {
-        filterMenu.classList.remove("open");
-        filterMenu.setAttribute("aria-hidden", "true");
-        filterBtn.setAttribute("aria-expanded", "false");
-        if (filterPanel) { filterPanel.classList.add("visually-hidden"); filterPanel.setAttribute("aria-hidden", "true"); }
-      }
-    });
-
-    // handle clicks on menu items
-    filterMenu.querySelectorAll("button[data-action]").forEach(btn => {
-      btn.addEventListener("click", (ev) => {
-        const action = btn.dataset.action;
-        if (action === "open-filter") {
-          const f = btn.dataset.filter;
-          openFilterPanel(f);
-        } else if (action === "apply") {
-          filterMenu.classList.remove("open");
-          if (filterPanel) filterPanel.classList.add("visually-hidden");
-        }
-      });
-    });
-  }
-
-  // -------------------------
-  // Filter panel
-  // -------------------------
-  function openFilterPanel(type) {
-    if (!filterPanel) return;
-    filterPanel.innerHTML = "";
-    filterPanel.classList.remove("visually-hidden");
-    filterPanel.setAttribute("aria-hidden", "false");
-
-    if (type === "role") {
-      const label = document.createElement("div"); 
-      label.textContent = "Role"; 
-      label.style.fontWeight = "700";
-      
-      const studentBtn = document.createElement("button"); 
-      studentBtn.textContent = "Student"; 
-      studentBtn.className = "small";
-      
-      const adminBtn = document.createElement("button"); 
-      adminBtn.textContent = "Admin"; 
-      adminBtn.className = "small";
-      
-      const clearBtn = document.createElement("button"); 
-      clearBtn.textContent = "Clear"; 
-      clearBtn.className = "small";
-
-      studentBtn.addEventListener("click", () => { 
-        activeFilters.role = "User"; 
-        currentPage = 1; 
-        renderView(users); 
-        hideFilterPanel(); 
-      });
-      
-      adminBtn.addEventListener("click", () => { 
-        activeFilters.role = "Admin"; 
-        currentPage = 1; 
-        renderView(users); 
-        hideFilterPanel(); 
-      });
-      
-      clearBtn.addEventListener("click", () => { 
-        activeFilters.role = null; 
-        currentPage = 1; 
-        renderView(users); 
-        hideFilterPanel(); 
-      });
-
-      filterPanel.appendChild(label);
-      filterPanel.appendChild(studentBtn);
-      filterPanel.appendChild(adminBtn);
-      filterPanel.appendChild(clearBtn);
-    }
-
-    if (type === "date") {
-      const label = document.createElement("div"); label.textContent = "Date range"; label.style.fontWeight = "700";
-      const from = document.createElement("input"); from.type = "date"; from.value = activeFilters.dateFrom || "";
-      const to = document.createElement("input"); to.type = "date"; to.value = activeFilters.dateTo || "";
-      const apply = document.createElement("button"); apply.textContent = "Apply";
-      const clear = document.createElement("button"); clear.textContent = "Clear";
-
-      apply.addEventListener("click", () => {
-        activeFilters.dateFrom = from.value || null;
-        activeFilters.dateTo = to.value || null;
-        currentPage = 1; renderView(users); hideFilterPanel();
-      });
-      clear.addEventListener("click", () => {
-        activeFilters.dateFrom = null; activeFilters.dateTo = null;
-        currentPage = 1; renderView(users); hideFilterPanel();
-      });
-
-      filterPanel.appendChild(label);
-      filterPanel.appendChild(from);
-      filterPanel.appendChild(to);
-      filterPanel.appendChild(apply);
-      filterPanel.appendChild(clear);
-    }
-  }
-
-  function hideFilterPanel() {
-    if (!filterPanel) return;
-    filterPanel.classList.add("visually-hidden");
-    filterPanel.setAttribute("aria-hidden", "true");
   }
 
   // -------------------------
@@ -526,14 +378,11 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const updates = {
           fullName: (editName && editName.value) ? editName.value.trim() : user.name,
-          // Role is not included in updates since it's not editable
         };
 
         await updateUser(user._id, updates);
 
         user.name = updates.fullName;
-        // Role remains unchanged
-
         editingEmail = null;
         renderView(users);
         closeModal(editModal);

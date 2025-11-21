@@ -83,33 +83,11 @@
                 <img src="/images/admin_img/search (1).png" alt="Search" class="search-icon" />
                 <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
               </div>
-
-              <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false"
-                aria-controls="filterMenu">
-                <img src="../../images/admin_img/filter.png" alt="filter" />
-              </button>
-
-              <!-- Filter Dropdown Panel -->
-              <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
-                <!-- view switches -->
-                <div class="divider" aria-hidden="true"></div>
-
-                <!-- filters that open the small inline filter panel -->
-                <button type="button" data-action="open-filter" data-filter="role" role="menuitem">Role</button>
-                <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
-                <div class="divider" aria-hidden="true"></div>
-
-                <button type="button" data-action="apply" class="primary" role="menuitem">Filter</button>
-
-                <!-- small inline panel for choosing filter values -->
-                <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
-              </div>
             </div>
           </div>
 
           <div class="card-inner">
             <div class="table-wrap">
-              <!-- keep table visible for "table" view -->
               <table class="users-table" aria-describedby="user-table">
                 <thead>
                   <tr>
@@ -123,10 +101,7 @@
                 <tbody id="usersBody"></tbody>
               </table>
 
-              <!-- board (cards) container -->
               <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
-
-              <!-- list container (compact rows) -->
               <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
             </div>
 
@@ -157,7 +132,6 @@
         <label for="editName">Name</label>
         <input type="text" id="editName" name="name" required />
 
-        <!-- Role field - changed to display only -->
         <label for="editRole">Role</label>
         <div id="editRoleDisplay" class="read-only-field"></div>
         <input type="hidden" id="editRole" name="role" />
