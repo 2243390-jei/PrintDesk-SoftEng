@@ -14,7 +14,7 @@
 <body class="history-body">
   <!-- NAVIGATION BAR -->
   <header class="navbar">
-    <div class="logo">
+    <div class="logo" id="logoRefresh" style="cursor: pointer;">
       <img src="../images/student_img/SLU_printdesk_logo.png" alt="SLU PrintDesk" />
     </div>
 
@@ -41,12 +41,19 @@
         <button class="filter-btn">Cancelled</button>
       </div>
 
+      <!-- Academic year and semester filters -->
       <div class="filter-dropdown">
-        <select id="timeFilter">
-          <option>This Week</option>
-          <option>This Month</option>
-          <option>This Year</option>
-          <option>All</option>
+        <select id="academicYearFilter">
+          <option value="">Academic Year</option>
+          <option value="2024-2025">2024-2025</option>
+          <option value="2025-2026">2025-2026</option>
+          <option value="2026-2027">2026-2027</option>
+        </select>
+        <select id="semesterFilter">
+          <option value="">Semester</option>
+          <option value="1">1st Semester</option>
+          <option value="2">2nd Semester</option>
+          <option value="short">Short Term</option>
         </select>
       </div>
     </div>
@@ -84,4 +91,7 @@
     </div>
   </div>
 </body>
+
 </html>
+
+
