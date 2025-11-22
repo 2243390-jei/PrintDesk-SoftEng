@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const usersBody = document.getElementById("usersBody");
   const searchInput = document.getElementById("searchInput");
   const curYear = document.getElementById("curYear");
+  const sidebarQueueCount = document.getElementById("sidebarQueueCount");
   
   // Token reset elements
   const resetBtn = document.getElementById("resetTokensBtn");
@@ -13,6 +14,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const rescheduleResetBtn = document.getElementById("rescheduleResetBtn");
   const resetDate = document.getElementById("resetDate");
   const resetStatus = document.getElementById("resetStatus");
+
+  // Logout elements
+  const logoutBtn = document.getElementById('logoutBtn');
+  const logoutModal = document.getElementById('logoutModal');
+  const cancelLogout = document.getElementById('cancelLogout');
+  const confirmLogout = document.getElementById('confirmLogout');
 
   // -------------------------
   // State
@@ -42,6 +49,20 @@ document.addEventListener("DOMContentLoaded", () => {
       month: 'long', 
       day: 'numeric' 
     });
+  }
+
+  function openModal(modal) {
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
   }
 
   // -------------------------
@@ -479,6 +500,79 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
+  // Queue Count Update
+  // -------------------------
+  async function updateQueueCount() {
+    try {
+      const response = await fetch(REQUESTS_ENDPOINT);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      // Count pending requests
+      const pendingCount = data.filter(request => request.status === "Pending").length;
+      
+      // Update sidebar queue count
+      if (sidebarQueueCount) {
+        sidebarQueueCount.textContent = pendingCount;
+        if (pendingCount === 0) {
+          sidebarQueueCount.style.display = 'none';
+        } else {
+          sidebarQueueCount.style.display = 'flex';
+        }
+      }
+    } catch (error) {
+      console.error("Error updating queue count:", error);
+    }
+  }
+
+  // -------------------------
+  // Logout functionality
+  // -------------------------
+  function initializeLogout() {
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        openModal(logoutModal);
+      });
+    }
+
+    if (cancelLogout) {
+      cancelLogout.addEventListener('click', function() {
+        closeModal(logoutModal);
+      });
+    }
+
+    if (confirmLogout) {
+      confirmLogout.addEventListener('click', function() {
+        // Perform logout actions here
+        // For now, just redirect to login page
+        window.location.href = '/index.html';
+      });
+    }
+
+    // backdrop click to close modal
+    document.querySelectorAll('[data-close-modal]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        const modal = e.target.closest('.modal');
+        if (modal) {
+          closeModal(modal);
+        }
+      });
+    });
+
+    // Escape closes modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (logoutModal && logoutModal.classList.contains('open')) { 
+          closeModal(logoutModal); 
+        }
+      }
+    });
+  }
+
+  // -------------------------
   // Initialize Application
   // -------------------------
   async function initialize() {
@@ -522,6 +616,12 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // Initialize search
       initializeSearch();
+      
+      // Initialize logout functionality
+      initializeLogout();
+      
+      // Update queue count
+      await updateQueueCount();
       
       // Render the table
       console.log("Rendering users table...");

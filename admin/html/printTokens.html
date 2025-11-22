@@ -6,7 +6,6 @@
     <title>Admin - Users Print Tokens</title>
     <link rel="stylesheet" href="../css/printTokens.css" />
     <script src="../js/printTokens.js" defer></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   </head>
   <body>
     <div class="dashboard-container">
@@ -23,6 +22,7 @@
           <li class="nav-item">
             <a href="../html/queue.html">
               <span class="text">QUEUE</span>
+              <span class="queue-count" id="sidebarQueueCount">0</span>
             </a>
           </li>
           <li class="nav-item">
@@ -50,6 +50,11 @@
               <span class="text">User Tokens</span>
             </a>
           </li>
+          <li class="nav-item logout-item">
+            <a href="#" id="logoutBtn">
+              <span class="text">LOGOUT</span>
+            </a>
+          </li>
         </ul>
       </nav>
 
@@ -74,7 +79,7 @@
 
               <div class="controls">
                 <div class="search" role="search" aria-label="Search users">
-                  <div class="search-icon">🔍</div>
+                  <img src="/images/admin_img/search (1).png" alt="Search" class="search-icon" />
                   <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
                 </div>
 
@@ -115,6 +120,23 @@
           <footer class="footer muted">© <span id="curYear"></span> PrintDesk User Print Tokens</footer>
         </div>
       </main>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-content small-modal">
+        <div class="modal-header">
+          <h2>Confirm Logout</h2>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to logout?</p>
+          <div class="action-buttons">
+            <button class="reject-btn" id="cancelLogout">Cancel</button>
+            <button class="accept-btn" id="confirmLogout">Logout</button>
+          </div>
+        </div>
+      </div>
     </div>
   </body>
 </html>

@@ -3,13 +3,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // DOM references
   // -------------------------
   const queueBody = document.getElementById("queueBody");
-  const cardsContainer = document.getElementById("cardsContainer");
-  const listContainer = document.getElementById("listContainer");
   const searchInput = document.getElementById("searchInput");
   const curYear = document.getElementById("curYear");
   const pageNumbers = document.getElementById("pageNumbers");
   const prevPageBtn = document.getElementById("prevPage");
   const nextPageBtn = document.getElementById("nextPage");
+  const sidebarQueueCount = document.getElementById("sidebarQueueCount");
 
   const filterBtn = document.getElementById("filterBtn");
   const filterMenu = document.getElementById("filterMenu");
@@ -20,22 +19,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const backBtn = document.getElementById('backBtn');
   const rejectBtn = document.getElementById('rejectBtn');
   const acceptBtn = document.getElementById('acceptBtn');
+  const documentsContainer = document.getElementById('documentsContainer');
+
+  // Logout elements
+  const logoutBtn = document.getElementById('logoutBtn');
+  const logoutModal = document.getElementById('logoutModal');
+  const cancelLogout = document.getElementById('cancelLogout');
+  const confirmLogout = document.getElementById('confirmLogout');
 
   // Detail elements
   const submittedDate = document.getElementById('submittedDate');
   const totalCost = document.getElementById('totalCost');
   const statusBadge = document.getElementById('statusBadge');
   const requestId = document.getElementById('requestId');
-  const fileName = document.getElementById('fileName');
-  const pageCount = document.getElementById('pageCount');
-  const copiesCount = document.getElementById('copiesCount');
-  const paperSize = document.getElementById('paperSize');
-  const printType = document.getElementById('printType');
-  const printingSide = document.getElementById('printingSide');
-  const pickupDate = document.getElementById('pickupDate');
-  const previewImage = document.getElementById('previewImage');
-  const previewContainer = document.getElementById('previewContainer');
-  const previewPlaceholder = document.getElementById('previewPlaceholder');
 
   // -------------------------
   // State
@@ -44,16 +40,17 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentPage = 1;
   let queueData = []; // Will be populated from backend
   let filtered = [];
-  let view = "table"; // 'table' | 'board' | 'list'
-  let activeFilters = { status: null, dateFrom: null, dateTo: null };
+  let activeFilters = { 
+    pickupTime: null, 
+    queueTime: null, 
+    dateFrom: null, 
+    dateTo: null 
+  };
   let currentRequestId = null;
 
   // API endpoints
   const API_BASE = "http://localhost:3000";
   const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
-
-  // set footer year if element exists
-  if (curYear) curYear.textContent = new Date().getFullYear();
 
   // -------------------------
   // Utility helpers
@@ -62,25 +59,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!modal) return;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
   }
   
   function closeModal(modal) {
     if (!modal) return;
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
   }
 
   function statusPill(text) {
     if (!text) return '';
     const status = text.toLowerCase();
-    if (status === "completed") return `<span class="pill accepted">${text}</span>`;
+    if (status === "completed") return `<span class="pill completed">${text}</span>`;
     if (status === "accepted") return `<span class="pill accepted">${text}</span>`;
     if (status === "rejected") return `<span class="pill rejected">${text}</span>`;
     return `<span class="pill pending">${text}</span>`;
-  }
-  
-  function statusPillText(text) {
-    return statusPill(text);
   }
 
   // Function to check if file is an image
@@ -92,6 +87,26 @@ document.addEventListener("DOMContentLoaded", () => {
   // Function to check if file is a PDF
   function isPdfFile(filename) {
     return filename.toLowerCase().endsWith('.pdf');
+  }
+
+  // Function to format time for display
+  function formatTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  }
+
+  // Function to format date for display
+  function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   }
 
   // -------------------------
@@ -108,84 +123,136 @@ document.addEventListener("DOMContentLoaded", () => {
       // Sort by createdAt (oldest first) to maintain queue order
       const sortedData = data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
       
+      // Filter only pending requests for queue
+      const pendingRequests = sortedData.filter(request => request.status === "Pending");
+      
       // Transform backend data to frontend format with queue numbers
-      return sortedData.map((request, index) => {
-        // Use the first document for display purposes
-        const primaryDoc = request.documents && request.documents.length > 0 
-          ? request.documents[0] 
-          : {
-              documentTitle: "Unknown",
-              pageCount: 0,
-              numberOfCopies: 1,
-              paperSize: "Unknown",
-              printType: "Unknown",
-              printingSide: "Unknown",
-              filePath: null
-            };
-        
-        // Format date for display
-        const createdDate = new Date(request.createdAt);
-        const formattedDate = `${createdDate.getMonth() + 1}/${createdDate.getDate()}/${createdDate.getFullYear().toString().slice(-2)}`;
-        
-        // Use the status from database, default to "Pending" if not present
-        const status = request.status || "Pending";
-        
-        // Determine preview type and URL
-        let previewImage = "../../images/SLU_Logo.png";
-        let previewType = "image";
-        
-        if (primaryDoc.filePath) {
-          const fullFilePath = `${API_BASE}${primaryDoc.filePath}`;
-          if (isImageFile(primaryDoc.documentTitle)) {
-            previewImage = fullFilePath;
-            previewType = "image";
-          } else if (isPdfFile(primaryDoc.documentTitle)) {
-            previewImage = "../../images/pdf-icon.png"; // You can add a PDF icon
-            previewType = "pdf";
-          } else {
-            previewImage = "../../images/document-icon.png"; // Generic document icon
-            previewType = "document";
-          }
-        }
-        
-        return {
-          id: request._id, // Use the actual MongoDB _id for internal reference
-          queueNumber: index + 1, // This is the display queue number (1, 2, 3, ...)
-          name: request.fullName,
-          course: request.courseYear,
-          date: formattedDate,
-          status: status,
-          details: {
-            submittedOn: createdDate.toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            }),
-            totalCost: `${request.totalTokens} tokens`,
-            status: status,
+      const transformedData = [];
+      let queueNumber = 1;
+      
+      pendingRequests.forEach((request) => {
+        // Create separate queue items for each document
+        if (request.documents && request.documents.length > 0) {
+          request.documents.forEach((doc, docIndex) => {
+            // Format dates for display
+            const createdDate = new Date(request.createdAt);
+            const formattedDate = formatDate(request.createdAt);
+            const queueTime = formatTime(request.createdAt);
+            const pickupTime = request.pickupDateTime ? formatTime(request.pickupDateTime) : "Not specified";
+            
+            // Determine preview type and URL
+            let previewImage = "../../images/SLU_Logo.png";
+            let previewType = "image";
+            
+            if (doc.filePath) {
+              const fullFilePath = `${API_BASE}${doc.filePath}`;
+              if (isImageFile(doc.documentTitle)) {
+                previewImage = fullFilePath;
+                previewType = "image";
+              } else if (isPdfFile(doc.documentTitle)) {
+                previewImage = "../../images/pdf-icon.png";
+                previewType = "pdf";
+              } else {
+                previewImage = "../../images/document-icon.png";
+                previewType = "document";
+              }
+            }
+            
+            transformedData.push({
+              id: `${request._id}_${docIndex}`, // Unique ID for each document
+              requestId: request._id, // Original request ID
+              queueNumber: queueNumber++,
+              name: request.fullName,
+              course: request.courseYear,
+              date: formattedDate,
+              queueTime: queueTime,
+              pickupTime: pickupTime,
+              status: request.status,
+              documentIndex: docIndex,
+              totalDocuments: request.documents.length,
+              details: {
+                submittedOn: createdDate.toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                }),
+                totalCost: `${request.totalTokens} tokens`,
+                status: request.status,
+                requestId: request._id,
+                fileName: doc.documentTitle,
+                pageCount: doc.pageCount,
+                copies: doc.numberOfCopies,
+                paperSize: doc.paperSize,
+                printType: doc.printType,
+                printingSide: doc.printingSide,
+                pickupDate: request.pickupDateTime ? 
+                  new Date(request.pickupDateTime).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  }) : "Not specified",
+                previewImage: previewImage,
+                previewType: previewType,
+                filePath: doc.filePath ? `${API_BASE}${doc.filePath}` : null,
+                // Include all documents for the modal view
+                allDocuments: request.documents || [],
+                email: request.email,
+                totalTokens: request.totalTokens
+              }
+            });
+          });
+        } else {
+          // Fallback for requests without documents
+          const createdDate = new Date(request.createdAt);
+          const formattedDate = formatDate(request.createdAt);
+          const queueTime = formatTime(request.createdAt);
+          const pickupTime = request.pickupDateTime ? formatTime(request.pickupDateTime) : "Not specified";
+          
+          transformedData.push({
+            id: request._id,
             requestId: request._id,
-            fileName: primaryDoc.documentTitle,
-            pageCount: primaryDoc.pageCount,
-            copies: primaryDoc.numberOfCopies,
-            paperSize: primaryDoc.paperSize,
-            printType: primaryDoc.printType,
-            printingSide: primaryDoc.printingSide,
-            pickupDate: request.pickupDateTime ? 
-              new Date(request.pickupDateTime).toLocaleDateString('en-US', { 
+            queueNumber: queueNumber++,
+            name: request.fullName,
+            course: request.courseYear,
+            date: formattedDate,
+            queueTime: queueTime,
+            pickupTime: pickupTime,
+            status: request.status,
+            documentIndex: 0,
+            totalDocuments: 1,
+            details: {
+              submittedOn: createdDate.toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'long', 
                 day: 'numeric' 
-              }) : "Not specified",
-            previewImage: previewImage,
-            previewType: previewType,
-            filePath: primaryDoc.filePath ? `${API_BASE}${primaryDoc.filePath}` : null,
-            // Include all documents for the print management page
-            allDocuments: request.documents || [],
-            email: request.email,
-            totalTokens: request.totalTokens
-          }
-        };
+              }),
+              totalCost: `${request.totalTokens} tokens`,
+              status: request.status,
+              requestId: request._id,
+              fileName: "Unknown Document",
+              pageCount: 0,
+              copies: 1,
+              paperSize: "Unknown",
+              printType: "Unknown",
+              printingSide: "Unknown",
+              pickupDate: request.pickupDateTime ? 
+                new Date(request.pickupDateTime).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                }) : "Not specified",
+              previewImage: "../../images/SLU_Logo.png",
+              previewType: "image",
+              filePath: null,
+              allDocuments: [],
+              email: request.email,
+              totalTokens: request.totalTokens
+            }
+          });
+        }
       });
+      
+      return transformedData;
     } catch (error) {
       console.error("Error fetching print requests:", error);
       // Return empty array if API fails
@@ -221,12 +288,20 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!queueBody) return;
     queueBody.innerHTML = "";
 
-    // show table, hide others
-    const tableEl = queueBody.closest("table");
-    if (tableEl) tableEl.style.display = "";
-    if (cardsContainer) { cardsContainer.classList.add("visually-hidden"); cardsContainer.setAttribute("aria-hidden", "true"); }
-    if (listContainer) { listContainer.classList.add("visually-hidden"); listContainer.setAttribute("aria-hidden", "true"); }
+    // Remove the "Status" and "Actions" header text (if present) to hide those column labels
+    document.querySelectorAll('th').forEach(th => {
+      if (!th.textContent) return;
+      const txt = th.textContent.trim().toLowerCase();
+      if (txt === 'status' || txt === 'action' || txt === 'actions') {
+        th.textContent = '';
+      }
+    });
 
+    if (list.length === 0) {
+      queueBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #6b7780;">No pending requests in queue</td></tr>`;
+      return;
+    }
+    
     const start = (currentPage - 1) * perPage;
     const pageItems = list.slice(start, start + perPage);
 
@@ -245,82 +320,19 @@ document.addEventListener("DOMContentLoaded", () => {
         </td>
         <td>${item.course}</td>
         <td>${item.date}</td>
-        <td>${statusPill(item.status)}</td>
+        <td>
+          <div style="font-size:13px;">
+            Document ${item.documentIndex + 1} of ${item.totalDocuments}
+          </div>
+        </td>
         <td class="col-actions">
-          <button class="view-details-btn" data-id="${item.id}">View Details</button>
+          <button class="view-details-btn" data-id="${item.id}" aria-label="View details for queue ${item.queueNumber}" title="View details">
+            <span class="icon" aria-hidden="true"></span>
+            <span class="btn-text" style="margin-left:6px;">View Details</span>
+          </button>
         </td>
       `;
       queueBody.appendChild(tr);
-    });
-
-    renderPagination(list.length);
-    attachViewDetailsHandlers();
-  }
-
-  function renderBoard(list) {
-    // hide table, show cards
-    const tableEl = queueBody ? queueBody.closest("table") : null;
-    if (tableEl) tableEl.style.display = "none";
-    if (cardsContainer) { cardsContainer.classList.remove("visually-hidden"); cardsContainer.setAttribute("aria-hidden", "false"); }
-    if (listContainer) { listContainer.classList.add("visually-hidden"); listContainer.setAttribute("aria-hidden", "true"); }
-
-    if (!cardsContainer) return;
-    cardsContainer.innerHTML = "";
-    const start = (currentPage - 1) * perPage;
-    const pageItems = list.slice(start, start + perPage);
-
-    pageItems.forEach(item => {
-      const div = document.createElement("div");
-      div.className = "card-item";
-      div.innerHTML = `
-        <div class="queue-badge">#${item.queueNumber}</div>
-        <div class="avatar">${item.name.split(" ")[0].slice(0,1)}</div>
-        <div class="meta">
-          <div class="name">${item.name}</div>
-          <div class="course">${item.course}</div>
-          <div style="font-size:13px;color:#6b7780;">${item.date}</div>
-          <div style="margin-top:8px;">${statusPillText(item.status)}</div>
-        </div>
-        <div style="margin-left:auto;display:flex;flex-direction:column;gap:8px;">
-          <button class="view-details-btn" data-id="${item.id}">View Details</button>
-        </div>
-      `;
-      cardsContainer.appendChild(div);
-    });
-
-    renderPagination(list.length);
-    attachViewDetailsHandlers();
-  }
-
-  function renderList(list) {
-    // hide table, show list
-    const tableEl = queueBody ? queueBody.closest("table") : null;
-    if (tableEl) tableEl.style.display = "none";
-    if (listContainer) { listContainer.classList.remove("visually-hidden"); listContainer.setAttribute("aria-hidden", "false"); }
-    if (cardsContainer) { cardsContainer.classList.add("visually-hidden"); cardsContainer.setAttribute("aria-hidden", "true"); }
-
-    if (!listContainer) return;
-    listContainer.innerHTML = "";
-    const start = (currentPage - 1) * perPage;
-    const pageItems = list.slice(start, start + perPage);
-
-    pageItems.forEach(item => {
-      const row = document.createElement("div");
-      row.className = "list-row";
-      row.innerHTML = `
-        <div style="width:60px;font-weight:700;text-align:center;">#${item.queueNumber}</div>
-        <div class="avatar">${item.name.split(" ")[0].slice(0,1)}</div>
-        <div style="flex:1;">
-          <div style="font-weight:700;">${item.name}</div>
-          <div style="font-size:13px;color:#6b7780;">${item.course}</div>
-        </div>
-        <div style="width:160px;text-align:right;">${item.date}</div>
-        <div style="width:110px;text-align:right;">${statusPillText(item.status)}</div>
-        <div style="width:80px;text-align:right;display:flex;gap:8px;justify-content:flex-end;">
-          <button class="view-details-btn" data-id="${item.id}">Details</button>
-        </div>
-      `;
-      listContainer.appendChild(row);
     });
 
     renderPagination(list.length);
@@ -362,7 +374,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // Filters (search + status/date)
+  // Filters (search + pickupTime/queueTime/date)
   // -------------------------
   function applyFiltersToList(list) {
     const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : "";
@@ -374,9 +386,18 @@ document.addEventListener("DOMContentLoaded", () => {
         item.date.includes(q) ||
         item.queueNumber.toString().includes(q);
 
-      // status
-      const matchesStatus = activeFilters.status ? item.status === activeFilters.status : true;
+      // pickup time filter
+      let matchesPickupTime = true;
+      if (activeFilters.pickupTime) {
+        matchesPickupTime = item.pickupTime.toLowerCase().includes(activeFilters.pickupTime.toLowerCase());
+      }
       
+      // queue time filter
+      let matchesQueueTime = true;
+      if (activeFilters.queueTime) {
+        matchesQueueTime = item.queueTime.toLowerCase().includes(activeFilters.queueTime.toLowerCase());
+      }
+
       // date range
       let matchesDate = true;
       if (activeFilters.dateFrom) {
@@ -386,7 +407,7 @@ document.addEventListener("DOMContentLoaded", () => {
         matchesDate = matchesDate && (new Date(item.date) <= new Date(activeFilters.dateTo));
       }
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesPickupTime && matchesQueueTime && matchesDate;
     });
   }
 
@@ -397,9 +418,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
     if (currentPage > totalPages) currentPage = 1;
 
-    if (view === "table") renderTable(filtered);
-    else if (view === "board") renderBoard(filtered);
-    else if (view === "list") renderList(filtered);
+    renderTable(filtered);
+    
+    // Update sidebar queue count
+    if (sidebarQueueCount) {
+      sidebarQueueCount.textContent = filtered.length;
+      if (filtered.length === 0) {
+        sidebarQueueCount.style.display = 'none';
+      } else {
+        sidebarQueueCount.style.display = 'flex';
+      }
+    }
   }
 
   // -------------------------
@@ -455,19 +484,10 @@ document.addEventListener("DOMContentLoaded", () => {
     filterMenu.querySelectorAll("button[data-action]").forEach(btn => {
       btn.addEventListener("click", (ev) => {
         const action = btn.dataset.action;
-        if (action === "view") {
-          view = btn.dataset.view || "table";
-          perPage = (view === "board") ? 6 : 5;
-          currentPage = 1;
-          renderView(queueData);
-          filterMenu.classList.remove("open");
-          filterMenu.setAttribute("aria-hidden", "true");
-          filterBtn.setAttribute("aria-expanded", "false");
-        } else if (action === "open-filter") {
+        if (action === "open-filter") {
           const f = btn.dataset.filter;
           openFilterPanel(f);
         } else if (action === "apply") {
-          // placeholder; filters apply immediately in panel
           filterMenu.classList.remove("open");
           if (filterPanel) filterPanel.classList.add("visually-hidden");
         }
@@ -484,43 +504,151 @@ document.addEventListener("DOMContentLoaded", () => {
     filterPanel.classList.remove("visually-hidden");
     filterPanel.setAttribute("aria-hidden", "false");
 
-    if (type === "status") {
-      const label = document.createElement("div"); label.textContent = "Status"; label.style.fontWeight = "700";
-      const pendingBtn = document.createElement("button"); pendingBtn.textContent = "Pending";
-      const acceptedBtn = document.createElement("button"); acceptedBtn.textContent = "Accepted";
-      const completedBtn = document.createElement("button"); completedBtn.textContent = "Completed";
-      const rejectedBtn = document.createElement("button"); rejectedBtn.textContent = "Rejected";
-      const clearBtn = document.createElement("button"); clearBtn.textContent = "Clear";
+    if (type === "pickupTime") {
+      const label = document.createElement("div"); 
+      label.textContent = "Pickup Time"; 
+      label.style.fontWeight = "700";
+      label.style.marginBottom = "8px";
+      
+      const timeSelect = document.createElement("select");
+      timeSelect.style.width = "100%";
+      timeSelect.style.padding = "8px";
+      timeSelect.style.borderRadius = "4px";
+      timeSelect.style.border = "1px solid #ddd";
+      
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = "All pickup times";
+      timeSelect.appendChild(defaultOption);
+      
+      // Add time options (you can customize these)
+      const timeOptions = ["Morning", "Afternoon", "Evening"];
+      timeOptions.forEach(time => {
+        const option = document.createElement("option");
+        option.value = time;
+        option.textContent = time;
+        option.selected = activeFilters.pickupTime === time;
+        timeSelect.appendChild(option);
+      });
+      
+      const apply = document.createElement("button"); 
+      apply.textContent = "Apply";
+      const clear = document.createElement("button"); 
+      clear.textContent = "Clear";
 
-      pendingBtn.addEventListener("click", () => { activeFilters.status = "Pending"; currentPage = 1; renderView(queueData); hideFilterPanel(); });
-      acceptedBtn.addEventListener("click", () => { activeFilters.status = "Accepted"; currentPage = 1; renderView(queueData); hideFilterPanel(); });
-      completedBtn.addEventListener("click", () => { activeFilters.status = "Completed"; currentPage = 1; renderView(queueData); hideFilterPanel(); });
-      rejectedBtn.addEventListener("click", () => { activeFilters.status = "Rejected"; currentPage = 1; renderView(queueData); hideFilterPanel(); });
-      clearBtn.addEventListener("click", () => { activeFilters.status = null; currentPage = 1; renderView(queueData); hideFilterPanel(); });
+      apply.addEventListener("click", () => {
+        activeFilters.pickupTime = timeSelect.value || null;
+        currentPage = 1; 
+        renderView(queueData); 
+        hideFilterPanel();
+      });
+      
+      clear.addEventListener("click", () => {
+        activeFilters.pickupTime = null;
+        currentPage = 1; 
+        renderView(queueData); 
+        hideFilterPanel();
+      });
 
       filterPanel.appendChild(label);
-      filterPanel.appendChild(pendingBtn);
-      filterPanel.appendChild(acceptedBtn);
-      filterPanel.appendChild(completedBtn);
-      filterPanel.appendChild(rejectedBtn);
-      filterPanel.appendChild(clearBtn);
+      filterPanel.appendChild(timeSelect);
+      filterPanel.appendChild(apply);
+      filterPanel.appendChild(clear);
+    }
+
+    if (type === "queueTime") {
+      const label = document.createElement("div"); 
+      label.textContent = "Queue Time"; 
+      label.style.fontWeight = "700";
+      label.style.marginBottom = "8px";
+      
+      const timeSelect = document.createElement("select");
+      timeSelect.style.width = "100%";
+      timeSelect.style.padding = "8px";
+      timeSelect.style.borderRadius = "4px";
+      timeSelect.style.border = "1px solid #ddd";
+      
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = "All queue times";
+      timeSelect.appendChild(defaultOption);
+      
+      // Add time options
+      const timeOptions = ["Morning", "Afternoon", "Evening"];
+      timeOptions.forEach(time => {
+        const option = document.createElement("option");
+        option.value = time;
+        option.textContent = time;
+        option.selected = activeFilters.queueTime === time;
+        timeSelect.appendChild(option);
+      });
+      
+      const apply = document.createElement("button"); 
+      apply.textContent = "Apply";
+      const clear = document.createElement("button"); 
+      clear.textContent = "Clear";
+
+      apply.addEventListener("click", () => {
+        activeFilters.queueTime = timeSelect.value || null;
+        currentPage = 1; 
+        renderView(queueData); 
+        hideFilterPanel();
+      });
+      
+      clear.addEventListener("click", () => {
+        activeFilters.queueTime = null;
+        currentPage = 1; 
+        renderView(queueData); 
+        hideFilterPanel();
+      });
+
+      filterPanel.appendChild(label);
+      filterPanel.appendChild(timeSelect);
+      filterPanel.appendChild(apply);
+      filterPanel.appendChild(clear);
     }
 
     if (type === "date") {
-      const label = document.createElement("div"); label.textContent = "Date range"; label.style.fontWeight = "700";
-      const from = document.createElement("input"); from.type = "date"; from.value = activeFilters.dateFrom || "";
-      const to = document.createElement("input"); to.type = "date"; to.value = activeFilters.dateTo || "";
-      const apply = document.createElement("button"); apply.textContent = "Apply";
-      const clear = document.createElement("button"); clear.textContent = "Clear";
+      const label = document.createElement("div"); 
+      label.textContent = "Date range"; 
+      label.style.fontWeight = "700";
+      const from = document.createElement("input"); 
+      from.type = "date"; 
+      from.value = activeFilters.dateFrom || "";
+      from.style.width = "100%";
+      from.style.padding = "8px";
+      from.style.marginBottom = "8px";
+      from.style.borderRadius = "4px";
+      from.style.border = "1px solid #ddd";
+      
+      const to = document.createElement("input"); 
+      to.type = "date"; 
+      to.value = activeFilters.dateTo || "";
+      to.style.width = "100%";
+      to.style.padding = "8px";
+      to.style.marginBottom = "8px";
+      to.style.borderRadius = "4px";
+      to.style.border = "1px solid #ddd";
+      
+      const apply = document.createElement("button"); 
+      apply.textContent = "Apply";
+      const clear = document.createElement("button"); 
+      clear.textContent = "Clear";
 
       apply.addEventListener("click", () => {
         activeFilters.dateFrom = from.value || null;
         activeFilters.dateTo = to.value || null;
-        currentPage = 1; renderView(queueData); hideFilterPanel();
+        currentPage = 1; 
+        renderView(queueData); 
+        hideFilterPanel();
       });
+      
       clear.addEventListener("click", () => {
-        activeFilters.dateFrom = null; activeFilters.dateTo = null;
-        currentPage = 1; renderView(queueData); hideFilterPanel();
+        activeFilters.dateFrom = null; 
+        activeFilters.dateTo = null;
+        currentPage = 1; 
+        renderView(queueData); 
+        hideFilterPanel();
       });
 
       filterPanel.appendChild(label);
@@ -538,93 +666,52 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // Modal: View Details with Enhanced Preview
+  // Modal: View Details with Multiple Document Support
   // -------------------------
   function openDetailsForId(id) {
+    console.log("Opening details for ID:", id);
     const item = queueData.find(item => item.id === id);
-    if (!item) return;
+    if (!item) {
+      console.error("Item not found for ID:", id);
+      return;
+    }
     
     currentRequestId = id;
     
-    // Update all detail elements
+    // Update basic detail elements
     if (submittedDate) submittedDate.textContent = item.details.submittedOn;
     if (totalCost) totalCost.textContent = item.details.totalCost;
     if (statusBadge) {
+      // keep badge styling but do not show status text in table column; modal still shows badge text
       statusBadge.textContent = item.details.status;
       statusBadge.className = `status-badge status-${item.details.status.toLowerCase()}`;
     }
     if (requestId) requestId.textContent = `Queue #${item.queueNumber}`;
-    if (fileName) fileName.textContent = item.details.fileName;
-    if (pageCount) pageCount.textContent = item.details.pageCount;
-    if (copiesCount) copiesCount.textContent = item.details.copies;
-    if (paperSize) paperSize.textContent = item.details.paperSize;
-    if (printType) printType.textContent = item.details.printType;
-    if (printingSide) printingSide.textContent = item.details.printingSide;
-    if (pickupDate) pickupDate.textContent = item.details.pickupDate;
 
-    // Enhanced preview handling
-    if (previewImage && previewContainer) {
-      const fileName = item.details.fileName;
-      
-      // Hide placeholder if we have a file
-      if (previewPlaceholder) {
-        previewPlaceholder.style.display = item.details.filePath ? 'none' : 'block';
-      }
+    // Render all documents for this request
+    renderAllDocuments(item);
 
-      if (item.details.filePath) {
-        if (isImageFile(fileName)) {
-          // Show actual image for image files
-          previewImage.src = item.details.filePath;
-          previewImage.alt = `Preview of ${fileName}`;
-          previewImage.style.display = 'block';
-          previewImage.onerror = function() {
-            // If image fails to load, show placeholder
-            this.style.display = 'none';
-            if (previewPlaceholder) previewPlaceholder.style.display = 'block';
-          };
-        } else if (isPdfFile(fileName)) {
-          // For PDF files, show PDF icon and download link
-          previewImage.src = "../../images/pdf-icon.png";
-          previewImage.alt = `PDF Document: ${fileName}`;
-          previewImage.style.display = 'block';
-          
-          // Add download button for PDF
-          let downloadBtn = previewContainer.querySelector('.download-btn');
-          if (!downloadBtn) {
-            downloadBtn = document.createElement('a');
-            downloadBtn.className = 'download-btn';
-            downloadBtn.textContent = 'Download PDF';
-            downloadBtn.style.display = 'block';
-            downloadBtn.style.marginTop = '10px';
-            downloadBtn.style.padding = '8px 16px';
-            downloadBtn.style.backgroundColor = '#007bff';
-            downloadBtn.style.color = 'white';
-            downloadBtn.style.textDecoration = 'none';
-            downloadBtn.style.borderRadius = '4px';
-            downloadBtn.style.textAlign = 'center';
-            previewContainer.appendChild(downloadBtn);
-          }
-          downloadBtn.href = item.details.filePath;
-          downloadBtn.download = fileName;
-          downloadBtn.style.display = 'block';
-        } else {
-          // For other file types, show document icon
-          previewImage.src = "../../images/document-icon.png";
-          previewImage.alt = `Document: ${fileName}`;
-          previewImage.style.display = 'block';
-        }
-      } else {
-        // No file available
-        previewImage.style.display = 'none';
-        if (previewPlaceholder) previewPlaceholder.style.display = 'block';
+    // Scroll/focus to the specific document preview that was clicked
+    try {
+      const selector = `[data-doc-index="${item.documentIndex}"]`;
+      const targetDoc = documentsContainer ? documentsContainer.querySelector(selector) : null;
+      if (targetDoc) {
+        // small timeout to allow images to layout
+        setTimeout(() => {
+          targetDoc.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const focusable = targetDoc.querySelector('a, button, img, [tabindex]');
+          if (focusable) focusable.focus();
+        }, 50);
       }
+    } catch (err) {
+      console.warn('Could not scroll to document preview:', err);
     }
 
     // Show/hide action buttons based on current status
     if (rejectBtn && acceptBtn) {
       if (item.details.status === "Pending") {
-        rejectBtn.style.display = "block";
-        acceptBtn.style.display = "block";
+        rejectBtn.style.display = "flex";
+        acceptBtn.style.display = "flex";
       } else {
         rejectBtn.style.display = "none";
         acceptBtn.style.display = "none";
@@ -632,6 +719,118 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     openModal(detailsModal);
+
+    // ensure focus goes into the modal for accessibility/visibility
+    if (detailsModal) {
+      const focusEl = detailsModal.querySelector('button, [href], input, [tabindex]:not([tabindex="-1"])');
+      if (focusEl) focusEl.focus();
+    }
+  }
+
+  function renderAllDocuments(item) {
+    if (!documentsContainer) return;
+    documentsContainer.innerHTML = "";
+
+    const allDocuments = item.details.allDocuments || [];
+
+    if (allDocuments.length === 0) {
+      documentsContainer.innerHTML = `<div class="document-item">No documents available</div>`;
+      return;
+    }
+
+    allDocuments.forEach((docData, index) => {
+      const docItem = document.createElement("div");
+      docItem.className = "document-item";
+      docItem.setAttribute("data-doc-index", index);
+
+      const fileName = docData.documentTitle || "Unknown Document";
+      const fileUrl = docData.filePath
+        ? (docData.filePath.startsWith("http") ? docData.filePath : `${API_BASE}${docData.filePath}`)
+        : null;
+
+      // Header
+      const header = document.createElement("div");
+      header.className = "document-header";
+      header.innerHTML = `
+        <div class="document-title">${fileName}</div>
+        <div class="document-number">Document ${index + 1}</div>
+      `;
+      docItem.appendChild(header);
+
+      // Preview area
+      let previewWrapper = document.createElement("div");
+      previewWrapper.className = "preview-wrapper";
+
+      if (fileUrl) {
+        if (isImageFile(fileName)) {
+          // Image preview (PNG/JPG/GIF/etc.)
+          const img = document.createElement("img");
+          img.src = fileUrl;
+          img.alt = `Preview of ${fileName}`;
+          img.className = "preview-image";
+          img.tabIndex = 0;
+          previewWrapper.appendChild(img);
+        } else if (isPdfFile(fileName)) {
+          // PDF preview using <object> with fallback link
+          const pdfWrap = document.createElement("div");
+          pdfWrap.className = "pdf-preview-wrapper";
+          const obj = document.createElement("object");
+          obj.data = fileUrl;
+          obj.type = "application/pdf";
+          obj.width = "100%";
+          obj.height = "420";
+          // Fallback content inside object for browsers that don't render PDFs
+          obj.innerHTML = `<p>Unable to display PDF preview. <a href="${fileUrl}" target="_blank" rel="noopener">Open PDF in new tab</a></p>`;
+          pdfWrap.appendChild(obj);
+          // Add explicit open/download links as well
+          const links = document.createElement("div");
+          links.className = "file-links";
+          links.innerHTML = `<a href="${fileUrl}" target="_blank" rel="noopener" class="open-btn">Open PDF</a>
+                             <a href="${fileUrl}" download="${fileName}" class="download-btn">Download</a>`;
+          pdfWrap.appendChild(links);
+          previewWrapper.appendChild(pdfWrap);
+        } else {
+          // Generic file preview (icon + links)
+          const fileWrap = document.createElement("div");
+          fileWrap.className = "file-preview-wrapper";
+          const icon = document.createElement("img");
+          icon.src = "../../images/document-icon.png";
+          icon.alt = "Document icon";
+          icon.className = "preview-image";
+          fileWrap.appendChild(icon);
+          const links = document.createElement("div");
+          links.className = "file-links";
+          links.innerHTML = `<a href="${fileUrl}" download="${fileName}" class="download-btn">Download</a>
+                             <a href="${fileUrl}" target="_blank" rel="noopener" class="open-btn">Open</a>`;
+          fileWrap.appendChild(links);
+          previewWrapper.appendChild(fileWrap);
+        }
+      } else {
+        const noPreview = document.createElement("div");
+        noPreview.style.textAlign = "center";
+        noPreview.style.padding = "24px";
+        noPreview.style.color = "#6b7780";
+        noPreview.textContent = "No preview available";
+        previewWrapper.appendChild(noPreview);
+      }
+
+      docItem.appendChild(previewWrapper);
+
+      // Metadata grid
+      const meta = document.createElement("div");
+      meta.className = "preview-grid";
+      meta.innerHTML = `
+        <div class="preview-item"><div class="preview-label">File Name</div><div class="preview-value">${fileName}</div></div>
+        <div class="preview-item"><div class="preview-label">Page Count</div><div class="preview-value">${docData.pageCount || 0}</div></div>
+        <div class="preview-item"><div class="preview-label">Number of Copies</div><div class="preview-value">${docData.numberOfCopies || 1}</div></div>
+        <div class="preview-item"><div class="preview-label">Paper Size</div><div class="preview-value">${docData.paperSize || "Unknown"}</div></div>
+        <div class="preview-item"><div class="preview-label">Print Type</div><div class="preview-value">${docData.printType || "Unknown"}</div></div>
+        <div class="preview-item"><div class="preview-label">Printing Side</div><div class="preview-value">${docData.printingSide || "Unknown"}</div></div>
+      `;
+      docItem.appendChild(meta);
+
+      documentsContainer.appendChild(docItem);
+    });
   }
 
   // Handle back button
@@ -648,12 +847,8 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (item) {
       try {
-        // Update status in backend
-        await updateRequestStatus(item.details.requestId, "Rejected");
-        
-        // Update the status to Rejected in frontend
-        item.details.status = "Rejected";
-        item.status = "Rejected";
+        // Update status in backend for the entire request
+        await updateRequestStatus(item.requestId, "Rejected");
         
         // Show confirmation message
         alert(`Request Queue #${item.queueNumber} has been rejected.`);
@@ -661,8 +856,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // Close the modal
         closeModal(detailsModal);
         
-        // Refresh the view to reflect changes
-        renderView(queueData);
+        // Refresh the data to reflect changes
+        await initialize();
       } catch (error) {
         alert("Failed to reject request. Please try again.");
         console.error("Error rejecting request:", error);
@@ -676,12 +871,8 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (item) {
       try {
-        // Update status in backend
-        await updateRequestStatus(item.details.requestId, "Accepted");
-        
-        // Update the status to Accepted in frontend
-        item.status = "Accepted";
-        item.details.status = "Accepted";
+        // Update status in backend for the entire request
+        await updateRequestStatus(item.requestId, "Accepted");
         
         // Store the request data in sessionStorage to pass to print management page
         sessionStorage.setItem('selectedRequest', JSON.stringify(item));
@@ -692,8 +883,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // Close modal
         closeModal(detailsModal);
         
-        // Refresh the view to reflect changes
-        renderView(queueData);
+        // Refresh the data to reflect changes
+        await initialize();
         
         // Redirect to print management page
         window.location.href = '../html/printmanagement.html';
@@ -717,6 +908,30 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // -------------------------
+  // Logout functionality
+  // -------------------------
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      openModal(logoutModal);
+    });
+  }
+
+  if (cancelLogout) {
+    cancelLogout.addEventListener('click', function() {
+      closeModal(logoutModal);
+    });
+  }
+
+  if (confirmLogout) {
+    confirmLogout.addEventListener('click', function() {
+      // Perform logout actions here
+      // For now, just redirect to login page
+      window.location.href = '/index.html';
+    });
+  }
+
   // backdrop click to close modal
   document.querySelectorAll('[data-close-modal]').forEach(el => {
     el.addEventListener('click', (e) => {
@@ -735,26 +950,31 @@ document.addEventListener("DOMContentLoaded", () => {
         currentRequestId = null; 
         closeModal(detailsModal); 
       }
+      if (logoutModal && logoutModal.classList.contains('open')) { 
+        closeModal(logoutModal); 
+      }
     }
   });
 
   // -------------------------
-  // Attach click handlers to view details buttons
+  // Attach click handlers to view details buttons (use delegation)
   // -------------------------
   function attachViewDetailsHandlers() {
-    // Remove previous listeners by replacing nodes with clones
-    document.querySelectorAll('.view-details-btn').forEach(original => {
-      const clone = original.cloneNode(true);
-      original.parentNode.replaceChild(clone, original);
+    if (!queueBody) return;
+    // ensure we only attach the delegated handler once
+    if (queueBody._hasDelegate) return;
+
+    queueBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('.view-details-btn');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      console.log("View details clicked for ID (delegated):", id);
+      if (id) openDetailsForId(id);
     });
 
-    // Now add listeners
-    document.querySelectorAll('.view-details-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        if (id) openDetailsForId(id);
-      });
-    });
+    queueBody._hasDelegate = true;
   }
 
   // -------------------------
@@ -767,6 +987,10 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // Fetch data from backend
       queueData = await fetchPrintRequests();
+      console.log("Fetched queue data:", queueData);
+      
+      // set footer year if element exists
+      if (curYear) curYear.textContent = new Date().getFullYear();
       
       // Render the view
       renderView(queueData);

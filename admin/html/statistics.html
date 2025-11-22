@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Admin — Analytics</title>
+    <title>Admin — Statistics</title>
     <link rel="stylesheet" href="../css/statistics.css" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../js/statistics.js" defer></script>
   </head>
   <body>
     <div class="dashboard-container">
@@ -22,6 +22,7 @@
           <li class="nav-item">
             <a href="../html/queue.html">
               <span class="text">QUEUE</span>
+              <span class="queue-count" id="sidebarQueueCount">0</span>
             </a>
           </li>
           <li class="nav-item">
@@ -49,6 +50,11 @@
               <span class="text">User Tokens</span>
             </a>
           </li>
+          <li class="nav-item logout-item">
+            <a href="#" id="logoutBtn">
+              <span class="text">LOGOUT</span>
+            </a>
+          </li>
         </ul>
       </nav>
 
@@ -58,111 +64,97 @@
           <header class="header">
             <div class="title-block">
               <h1 class="title">ADMIN DASHBOARD</h1>
-              <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
+              <p class="subtitle">Statistics <span class="muted">Overview</span></p>
             </div>
 
             <div class="brand-right">
-              <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
+              <img src="/images/SLU_printdesk_logo.png" alt="SLU" />
             </div>
           </header>
 
           <section class="card">
             <div class="card-header">
-              <h2>Analytics Overview</h2>
-
+              <h2>Statistics</h2>
               <div class="controls">
-                <div class="date-filter">
-                  <select id="timeRange" class="time-select">
-                    <option value="today">Today</option>
-                    <option value="week" selected>This Week</option>
-                    <option value="month">This Month</option>
-                    <option value="semester">By Semester</option>
-                  </select>
-                  <select id="semesterFilter" class="time-select" style="display: none;">
-                    <option value="prelim">Prelim</option>
-                    <option value="midterm">Midterm</option>
-                    <option value="finals">Finals</option>
-                  </select>
-                </div>
+                <label for="semesterSelect" class="visually-hidden">Semester</label>
+                <select id="semesterSelect" class="semester-select" aria-label="Filter by semester">
+                  <option value="All">All Semesters</option>
+                </select>
 
-                <button id="refreshBtn" class="icon-btn" title="Refresh Data">
-                  <div class="refresh-icon">🔄</div>
-                </button>
+                <label for="termSelect" class="visually-hidden">Term</label>
+                <select id="termSelect" class="term-select" aria-label="Filter by term">
+                  <option value="All">All Terms</option>
+                </select>
+
+                <div id="activeFilterLabel" class="filter-label">Showing: All</div>
+
+                <button class="icon-btn" id="refreshBtn" title="Refresh">Refresh</button>
               </div>
             </div>
 
             <div class="card-inner">
-              <!-- Statistics Cards -->
-              <div class="stats-grid">
+              <!-- statistics content will be rendered by ../js/statistics.js -->
+              <div id="statsContent" class="stats-grid">
                 <div class="stat-card">
-                  <div class="stat-icon users">👥</div>
+                  <div class="stat-icon"><img src="../images/stat-placeholder.png" alt="" /></div>
                   <div class="stat-content">
                     <div class="stat-value" id="totalUsers">0</div>
                     <div class="stat-label">Total Users</div>
-                    <div class="stat-change positive" id="usersChange">Loading...</div>
+                    <div class="stat-change" id="usersChange"></div>
                   </div>
                 </div>
 
                 <div class="stat-card">
-                  <div class="stat-icon prints">📄</div>
+                  <div class="stat-icon"><img src="../images/stat-placeholder.png" alt="" /></div>
                   <div class="stat-content">
                     <div class="stat-value" id="totalPrints">0</div>
                     <div class="stat-label">Total Prints</div>
-                    <div class="stat-change positive" id="printsChange">Loading...</div>
+                    <div class="stat-change" id="printsChange"></div>
                   </div>
                 </div>
 
                 <div class="stat-card">
-                  <div class="stat-icon leads">📈</div>
+                  <div class="stat-icon"><img src="../images/stat-placeholder.png" alt="" /></div>
                   <div class="stat-content">
                     <div class="stat-value" id="totalLeads">0</div>
                     <div class="stat-label">Total Leads</div>
-                    <div class="stat-change positive" id="leadsChange">Loading...</div>
+                    <div class="stat-change" id="leadsChange"></div>
                   </div>
                 </div>
               </div>
 
-              <!-- Charts Section -->
-              <div class="charts-container">
-                <div class="chart-card">
-                  <div class="chart-header">
-                    <h3>Daily Overview</h3>
-                    <div class="chart-controls">
-                      <button class="chart-period active" data-period="day">Day</button>
-                      <button class="chart-period" data-period="week">Week</button>
-                      <button class="chart-period" data-period="month">Month</button>
-                    </div>
-                  </div>
-                  <div class="chart-wrapper">
-                    <canvas id="dailyChart"></canvas>
-                  </div>
-                </div>
+              <!-- Charts will be inserted by JS after the stat cards -->
 
-                <div class="chart-card">
-                  <div class="chart-header">
-                    <h3>Print Trends</h3>
-                  </div>
-                  <div class="chart-wrapper">
-                    <canvas id="trendsChart"></canvas>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Recent Activity Section -->
-              <div class="data-section">
+              <!-- Recent Activity -->
+              <div class="data-section" style="margin-top: 18px;">
                 <h3>Recent Activity</h3>
-                <div class="recent-activity" id="recentActivityList">
-                  <div class="loading-activity">Loading recent activity...</div>
+                <div id="recentActivityList" class="recent-activity">
+                  <!-- Filled by statistics.js -->
                 </div>
               </div>
             </div>
           </section>
 
-          <footer class="footer muted">© <span id="curYear"></span> PrintDesk Analytics</footer>
+          <footer class="footer muted">© <span id="curYear"></span> PrintDesk Queue Management</footer>
         </div>
       </main>
     </div>
 
-    <script src="../js/statistics.js"></script>
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+      <div class="modal-backdrop" data-close-modal></div>
+      <div class="modal-content small-modal">
+        <div class="modal-header">
+          <h2>Confirm Logout</h2>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to logout?</p>
+          <div class="action-buttons">
+            <button class="reject-btn" id="cancelLogout">Cancel</button>
+            <button class="accept-btn" id="confirmLogout">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

@@ -206,9 +206,102 @@ app.get("/users", async (req, res) => {
   }
 })
 
+// --- CREATE new user ---
+app.post("/users", async (req, res) => {
+  try {
+    console.log("POST /users - Creating new user", req.body);
+    
+    const { email, fullName, role, password } = req.body; // Added password
+
+    // Validation
+    if (!email || !fullName || !role || !password) { // Added password validation
+      return res.status(400).json({ 
+        error: "Missing required fields", 
+        required: ["email", "fullName", "role", "password"] 
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ 
+        error: "User already exists",
+        existingEmail: email 
+      });
+    }
+
+    // Validate role
+    const validRoles = ["student", "admin"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ 
+        error: "Invalid role", 
+        validRoles 
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: "Password must be at least 6 characters long"
+      });
+    }
+
+    // Create new user with password
+    const newUser = new User({
+      email,
+      fullName,
+      password, // Store the password
+      role,
+      authProvider: "manual",
+      tokenBalance: 500, // Default token balance
+      createdAt: new Date(),
+      lastLogin: new Date()
+    });
+
+    const savedUser = await newUser.save();
+    console.log(`User created successfully: ${savedUser.email}`);
+
+    // Return user without sensitive data
+    const userResponse = {
+      _id: savedUser._id,
+      fullName: savedUser.fullName,
+      email: savedUser.email,
+      role: savedUser.role,
+      tokenBalance: savedUser.tokenBalance,
+      authProvider: savedUser.authProvider,
+      createdAt: savedUser.createdAt,
+      lastLogin: savedUser.lastLogin
+    };
+
+    res.status(201).json(userResponse);
+
+  } catch (err) {
+    console.error("Error creating user:", err);
+    
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ 
+        error: "Validation error", 
+        details: err.message 
+      });
+    }
+    
+    if (err.code === 11000) {
+      return res.status(409).json({ 
+        error: "Email already exists" 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: "Failed to create user", 
+      details: err.message 
+    });
+  }
+});
+
 // --- UPDATE user ---
 app.patch("/users/:id", async (req, res) => {
   try {
+<<<<<<< HEAD
     console.log(`PATCH /users/${req.params.id}`, req.body)
 
     const { fullName, courseYear, role } = req.body
@@ -220,6 +313,24 @@ app.patch("/users/:id", async (req, res) => {
 
     const updatedUser = await User.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
 
+=======
+    console.log(`PATCH /users/${req.params.id}`, req.body);
+    
+    const { fullName, courseYear, role, password } = req.body; // Add password
+    const updates = {};
+    
+    if (fullName) updates.fullName = fullName;
+    if (courseYear) updates.courseYear = courseYear;
+    if (role) updates.role = role;
+    if (password) updates.password = password; // Add password update
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      updates,
+      { new: true, runValidators: true }
+    );
+    
+>>>>>>> c600b8bfa4a19dd370bb348bb43f392531631822
     if (!updatedUser) {
       return res.status(404).json({ error: "User not found" })
     }
@@ -227,8 +338,13 @@ app.patch("/users/:id", async (req, res) => {
     console.log(`Updated user ${req.params.id}`)
     res.json(updatedUser)
   } catch (err) {
+<<<<<<< HEAD
     console.error("Error updating user:", err)
     res.status(500).json({ error: "Failed to update user", details: err.message })
+=======
+    console.error("Error updating user:", error);
+    res.status(500).json({ error: "Failed to update user", details: err.message });
+>>>>>>> c600b8bfa4a19dd370bb348bb43f392531631822
   }
 })
 

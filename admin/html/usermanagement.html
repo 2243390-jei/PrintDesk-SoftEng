@@ -1,194 +1,222 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Admin — User Management</title>
-    <link rel="stylesheet" href="../css/usermanagement.css" />
-    <script src="../js/usermanagement.js" defer></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  </head>
-  <body>
-    <div class="app">
-      <!-- Navigation Sidebar -->
-      <nav class="sidebar">
-        <div class="sidebar-header">
-          <div class="admin-profile">
-            <div class="admin-role">ADMIN</div>
-            <div class="admin-name">Admin Name</div>
-          </div>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — User Management</title>
+  <link rel="stylesheet" href="../css/usermanagement.css" />
+  <script src="../js/usermanagement.js" defer></script>
+</head>
+
+<body>
+  <div class="app">
+    <!-- Navigation Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="admin-profile">
+          <div class="admin-role">ADMIN</div>
+          <div class="admin-name">Admin Name</div>
         </div>
-        
-        <ul class="nav-links">
-          <li class="nav-item ">
-            <a href="../html/queue.html">
-              <span class="text">QUEUE</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printmanagement.html">
-              <span class="text">PRINT</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/statistics.html">
-              <span class="text">STATISTICS</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printrecordhistory.html">
-              <span class="text">RECORDS</span>
-            </a>
-          </li>
-          <li class="nav-item active">
-            <a href="../html/usermanagement.html">
-              <span class="text">MANAGE</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printTokens.html">
-              <span class="text">User Tokens</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-
-      <main class="main-area" role="main">
-        <div class="content-area">
-          <header class="header">
-            <div class="title-block">
-              <h1 class="title">ADMIN DASHBOARD</h1>
-              <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
-            </div>
-
-            <div class="brand-right">
-              <img src="../../images/SLU_printdesk_logo.png" alt="SLU LOGO" />
-            </div>
-          </header>
-
-          <section class="card">
-            <div class="card-header">
-              <h2>User Management</h2>
-
-              <div class="controls">
-                <div class="search" role="search" aria-label="Search users">
-                  <img src="../../images/admin_img/loupe.png" alt="loupe icon">
-                  <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
-                </div>
-
-                <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="filterMenu">
-                  <img src="../../images/admin_img/filter.png" alt="filter" />
-                </button>
-
-                <!-- Filter Dropdown Panel -->
-                <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
-                  <!-- view switches -->
-                  <button type="button" data-action="view" data-view="table" role="menuitem">Table</button>
-                  <button type="button" data-action="view" data-view="board" role="menuitem">Board</button>
-                  <button type="button" data-action="view" data-view="list" role="menuitem">List</button>
-                  <div class="divider" aria-hidden="true"></div>
-
-                  <!-- filters that open the small inline filter panel -->
-                  <button type="button" data-action="open-filter" data-filter="role" role="menuitem">Role</button>
-                  <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
-                  <button type="button" data-action="open-filter" data-filter="status" role="menuitem">Status</button>
-                  <div class="divider" aria-hidden="true"></div>
-
-                  <button type="button" data-action="apply" class="primary" role="menuitem">Filter</button>
-
-                  <!-- small inline panel for choosing filter values -->
-                  <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card-inner">
-              <div class="table-wrap">
-                <!-- keep table visible for "table" view -->
-                <table class="users-table" aria-describedby="user-table">
-                  <thead>
-                    <tr>
-                      <th class="col-check"><input id="selectAll" type="checkbox" /></th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Course & Year</th>
-                      <th>Status</th>
-                      <th>Role</th>
-                      <th class="col-actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="usersBody"></tbody>
-                </table>
-
-                <!-- board (cards) container -->
-                <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
-
-                <!-- list container (compact rows) -->
-                <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
-              </div>
-
-              <div class="table-footer">
-                <div class="pagination">
-                  <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
-                  <div id="pageNumbers" class="page-numbers"></div>
-                  <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <footer class="footer muted">© <span id="curYear"></span> Admin User Management</footer>
-        </div>         
-      </main>
-    </div>
-
-    <!-- Edit User Modal -->
-    <div id="editModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="editModalTitle">
-      <div class="modal-backdrop" data-close-modal></div>
-      <div class="modal-content">
-        <h3 id="editModalTitle">Edit User</h3>
-        <form id="editForm">
-          <label for="editEmail">Email</label>
-          <input type="email" id="editEmail" name="email" required />
-
-          <label for="editName">Name</label>
-          <input type="text" id="editName" name="name" required />
-
-          <label for="editCourse">Course &amp; Year</label>
-          <input type="text" id="editCourse" name="course" />
-
-          <label for="editStatus">Status</label>
-          <select id="editStatus" name="status">
-            <option value="Accepted">Accepted</option>
-            <option value="Pending">Pending</option>
-          </select>
-
-          <label for="editRole">Role</label>
-          <select id="editRole" name="role">
-            <option value="User">User</option>
-            <option value="Organization">Organization</option>
-            <option value="Admin">Admin</option>
-          </select>
-
-          <div class="modal-actions">
-            <button type="button" id="cancelEdit" class="btn secondary">Cancel</button>
-            <button type="submit" id="saveEdit" class="btn primary">Save</button>
-          </div>
-        </form>
       </div>
-    </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="deleteModalTitle">
-      <div class="modal-backdrop" data-close-modal></div>
-      <div class="modal-content small">
-        <h3 id="deleteModalTitle">Confirm Delete</h3>
-        <p id="deleteMessage">Are you sure you want to delete this user?</p>
+      <ul class="nav-links">
+        <li class="nav-item ">
+          <a href="../html/queue.html">
+            <span class="text">QUEUE</span>
+            <span class="queue-count" id="sidebarQueueCount">0</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printmanagement.html">
+            <span class="text">PRINT</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/statistics.html">
+            <span class="text">STATISTICS</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printrecordhistory.html">
+            <span class="text">RECORDS</span>
+          </a>
+        </li>
+        <li class="nav-item active">
+          <a href="../html/usermanagement.html">
+            <span class="text">MANAGE</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printTokens.html">
+            <span class="text">User Tokens</span>
+          </a>
+        </li>
+        <li class="nav-item logout-item">
+          <a href="#" id="logoutBtn">
+            <span class="text">LOGOUT</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <main class="main-area" role="main">
+      <div class="content-area">
+        <header class="header">
+          <div class="title-block">
+            <h1 class="title">ADMIN DASHBOARD</h1>
+            <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span>
+            </p>
+          </div>
+
+          <div class="brand-right">
+            <img src="../../images/SLU_printdesk_logo.png" alt="SLU LOGO" />
+          </div>
+        </header>
+
+        <section class="card">
+          <div class="card-header">
+            <h2>User Management</h2>
+
+            <div class="controls">
+              <div class="search" role="search" aria-label="Search users">
+                <img src="/images/admin_img/search (1).png" alt="Search" class="search-icon" />
+                <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
+              </div>
+
+              <!-- Add User Button -->
+              <button id="addUserBtn" class="add-user-btn" title="Add User">
+                <img src="../../images/admin_img/plus.png" alt="Add User" />
+                <span>Add User</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="card-inner">
+            <div class="table-wrap">
+              <table class="users-table" aria-describedby="user-table">
+                <thead>
+                  <tr>
+                    <th class="col-check"><input id="selectAll" type="checkbox" /></th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersBody"></tbody>
+              </table>
+
+              <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
+              <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
+            </div>
+
+            <div class="table-footer">
+              <div class="pagination">
+                <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
+                <div id="pageNumbers" class="page-numbers"></div>
+                <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="footer muted">© <span id="curYear"></span> Admin User Management</footer>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add User Modal -->
+  <div id="addModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="addModalTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content">
+      <h3 id="addModalTitle">Add New User</h3>
+      <form id="addForm">
+        <label for="addEmail">Email</label>
+        <input type="email" id="addEmail" name="email" required />
+
+        <!-- Add Password Field -->
+        <label for="addPassword">Password</label>
+        <input type="password" id="addPassword" name="password" required minlength="6"
+          placeholder="Minimum 6 characters" />
+
+        <label for="addName">Full Name</label>
+        <input type="text" id="addName" name="name" required />
+
+        <label for="addRole">Role</label>
+        <select id="addRole" name="role" required>
+          <option value="User">Student</option>
+          <option value="Admin">Admin</option>
+        </select>
+
         <div class="modal-actions">
-          <button type="button" id="cancelDelete" class="btn secondary">Cancel</button>
-          <button type="button" id="confirmDelete" class="btn danger">Delete</button>
+          <button type="button" id="cancelAdd" class="btn secondary">Cancel</button>
+          <button type="submit" id="saveAdd" class="btn primary">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div id="editModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="editModalTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content">
+      <h3 id="editModalTitle">Edit User</h3>
+      <form id="editForm">
+        <label for="editEmail">Email</label>
+        <input type="email" id="editEmail" name="email" required />
+
+        <label for="editName">Name</label>
+        <input type="text" id="editName" name="name" required />
+
+        <!-- Add Password Field (initially hidden) -->
+        <div id="passwordFieldContainer" style="display: none;">
+          <label for="editPassword">New Password (leave blank to keep current)</label>
+          <input type="password" id="editPassword" name="password" minlength="6" placeholder="Minimum 6 characters" />
+        </div>
+
+        <label for="editRole">Role</label>
+        <div id="editRoleDisplay" class="read-only-field"></div>
+        <input type="hidden" id="editRole" name="role" />
+
+        <div class="modal-actions">
+          <button type="button" id="cancelEdit" class="btn secondary">Cancel</button>
+          <button type="submit" id="saveEdit" class="btn primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true"
+    aria-labelledby="deleteModalTitle">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content small">
+      <h3 id="deleteModalTitle">Confirm Delete</h3>
+      <p id="deleteMessage">Are you sure you want to delete this user?</p>
+      <div class="modal-actions">
+        <button type="button" id="cancelDelete" class="btn secondary">Cancel</button>
+        <button type="button" id="confirmDelete" class="btn danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content small-modal">
+      <div class="modal-header">
+        <h2>Confirm Logout</h2>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to logout?</p>
+        <div class="action-buttons">
+          <button class="reject-btn" id="cancelLogout">Cancel</button>
+          <button class="accept-btn" id="confirmLogout">Logout</button>
         </div>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>

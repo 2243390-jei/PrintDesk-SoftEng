@@ -23,6 +23,7 @@
           <li class="nav-item active">
             <a href="../html/queue.html">
               <span class="text">QUEUE</span>
+              <span class="queue-count" id="sidebarQueueCount">0</span>
             </a>
           </li>
           <li class="nav-item">
@@ -50,6 +51,11 @@
               <span class="text">User Tokens</span>
             </a>
           </li>
+          <li class="nav-item logout-item">
+            <a href="#" id="logoutBtn">
+              <span class="text">LOGOUT</span>
+            </a>
+          </li>
         </ul>
       </nav>
 
@@ -63,9 +69,8 @@
             </div>
 
             <div class="brand-right">
-            <!-- images folder is outside admin/, so go up two levels -->
-            <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
-          </div>
+              <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
+            </div>
           </header>
 
           <section class="card">
@@ -74,24 +79,19 @@
 
               <div class="controls">
                 <div class="search" role="search" aria-label="Search queue">
-                  <div class="search-icon">🔍</div>
+                  <img src="/images/admin_img/search (1).png" alt="Search" class="search-icon" />
                   <input id="searchInput" type="search" placeholder="Search..." aria-label="Search queue" />
                 </div>
 
                 <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="filterMenu">
-                  <div class="filter-icon">⚙️</div>
+                  <img src="/images/admin_img/filter.png" alt="Filter" class="filter-icon" />
                 </button>
 
                 <!-- Filter Dropdown Panel -->
                 <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
-                  <!-- view switches -->
-                  <button type="button" data-action="view" data-view="table" role="menuitem">Table</button>
-                  <button type="button" data-action="view" data-view="board" role="menuitem">Board</button>
-                  <button type="button" data-action="view" data-view="list" role="menuitem">List</button>
-                  <div class="divider" aria-hidden="true"></div>
-
                   <!-- filters that open the small inline filter panel -->
-                  <button type="button" data-action="open-filter" data-filter="status" role="menuitem">Status</button>
+                  <button type="button" data-action="open-filter" data-filter="pickupTime" role="menuitem">Pickup Time</button>
+                  <button type="button" data-action="open-filter" data-filter="queueTime" role="menuitem">Queue Time</button>
                   <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
                   <div class="divider" aria-hidden="true"></div>
 
@@ -105,7 +105,6 @@
 
             <div class="card-inner">
               <div class="table-wrap">
-                <!-- keep table visible for "table" view -->
                 <table class="queue-table" aria-describedby="queue-table">
                   <thead>
                     <tr>
@@ -113,6 +112,7 @@
                       <th>Name</th>
                       <th>Course & Year</th>
                       <th>Date</th>
+                      <th>Documents</th>
                       <th class="col-actions">Actions</th>
                     </tr>
                   </thead>
@@ -120,12 +120,6 @@
                     <!-- Queue data will be populated by JavaScript -->
                   </tbody>
                 </table>
-
-                <!-- board (cards) container -->
-                <div id="cardsContainer" class="cards-container visually-hidden" aria-hidden="true"></div>
-
-                <!-- list container (compact rows) -->
-                <div id="listContainer" class="list-container visually-hidden" aria-hidden="true"></div>
               </div>
 
               <div class="table-footer">
@@ -148,7 +142,9 @@
   <div class="modal-backdrop" data-close-modal></div>
   <div class="modal-content">
     <div class="modal-header">
-      <button id="backBtn" class="back-btn">&larr;</button>
+      <button id="backBtn" class="back-btn">
+        <img src="../images/back-icon.png" alt="Back" class="back-icon" />
+      </button>
       <h2>Document Details</h2>
     </div>
     
@@ -175,43 +171,38 @@
       </div>
       
       <div class="document-preview">
-        <h3>Document Preview</h3>
-        <img id="previewImage" src="" alt="Document preview" class="preview-image" />
-        <div class="preview-grid">
-          <div class="preview-item">
-            <div class="preview-label">File Name</div>
-            <div class="preview-value" id="fileName">Automobile_Anatomy.pdf</div>
-          </div>
-          <div class="preview-item">
-            <div class="preview-label">Page Count</div>
-            <div class="preview-value" id="pageCount">1</div>
-          </div>
-          <div class="preview-item">
-            <div class="preview-label">Number of Copies</div>
-            <div class="preview-value" id="copiesCount">1</div>
-          </div>
-          <div class="preview-item">
-            <div class="preview-label">Paper Size</div>
-            <div class="preview-value" id="paperSize">A4</div>
-          </div>
-          <div class="preview-item">
-            <div class="preview-label">Print Type</div>
-            <div class="preview-value" id="printType">Colored</div>
-          </div>
-          <div class="preview-item">
-            <div class="preview-label">Printing Side</div>
-            <div class="preview-value" id="printingSide">Single-Sided</div>
-          </div>
-          <div class="preview-item">
-            <div class="preview-label">Pickup Date</div>
-            <div class="preview-value" id="pickupDate">October 20, 2025</div>
-          </div>
+        <h3>Document Previews</h3>
+        <div id="documentsContainer" class="documents-container">
+          <!-- Documents will be populated here -->
         </div>
       </div>
       
       <div class="action-buttons">
-        <button class="reject-btn" id="rejectBtn">Reject</button>
-        <button class="accept-btn" id="acceptBtn">Accept</button>
+        <button class="reject-btn" id="rejectBtn">
+          <img src="/images/admin_img/remove.png" alt="Reject" class="btn-icon" />
+          Reject
+        </button>
+        <button class="accept-btn" id="acceptBtn">
+          <img src="/images/admin_img/accept.png" alt="Accept" class="btn-icon" />
+          Accept
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal-backdrop" data-close-modal></div>
+  <div class="modal-content small-modal">
+    <div class="modal-header">
+      <h2>Confirm Logout</h2>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to logout?</p>
+      <div class="action-buttons">
+        <button class="reject-btn" id="cancelLogout">Cancel</button>
+        <button class="accept-btn" id="confirmLogout">Logout</button>
       </div>
     </div>
   </div>
