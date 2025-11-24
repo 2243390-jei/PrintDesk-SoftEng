@@ -159,11 +159,41 @@ body {
 .card-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; }
 .controls{ display:flex; gap:12px; align-items:center; position: relative; z-index: 2; }
 
-/* search */
-.search { background: var(--pill-dark); padding: 8px 12px; border-radius: 999px; display: flex; align-items: center; gap:12px; min-width:260px; }
-.search img{ width:28px;height:28px; object-fit:contain; flex:0 0 28px; display:block; }
-.search input{ background: transparent; border: none; outline: none; color: #fff; padding: 6px 4px; width: 220px; font-size: 14px; }
-.search input::placeholder { color: rgba(255,255,255,0.6); }
+/* FIXED: Search bar styles - consistent with other pages */
+.card-header .search {
+  background: #233033;
+  padding: 6px 12px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+  height: 44px; /* Fixed height for consistency */
+}
+
+.card-header .search .search-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex: 0 0 18px;
+  display: block;
+}
+
+.card-header .search input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  padding: 4px 2px;
+  width: 190px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.card-header .search input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
 
 /* filter button */
 .icon-btn{ width:44px;height:44px;border-radius:12px;border:none;background:#fff;display:inline-flex;align-items:center;justify-content:center; box-shadow: 0 4px 12px rgba(20,28,32,0.06); cursor:pointer; }
