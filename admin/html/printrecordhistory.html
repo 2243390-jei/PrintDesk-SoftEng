@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -7,6 +8,7 @@
   <link rel="stylesheet" href="../css/printrecordhistory.css" />
   <script src="../js/printrecordhistory.js" defer></script>
 </head>
+
 <body>
   <div class="app">
     <!-- Navigation Sidebar -->
@@ -22,7 +24,7 @@
         <li class="nav-item ">
           <a href="../html/queue.html">
             <span class="text">QUEUE</span>
-            <span class="queue-count" id="sidebarQueueCount">0</span>                        
+            <span class="queue-count" id="sidebarQueueCount">0</span>
           </a>
         </li>
         <li class="nav-item">
@@ -193,9 +195,42 @@
           </div>
         </div>
 
+        <div class="document-navigation" id="documentNavigation" style="display: none;">
+          <h3>Documents</h3>
+          <div class="document-tabs" id="documentTabs">
+            <!-- Document tabs will be generated here -->
+          </div>
+        </div>
+
         <div class="document-preview">
           <h3>Print Details</h3>
-          <img id="previewImage" src="" alt="Document preview" class="preview-image" />
+
+          <!-- Document Info -->
+          <div class="preview-header">
+            <div class="document-info">
+              <span class="document-counter" id="documentCounter">Document 1 of 3</span>
+              <span class="document-name" id="currentDocumentName">document.pdf</span>
+            </div>
+            <div class="preview-controls">
+              <button class="nav-btn" id="prevDocument" disabled>
+                <img src="../../images/admin_img/left-chevron.png" alt="Previous" />
+              </button>
+              <button class="nav-btn" id="nextDocument">
+                <img src="../../images/admin_img/right-chevron.png" alt="Next" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Preview Area -->
+          <div class="preview-area">
+            <img id="previewImage" src="" alt="Document preview" class="preview-image" />
+            <div class="preview-placeholder" id="previewPlaceholder">
+              <img src="../../images/admin_img/document-preview.png" alt="Document" />
+              <p>No preview available</p>
+            </div>
+          </div>
+
+          <!-- Document Details Grid -->
           <div class="preview-grid">
             <div class="preview-item">
               <div class="preview-label">File Name</div>

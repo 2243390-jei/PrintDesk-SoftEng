@@ -13,6 +13,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const selectAll = document.getElementById("selectAll");
   const sidebarQueueCount = document.getElementById("sidebarQueueCount");
 
+  // Document navigation elements
+  const documentNavigation = document.getElementById('documentNavigation');
+  const documentTabs = document.getElementById('documentTabs');
+  const documentCounter = document.getElementById('documentCounter');
+  const currentDocumentName = document.getElementById('currentDocumentName');
+  const prevDocumentBtn = document.getElementById('prevDocument');
+  const nextDocumentBtn = document.getElementById('nextDocument');
+  const previewArea = document.querySelector('.preview-area');
+  const previewPlaceholder = document.getElementById('previewPlaceholder');
+
   const filterBtn = document.getElementById("filterBtn");
   const filterMenu = document.getElementById("filterMenu");
   const filterPanel = document.getElementById("filterPanel");
@@ -43,6 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const printingSide = document.getElementById('printingSide');
   const pickupDate = document.getElementById('pickupDate');
   const previewImage = document.getElementById('previewImage');
+  const printerUsed = document.getElementById('printerUsed');
 
   // -------------------------
   // state
@@ -53,6 +64,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let filtered = [];
   let view = "table";
   let activeFilters = { course: null, printType: null, dateFrom: null, dateTo: null };
+  
+  // Document navigation state
+  let currentRequestId = null;
+  let currentDocuments = []; // Array of all documents for current request
+  let currentDocumentIndex = 0; // Current document index
 
   // API endpoints
   const API_BASE = "http://localhost:3000";
@@ -86,6 +102,116 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
+  // File Preview Functions (from printmanagement)
+  // -------------------------
+  function getFileExtension(filename) {
+    return filename.split('.').pop().toLowerCase();
+  }
+
+  function isImageFile(filename) {
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+    return imageExtensions.includes(getFileExtension(filename));
+  }
+
+  function isPDFFile(filename) {
+    return getFileExtension(filename) === 'pdf';
+  }
+
+  function isWordFile(filename) {
+    const wordExtensions = ['doc', 'docx'];
+    return wordExtensions.includes(getFileExtension(filename));
+  }
+
+  function isExcelFile(filename) {
+    const excelExtensions = ['xls', 'xlsx'];
+    return excelExtensions.includes(getFileExtension(filename));
+  }
+
+  function isPowerPointFile(filename) {
+    const pptExtensions = ['ppt', 'pptx'];
+    return pptExtensions.includes(getFileExtension(filename));
+  }
+
+  function createFilePreview(fileUrl, filename, documentTitle) {
+    // Clear previous preview
+    previewArea.innerHTML = '';
+    
+    const fileExt = getFileExtension(filename);
+    
+    if (isImageFile(filename)) {
+      // Handle images
+      const img = document.createElement('img');
+      img.src = fileUrl;
+      img.alt = `Preview of ${documentTitle}`;
+      img.className = 'preview-image';
+      img.style.display = 'block';
+      img.onerror = () => showPreviewUnavailable(filename);
+      previewArea.appendChild(img);
+      
+    } else if (isPDFFile(filename)) {
+      // Handle PDF files using PDF.js or embed
+      const pdfContainer = document.createElement('div');
+      pdfContainer.className = 'pdf-preview-container';
+      pdfContainer.innerHTML = `
+        <embed src="${fileUrl}" type="application/pdf" width="100%" height="400px" />
+        <div class="pdf-alternative">
+          <p>Can't view the PDF? <a href="${fileUrl}" target="_blank" download="${filename}">Download instead</a></p>
+        </div>
+      `;
+      previewArea.appendChild(pdfContainer);
+      
+    } else if (isWordFile(filename) || isExcelFile(filename) || isPowerPointFile(filename)) {
+      // Handle Office documents using Microsoft Office Online Viewer
+      const officeContainer = document.createElement('div');
+      officeContainer.className = 'office-preview-container';
+      
+      // Microsoft Office Online Viewer URL
+      const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+      
+      officeContainer.innerHTML = `
+        <iframe src="${officeViewerUrl}" width="100%" height="400px" frameborder="0"></iframe>
+        <div class="office-alternative">
+          <p>Can't view the document? <a href="${fileUrl}" target="_blank" download="${filename}">Download instead</a></p>
+        </div>
+      `;
+      previewArea.appendChild(officeContainer);
+      
+    } else {
+      // Handle other file types
+      showPreviewUnavailable(filename);
+    }
+  }
+
+  function showPreviewUnavailable(filename) {
+    previewArea.innerHTML = `
+      <div class="preview-placeholder">
+        <img src="../../images/admin_img/document-preview.png" alt="Document" />
+        <p>No preview available for ${filename}</p>
+        <p class="file-download-text">Please download the file to view its contents</p>
+        <button class="download-btn" onclick="downloadCurrentDocument()">Download Document</button>
+      </div>
+    `;
+  }
+
+  function downloadCurrentDocument() {
+    if (currentDocuments.length === 0 || currentDocumentIndex >= currentDocuments.length) return;
+    
+    const currentDoc = currentDocuments[currentDocumentIndex];
+    if (!currentDoc.filePath) return;
+    
+    const fileUrl = `${API_BASE}${currentDoc.filePath}`;
+    const filename = currentDoc.documentTitle || 'document';
+    
+    // Create a temporary anchor element to trigger download
+    const a = document.createElement('a');
+    a.href = fileUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  // -------------------------
   // API Functions
   // -------------------------
   async function fetchPrintRequests() {
@@ -106,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // Transform backend data to frontend format
       return sortedData.map((request, index) => {
-        // Use the first document for display purposes
+        // Use the first document for display purposes in table
         const primaryDoc = request.documents && request.documents.length > 0 
           ? request.documents[0] 
           : {
@@ -142,7 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
           printType: primaryDoc.printType,
           status: request.status,
           details: {
-            printerUsed: "Epson L3210", // Not Specify
+            printerUsed: "Epson L3210", // You can update this with actual printer data if available
             submittedOn: createdDate.toLocaleDateString('en-US', { 
               year: 'numeric', 
               month: 'long', 
@@ -166,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
             previewImage: primaryDoc.filePath ? 
               `${API_BASE}${primaryDoc.filePath}` : 
               "../../images/SLU_Logo.png",
-            // Include all documents for details view
+            // Include all documents for details view - IMPORTANT for multiple document support
             allDocuments: request.documents || [],
             email: request.email,
             totalTokens: request.totalTokens,
@@ -522,6 +648,115 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
+  // Document Navigation Functions
+  // -------------------------
+  function setupDocumentNavigation(documents) {
+    if (!documentNavigation || !documentTabs) return;
+
+    // Clear existing tabs
+    documentTabs.innerHTML = '';
+
+    if (documents.length > 1) {
+      // Show navigation for multiple documents
+      documentNavigation.style.display = 'block';
+
+      // Create tabs for each document
+      documents.forEach((doc, index) => {
+        const tab = document.createElement('button');
+        tab.className = `document-tab ${index === 0 ? 'active' : ''}`;
+        tab.textContent = `Doc ${index + 1}`;
+        tab.title = doc.documentTitle || `Document ${index + 1}`;
+        tab.addEventListener('click', () => switchDocument(index));
+        documentTabs.appendChild(tab);
+      });
+
+      // Enable/disable navigation buttons
+      updateNavigationButtons();
+    } else {
+      // Hide navigation for single document
+      documentNavigation.style.display = 'none';
+    }
+  }
+
+  function showDocument(index) {
+    if (index < 0 || index >= currentDocuments.length) return;
+
+    const doc = currentDocuments[index];
+    currentDocumentIndex = index;
+
+    // Update document counter
+    if (documentCounter) {
+      documentCounter.textContent = `Document ${index + 1} of ${currentDocuments.length}`;
+    }
+
+    // Update current document name
+    if (currentDocumentName) {
+      currentDocumentName.textContent = doc.documentTitle || 'Unknown Document';
+    }
+
+    // Update document-specific details
+    if (fileName) fileName.textContent = doc.documentTitle || 'Unknown';
+    if (pageCount) pageCount.textContent = doc.pageCount || 0;
+    if (copiesCount) copiesCount.textContent = doc.numberOfCopies || 1;
+    if (paperSize) paperSize.textContent = doc.paperSize || 'Unknown';
+    if (printType) printType.textContent = doc.printType || 'Unknown';
+    if (printingSide) printingSide.textContent = doc.printingSide || 'Unknown';
+
+    // Update preview based on file type
+    if (doc.filePath) {
+      const fileUrl = `${API_BASE}${doc.filePath}`;
+      const filename = doc.documentTitle || 'document';
+      createFilePreview(fileUrl, filename, doc.documentTitle);
+    } else {
+      // No file path available
+      showPreviewUnavailable(doc.documentTitle || 'Unknown document');
+    }
+
+    // Update active tab
+    updateActiveTab();
+    updateNavigationButtons();
+  }
+
+  function switchDocument(index) {
+    showDocument(index);
+  }
+
+  function updateActiveTab() {
+    const tabs = documentTabs.querySelectorAll('.document-tab');
+    tabs.forEach((tab, index) => {
+      tab.classList.toggle('active', index === currentDocumentIndex);
+    });
+  }
+
+  function updateNavigationButtons() {
+    if (prevDocumentBtn) {
+      prevDocumentBtn.disabled = currentDocumentIndex === 0;
+    }
+    if (nextDocumentBtn) {
+      nextDocumentBtn.disabled = currentDocumentIndex === currentDocuments.length - 1;
+    }
+  }
+
+  // -------------------------
+  // Event Listeners for Document Navigation
+  // -------------------------
+  if (prevDocumentBtn) {
+    prevDocumentBtn.addEventListener('click', () => {
+      if (currentDocumentIndex > 0) {
+        switchDocument(currentDocumentIndex - 1);
+      }
+    });
+  }
+
+  if (nextDocumentBtn) {
+    nextDocumentBtn.addEventListener('click', () => {
+      if (currentDocumentIndex < currentDocuments.length - 1) {
+        switchDocument(currentDocumentIndex + 1);
+      }
+    });
+  }
+
+  // -------------------------
   // details modal
   // -------------------------
   function attachDetailHandlers() {
@@ -538,7 +773,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function showDetails(rec) {
     if (!detailsModal || !rec || !rec.details) return;
 
-    // Update all detail elements
+    currentRequestId = rec.details.requestId;
+    currentDocuments = rec.details.allDocuments || [];
+    currentDocumentIndex = 0;
+
+    // Update request-level details (non-document specific)
     if (submittedDate) submittedDate.textContent = rec.details.submittedOn;
     if (totalCost) totalCost.textContent = rec.details.totalCost;
     if (statusBadge) {
@@ -546,28 +785,19 @@ document.addEventListener("DOMContentLoaded", () => {
       statusBadge.className = `status-badge status-${rec.details.status.toLowerCase()}`;
     }
     if (requestId) requestId.textContent = rec.details.requestId;
+    if (pickupDate) pickupDate.textContent = rec.details.pickupDate;
+    if (printerUsed) printerUsed.textContent = rec.details.printerUsed || "Not specified";
+
+    // Update user information
     if (userName) userName.textContent = rec.details.fullName;
     if (userCourse) userCourse.textContent = rec.details.courseYear;
     if (userEmail) userEmail.textContent = rec.details.email;
-    if (fileName) fileName.textContent = rec.details.fileName;
-    if (pageCount) pageCount.textContent = rec.details.pageCount;
-    if (copiesCount) copiesCount.textContent = rec.details.copies;
-    if (paperSize) paperSize.textContent = rec.details.paperSize;
-    if (printType) printType.textContent = rec.details.printType;
-    if (printingSide) printingSide.textContent = rec.details.printingSide;
-    if (pickupDate) pickupDate.textContent = rec.details.pickupDate;
 
-    const printerUsed = document.getElementById('printerUsed');
-    if (printerUsed) printerUsed.textContent = rec.details.printerUsed || "Not specified";  
-    // Set preview image
-    if (previewImage) {
-      previewImage.src = rec.details.previewImage;
-      previewImage.alt = `Preview of ${rec.details.fileName}`;
-      previewImage.onerror = function() {
-        // Fallback if image fails to load
-        this.src = "../../images/SLU_Logo.png";
-      };
-    }
+    // Setup document navigation
+    setupDocumentNavigation(currentDocuments);
+
+    // Show first document
+    showDocument(currentDocumentIndex);
 
     // Show the modal
     openModal(detailsModal);
@@ -681,6 +911,7 @@ document.addEventListener("DOMContentLoaded", () => {
     openFilterPanel: (t) => openFilterPanel(t),
     showDetails,
     fetchPrintRequests,
-    updateQueueCount
+    updateQueueCount,
+    downloadCurrentDocument
   };
 });
