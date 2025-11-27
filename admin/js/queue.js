@@ -841,31 +841,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // WebSocket setup for admin
-  let adminSocket = null;
-
-  function initializeAdminWebSocket() {
-    try {
-      adminSocket = new WebSocket('ws://localhost:3000/ws');
-
-      adminSocket.onopen = function () {
-        console.log('Admin WebSocket connected');
-      };
-
-      adminSocket.onclose = function () {
-        console.log('Admin WebSocket disconnected');
-        // Attempt to reconnect after 3 seconds
-        setTimeout(initializeAdminWebSocket, 3000);
-      };
-
-      adminSocket.onerror = function (error) {
-        console.error('Admin WebSocket error:', error);
-      };
-    } catch (error) {
-      console.error('Failed to initialize admin WebSocket:', error);
-    }
-  }
-
   // Handle reject action
   async function handleReject(id) {
     const item = queueData.find(item => item.id === id);
@@ -874,21 +849,6 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         // Update status in backend for the entire request
         await updateRequestStatus(item.requestId, "Rejected");
-
-        // Emit WebSocket event
-        if (adminSocket && adminSocket.readyState === WebSocket.OPEN) {
-          adminSocket.send(JSON.stringify({
-            type: 'REQUEST_UPDATED',
-            requestId: item.requestId,
-            request: {
-              status: "Rejected",
-              email: item.details.email
-            },
-            userId: item.details.email // Send user email to target specific user
-          }));
-        } else {
-          console.warn('WebSocket not available for real-time update');
-        }
 
         // Show confirmation message
         alert(`Request Queue #${item.queueNumber} has been rejected.`);
@@ -913,21 +873,6 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         // Update status in backend for the entire request
         await updateRequestStatus(item.requestId, "Accepted");
-
-        // Emit WebSocket event
-        if (adminSocket && adminSocket.readyState === WebSocket.OPEN) {
-          adminSocket.send(JSON.stringify({
-            type: 'REQUEST_UPDATED',
-            requestId: item.requestId,
-            request: {
-              status: "Accepted",
-              email: item.details.email
-            },
-            userId: item.details.email
-          }));
-        } else {
-          console.warn('WebSocket not available for real-time update');
-        }
 
         // Store the request data in sessionStorage to pass to print management page
         sessionStorage.setItem('selectedRequest', JSON.stringify(item));
@@ -1039,11 +984,6 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       // Show loading state
       if (queueBody) queueBody.innerHTML = "<tr><td colspan='6'>Loading print requests...</td></tr>";
-
-      // Initialize WebSocket first
-      if (!adminSocket) {
-        initializeAdminWebSocket();
-      }
 
       // Fetch data from backend
       queueData = await fetchPrintRequests();
