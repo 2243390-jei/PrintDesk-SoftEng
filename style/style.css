@@ -1230,3 +1230,191 @@ body.history-body {
   color: #999;
   font-size: 0.8rem;
 }
+
+/* Add these styles to your existing style.css file */
+
+/* Confirmation Modal Styles */
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.modal-buttons .reset-btn,
+.modal-buttons .submit-btn {
+    padding: 10px 25px;
+    border-radius: 6px;
+    font-family: "Inter", sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.modal-buttons .reset-btn {
+    background-color: #e0e0e0;
+    color: #000000;
+}
+
+.modal-buttons .reset-btn:hover {
+    background-color: #cccccc;
+}
+
+.modal-buttons .submit-btn {
+    background-color: #1e1362;
+    color: #ffffff;
+}
+
+.modal-buttons .submit-btn:hover {
+    background-color: #3d2ee7;
+}
+
+#confirmationModal .modal-content h3 {
+    margin-top: 0;
+    color: #1e1362;
+    font-family: "Inter", sans-serif;
+}
+
+#confirmationModal .modal-content p {
+    margin: 15px 0;
+    font-family: "Inter", sans-serif;
+    color: #333;
+}
+
+/* File preview improvements */
+.file-preview {
+    transition: all 0.3s ease;
+}
+
+.file-preview:hover {
+    transform: translateY(-2px);
+}
+
+.preview-container {
+    padding: 15px;
+    background: #f8f9ff;
+    border-radius: 8px;
+    border-left: 4px solid #3d2ee7;
+}
+
+.preview-title {
+    font-weight: 600;
+    color: #1e1362;
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+}
+
+.preview-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.preview-filename {
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    word-break: break-all;
+}
+
+.preview-details {
+    color: #666;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.preview-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.view-file-btn, .remove-file-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-family: "Inter", sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.view-file-btn {
+    background-color: #3d2ee7;
+    color: white;
+}
+
+.view-file-btn:hover {
+    background-color: #1e1362;
+}
+
+.remove-file-btn {
+    background-color: #ff4444;
+    color: white;
+}
+
+.remove-file-btn:hover {
+    background-color: #cc0000;
+}
+
+/* File Preview Modal */
+.file-preview-modal {
+    max-width: 800px;
+    max-height: 90vh;
+}
+
+#filePreviewContent {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    max-height: 60vh;
+    overflow: auto;
+}
+
+#filePreviewContent img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+#filePreviewContent object {
+    width: 100%;
+    height: 500px;
+    border: none;
+}
+
+.token-cost {
+    margin-top: 8px;
+    color: #333;
+    font-weight: bold;
+    padding: 8px 12px;
+    background: #f0f8ff;
+    border-radius: 6px;
+    border-left: 3px solid #3d2ee7;
+}
+
+#totalTokens, #remainingTokens {
+    text-align: right;
+    margin-top: 15px;
+    font-weight: bold;
+    padding: 10px 15px;
+    border-radius: 8px;
+}
+
+#totalTokens {
+    background: #f8f9ff;
+    color: #1e1362;
+}
+
+#remainingTokens {
+    background: #f0fff0;
+    color: #2e7d32;
+}
+
+#remainingTokens.low-tokens {
+    background: #fff0f0;
+    color: #c62828;
+}

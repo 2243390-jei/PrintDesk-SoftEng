@@ -57,17 +57,17 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Course:</label>
-                        <input type="text" name="course" id="courseInput" placeholder="e.g., BS IT" required />
+                        <input type="text" name="course" id="courseInput" placeholder="e.g., BSIT" required />
                     </div>
 
                     <div class="form-group">
                         <label>Year:</label>
                         <select name="year" id="yearSelect" required>
                             <option value="">Select year</option>
-                            <option value="1st Year">1st Year</option>
-                            <option value="2nd Year">2nd Year</option>
-                            <option value="3rd Year">3rd Year</option>
-                            <option value="4th Year">4th Year</option>
+                            <option value="1">1st Year</option>
+                            <option value="2">2nd Year</option>
+                            <option value="3">3rd Year</option>
+                            <option value="4">4th Year</option>
                         </select>
                     </div>
                 </div>
@@ -79,7 +79,7 @@
 
                 <div class="form-group">
                     <label>Preferred Pickup Date & Time:</label>
-                    <input type="datetime-local" name="pickup_datetime" required />
+                    <input type="datetime-local" name="pickup_datetime" id="pickupDateTime" required />
                 </div>
 
                 <div id="printJobs">
@@ -133,7 +133,7 @@
                             <div class="drop-zone" id="dropZone_1">
                                 <p>Browse File</p>
                                 <span>Drag & Drop files here</span>
-                                <input type="file" name="documents" class="drop-zone-input" required />
+                                <input type="file" name="file_1" class="drop-zone-input" required />
                             </div>
 
                             <div class="page-count" style="margin-top: 8px; color: #666;">
@@ -142,13 +142,18 @@
 
                             <!-- File preview section -->
                             <div class="file-preview" style="margin-top: 12px; display: none;">
-                                <div style="padding: 10px; background: #f0f0ff; border-radius: 8px; border-left: 4px solid #3d2ee7;">
-                                    <p style="margin: 0; font-weight: 600; color: #1e1362;">
-                                        <span class="preview-filename"></span>
-                                    </p>
-                                    <p style="margin: 5px 0 0 0; font-size: 0.9rem; color: #666;">
-                                        <span class="preview-size"></span> • <span class="preview-pages"></span> pages
-                                    </p>
+                                <div class="preview-container">
+                                    <p class="preview-title">File Preview:</p>
+                                    <div class="preview-content">
+                                        <p class="preview-filename"></p>
+                                        <p class="preview-details">
+                                            <span class="preview-size"></span> • <span class="preview-pages"></span> pages
+                                        </p>
+                                        <div class="preview-buttons">
+                                            <button type="button" class="view-file-btn">View File</button>
+                                            <button type="button" class="remove-file-btn">Remove</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -166,18 +171,42 @@
 
                 <div class="form-group confirm-group">
                     <label>
-                        <input type="checkbox" required />
+                        <input type="checkbox" id="confirmCheckbox" required />
                         I confirm that the information provided above is accurate and complete.
                     </label>
                 </div>
 
                 <div class="form-buttons">
-                    <button type="reset" class="reset-btn">Reset</button>
+                    <button type="button" id="customResetBtn" class="reset-btn">Reset</button>
                     <button type="submit" class="submit-btn">Submit</button>
                 </div>
             </form>
         </div>
     </section>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Confirm Submission</h3>
+            <p>Are you sure you want to submit this print request?</p>
+            <div class="modal-buttons">
+                <button id="cancelSubmission" class="reset-btn">Cancel</button>
+                <button id="confirmSubmission" class="submit-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Preview Modal -->
+    <div id="filePreviewModal" class="modal">
+        <div class="modal-content file-preview-modal">
+            <span class="close-modal">&times;</span>
+            <h3>File Preview</h3>
+            <div id="filePreviewContent">
+                <p>Preview will be displayed here</p>
+            </div>
+        </div>
+    </div>
 
     <div id="profileModal" class="modal">
         <div class="modal-content">
