@@ -163,8 +163,10 @@
     <div class="modal-content">
       <h3 id="editModalTitle">Edit User</h3>
       <form id="editForm">
+        <!-- Change email field to read-only display -->
         <label for="editEmail">Email</label>
-        <input type="email" id="editEmail" name="email" required />
+        <div id="editEmailDisplay" class="read-only-field"></div>
+        <input type="hidden" id="editEmail" name="email" />
 
         <label for="editName">Name</label>
         <input type="text" id="editName" name="name" required />

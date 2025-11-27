@@ -478,7 +478,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!user) return;
 
     editingEmail = user.email;
+
+    // Display email as read-only text instead of editable input
     if (editEmail) editEmail.value = user.email || '';
+
+    // Add this line to display the email in the read-only field
+    const editEmailDisplay = document.getElementById('editEmailDisplay');
+    if (editEmailDisplay) {
+      editEmailDisplay.textContent = user.email || '';
+    }
+
     if (editName) editName.value = user.name || '';
 
     // Show/hide password field based on authProvider
