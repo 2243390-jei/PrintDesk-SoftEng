@@ -1,9 +1,13 @@
-;(() => {
+; (() => {
   const API_URL = "http://localhost:3000/requests"
   let allRequests = []
   let filteredRequests = []
   const currentUserEmail = sessionStorage.getItem("userEmail") || null
   let currentViewedRequestId = null
+  let isEditMode = false
+  let originalRequestData = null
+  let currentDocuments = []
+  let pollingInterval = null
 
   // Helper: fetch with timeout
   async function fetchWithTimeout(resource, options = {}) {
@@ -55,7 +59,123 @@
     ensureContainers()
     attachFilterHandlers()
     await initialize()
+
+    // Start polling for real-time updates
+    startPolling()
   })
+
+  // Polling for real-time updates
+  function startPolling() {
+    // Check for updates every 5 seconds (same as queue)
+    pollingInterval = setInterval(async () => {
+      try {
+        await checkForUpdates()
+      } catch (error) {
+        console.error('Polling error:', error)
+      }
+    }, 5000) // 5 seconds
+  }
+
+  function stopPolling() {
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
+    }
+  }
+
+  async function checkForUpdates() {
+    try {
+      const resp = await fetchWithTimeout(API_URL)
+      const data = await resp.json()
+      const newAllRequests = Array.isArray(data) ? data : []
+
+      // Check if requests have changed
+      const hasChanges = JSON.stringify(newAllRequests) !== JSON.stringify(allRequests)
+
+      if (hasChanges) {
+        console.log('Changes detected in requests, updating...')
+        allRequests = newAllRequests
+
+        // Reapply filters and update display
+        const previousFilteredCount = filteredRequests.length
+        const userEmail = sessionStorage.getItem("userEmail") || null
+
+        if (userEmail) {
+          filteredRequests = allRequests.filter((r) => (r.email || "").toLowerCase() === userEmail.toLowerCase())
+          filteredRequests.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+
+          // Only show notification if the filtered data actually changed
+          if (filteredRequests.length !== previousFilteredCount ||
+            JSON.stringify(filteredRequests) !== JSON.stringify(previousFilteredRequests)) {
+            showUpdateNotification()
+            renderCards(filteredRequests)
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Polling update error:", err)
+    }
+  }
+
+  function showUpdateNotification() {
+    // Remove any existing notifications
+    const existingNotification = document.querySelector('.update-notification')
+    if (existingNotification) {
+      existingNotification.remove()
+    }
+
+    const notification = document.createElement('div')
+    notification.className = 'update-notification'
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #3d2ee7;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10000;
+      cursor: pointer;
+      animation: slideIn 0.3s ease-out;
+    `
+
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span>🔄 Requests updated</span>
+        <button style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">×</button>
+      </div>
+    `
+
+    // Add click handler for close button
+    notification.querySelector('button').addEventListener('click', () => {
+      notification.remove()
+    })
+
+    document.body.appendChild(notification)
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove()
+      }
+    }, 5000)
+  }
+
+  // Add CSS for animation
+  const style = document.createElement('style')
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .update-notification:hover {
+      transform: translateY(-2px);
+      transition: transform 0.2s ease;
+    }
+  `
+  document.head.appendChild(style)
 
   async function initialize() {
     const submissionList = document.getElementById("submissionList")
@@ -66,6 +186,7 @@
         <img src="../images/student_img/history/folder.png" alt="No Data" style="width:120px;margin-bottom:1rem;">
         <p>Please log in to view your print history.</p>
       </div>`
+      stopPolling()
       return
     }
 
@@ -74,11 +195,35 @@
       const data = await resp.json()
       allRequests = Array.isArray(data) ? data : []
       filteredRequests = allRequests.filter((r) => (r.email || "").toLowerCase() === currentUserEmail.toLowerCase())
+
+      // Sort by most recent by default (newest first)
+      filteredRequests.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
       renderCards(filteredRequests)
     } catch (err) {
       submissionList.innerHTML = `<div class="error-message"><p>Error loading requests: ${err.message}</p></div>`
       console.error("history init error:", err)
+      stopPolling()
     }
+  }
+
+  // Stop polling when page is not visible to save resources
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      stopPolling()
+    } else {
+      startPolling()
+    }
+  })
+
+  // Calculate total tokens for a request
+  function calculateTotalTokens(request) {
+    if (request.totalTokens !== undefined) return request.totalTokens
+
+    if (request.documents && Array.isArray(request.documents)) {
+      return request.documents.reduce((total, doc) => total + (doc.totalTokens || 0), 0)
+    }
+
+    return 0
   }
 
   // Render request cards into #submissionList
@@ -120,7 +265,7 @@
           <div class="event-meta">
             <span class="icon-calendar">Created: ${createdDate}</span>
             <span class="icon-location">Pickup: ${pickup}</span>
-            <span class="icon-token">Tokens: ${r.totalTokens ?? 0}</span>
+            <span class="icon-token">Tokens: ${r.totalTokens ?? calculateTotalTokens(r)}</span>
             <span class="icon-status">Status: ${status}</span>
           </div>
         </div>
@@ -144,33 +289,48 @@
     }
 
     const modal = document.getElementById("requestModal")
-    if (modal && e.target === modal) modal.style.display = "none"
+    if (modal && e.target === modal) {
+      if (isEditMode) {
+        if (confirm("You have unsaved changes. Are you sure you want to close without saving?")) {
+          isEditMode = false
+          modal.style.display = "none"
+        }
+      } else {
+        modal.style.display = "none"
+      }
+    }
 
     if (e.target.matches(".request-modal-close, .request-modal-close *")) {
       const m = document.getElementById("requestModal")
-      if (m) m.style.display = "none"
+      if (m) {
+        if (isEditMode) {
+          if (confirm("You have unsaved changes. Are you sure you want to close without saving?")) {
+            isEditMode = false
+            m.style.display = "none"
+          }
+        } else {
+          m.style.display = "none"
+        }
+      }
     }
 
-    const saveBtn = e.target.closest(".btn-save")
-    if (saveBtn) {
-      const id = saveBtn.dataset.id
-      const modal = document.getElementById("requestModal")
-      const paperSize = modal.querySelector('select[data-field="paperSize"]')?.value
-      const paperType = modal.querySelector('select[data-field="paperType"]')?.value
-      const paperSide = modal.querySelector('select[data-field="paperSide"]')?.value
-      const copies = modal.querySelector('input[data-field="copies"]')?.value
-      const pickupDateTime = modal.querySelector('input[data-field="pickupDateTime"]')?.value
-
-      const updates = { pickupDateTime }
-      if (paperSize) updates.paperSize = paperSize
-      if (paperType) updates.paperType = paperType
-      if (paperSide) updates.paperSide = paperSide
-      if (copies) updates.copies = copies
-
-      saveRequestChanges(id, updates)
+    // Edit Request Button
+    const editBtn = e.target.closest(".btn-edit")
+    if (editBtn) {
+      const id = editBtn.dataset.id
+      enableEditMode(id)
       return
     }
 
+    // Save Changes Button
+    const saveBtn = e.target.closest(".btn-save")
+    if (saveBtn) {
+      const id = saveBtn.dataset.id
+      saveRequestChanges(id)
+      return
+    }
+
+    // Delete Request Button
     const deleteBtn = e.target.closest(".btn-delete")
     if (deleteBtn) {
       const id = deleteBtn.dataset.id
@@ -179,6 +339,42 @@
       }
     }
   })
+
+  // Enable edit mode for a request
+  function enableEditMode(requestId) {
+    isEditMode = true
+    const modal = document.getElementById("requestModal")
+
+    // Store original data for cancel functionality
+    originalRequestData = JSON.parse(JSON.stringify(currentDocuments))
+
+    // Enable all editable fields
+    const editableFields = modal.querySelectorAll('.editable-field')
+    editableFields.forEach(field => {
+      field.disabled = false
+      field.style.backgroundColor = '#fff'
+      field.style.borderColor = '#3d2ee7'
+    })
+
+    // Show save button, hide edit button
+    modal.querySelector('.btn-edit').style.display = 'none'
+    modal.querySelector('.btn-save').style.display = 'inline-block'
+    modal.querySelector('.btn-delete').style.display = 'none'
+
+    // Update modal header to show editing state
+    const modalHeader = modal.querySelector('.modal-header h2')
+    modalHeader.innerHTML = `
+    <img src="../images/admin_img/write.png" alt="edit" width="24" height="24" class="icon">
+    Editing Request • ${modalHeader.textContent.split('•')[1] || ''}
+    <span style="font-size: 0.8em; color: #3d2ee7; margin-left: 10px;">(Editing Mode)</span>
+  `
+
+    // Scroll to the Request Details section
+    const requestDetailsSection = modal.querySelector('.modal-section')
+    if (requestDetailsSection) {
+      requestDetailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   async function deleteRequest(id) {
     try {
@@ -202,20 +398,25 @@
   // Build and show the modal for a single request
   function openRequestModal(req) {
     currentViewedRequestId = req._id
+    isEditMode = false
+    currentDocuments = JSON.parse(JSON.stringify(req.documents || []))
+    originalRequestData = JSON.parse(JSON.stringify(currentDocuments))
+
     const modal = document.getElementById("requestModal")
     const created = req.createdAt
       ? new Date(req.createdAt).toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric" })
       : "-"
     const pickup = req.pickupDateTime ? new Date(req.pickupDateTime).toLocaleString() : "-"
     const isPending = (req.status || "").toLowerCase() === "pending"
+    const isAcceptedOrCompleted = ["accepted", "completed"].includes((req.status || "").toLowerCase())
 
-    const docsHtml = (req.documents || []).map((d) => getDocumentPreview(d)).join("")
+    const docsHtml = currentDocuments.map((doc, index) => getDocumentPreview(doc, index)).join("")
 
     const detailsHtml = isPending
       ? `
       <div class="detail-group">
         <label class="detail-label">Paper Size</label>
-        <select class="editable-field" data-field="paperSize" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <select class="editable-field" data-field="paperSize" disabled style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background-color:#f5f5f5;">
           <option value="A4">A4</option>
           <option value="Letter">Letter</option>
           <option value="Legal">Legal</option>
@@ -223,25 +424,25 @@
       </div>
       <div class="detail-group">
         <label class="detail-label">Paper Type</label>
-        <select class="editable-field" data-field="paperType" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <select class="editable-field" data-field="paperType" disabled style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background-color:#f5f5f5;">
           <option value="Black & White">Black & White</option>
           <option value="Colored">Colored</option>
         </select>
       </div>
       <div class="detail-group">
         <label class="detail-label">Paper Side</label>
-        <select class="editable-field" data-field="paperSide" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
+        <select class="editable-field" data-field="paperSide" disabled style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background-color:#f5f5f5;">
           <option value="Single-sided">Single-sided</option>
           <option value="Double-sided">Double-sided</option>
         </select>
       </div>
       <div class="detail-group">
         <label class="detail-label">Number of Copies</label>
-        <input type="number" class="editable-field" data-field="copies" min="1" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;" />
+        <input type="number" class="editable-field" data-field="copies" min="1" disabled style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background-color:#f5f5f5;" />
       </div>
       <div class="detail-group">
         <label class="detail-label">Pickup Date & Time</label>
-        <input type="datetime-local" class="editable-field" data-field="pickupDateTime" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;" />
+        <input type="datetime-local" class="editable-field" data-field="pickupDateTime" disabled style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background-color:#f5f5f5;" />
       </div>
     `
       : `
@@ -252,7 +453,7 @@
         </div>
       </div>
       <div class="detail-group"><label class="detail-label">Pickup</label><div class="detail-input">${pickup}</div></div>
-      <div class="detail-group"><label class="detail-label">Total Tokens</label><div class="detail-input">${req.totalTokens ?? 0}</div></div>
+      <div class="detail-group"><label class="detail-label">Total Tokens</label><div class="detail-input">${req.totalTokens ?? calculateTotalTokens(req)}</div></div>
     `
 
     modal.innerHTML = `
@@ -282,31 +483,39 @@
           </h3>
 
           ${detailsHtml}
-          <div class="detail-group"><label class="detail-label">Number of Documents</label><div class="detail-input">${(req.documents || []).length}</div></div>
+          <div class="detail-group"><label class="detail-label">Number of Documents</label><div class="detail-input">${currentDocuments.length}</div></div>
         </div>
 
-        <div class="modal-section">
+        <div class="modal-section documents-section">
           <h3>Documents & Preview</h3>
-          ${docsHtml || `<div class="detail-input">No documents attached</div>`}
+          <div class="documents-list">
+            ${docsHtml || `<div class="detail-input">No documents attached</div>`}
+          </div>
         </div>
 
         <div class="form-actions">
-          ${
-            isPending
-              ? `
-            <button type="button" class="btn btn-primary btn-save" data-id="${req._id}">
+          ${isPending
+        ? `
+            <button type="button" class="btn btn-primary btn-edit" data-id="${req._id}">
+              Edit Request
+            </button>
+            <button type="button" class="btn btn-primary btn-save" data-id="${req._id}" style="display: none;">
               Save Changes
             </button>
             <button type="button" class="btn btn-delete" data-id="${req._id}">
               Delete Request
             </button>
           `
-              : `
+        : isAcceptedOrCompleted
+          ? `
+            <!-- No delete button for accepted or completed requests -->
+          `
+          : `
             <button type="button" class="btn btn-delete" data-id="${req._id}">
               Delete Request
             </button>
           `
-          }
+      }
           <button type="button" class="btn btn-secondary request-modal-close">
             Close
           </button>
@@ -316,8 +525,8 @@
   `
 
     // Set editable field values if pending
-    if (isPending && req.documents && req.documents.length > 0) {
-      const firstDoc = req.documents[0]
+    if (isPending && currentDocuments.length > 0) {
+      const firstDoc = currentDocuments[0]
       const paperSizeSelect = modal.querySelector('select[data-field="paperSize"]')
       const paperTypeSelect = modal.querySelector('select[data-field="paperType"]')
       const paperSideSelect = modal.querySelector('select[data-field="paperSide"]')
@@ -336,7 +545,7 @@
     modal.style.display = "flex"
   }
 
-  function getDocumentPreview(doc) {
+  function getDocumentPreview(doc, index) {
     const filename = doc.documentTitle || (doc.filePath ? doc.filePath.split("/").pop() : "Document")
     const ext = filename.split(".").pop().toLowerCase()
     const link = doc.filePath ? `${doc.filePath}` : "#"
@@ -345,11 +554,10 @@
       return `
         <div class="doc-preview-container" style="display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:8px;background:#fafafa">
           <div style="flex-shrink:0;max-height:400px;overflow:auto;border:1px solid #ddd;border-radius:4px;background:white">
-            ${
-              ext === "pdf"
-                ? `<iframe src="${link}" style="width:100%;height:400px;border:none;border-radius:4px"></iframe>`
-                : `<img src="${link}" alt="${filename}" style="width:100%;height:auto;max-height:400px;object-fit:contain;border-radius:4px" onerror="this.src='../images/student_img/history/file_empty.png'" />`
-            }
+            ${ext === "pdf"
+          ? `<iframe src="${link}" style="width:100%;height:400px;border:none;border-radius:4px"></iframe>`
+          : `<img src="${link}" alt="${filename}" style="width:100%;height:auto;max-height:400px;object-fit:contain;border-radius:4px" onerror="this.src='../images/student_img/history/file_empty.png'" />`
+        }
           </div>
           <div>
             <div class="doc-name" style="font-weight:600;color:#1e1362;margin-bottom:4px">${filename}</div>
@@ -374,32 +582,39 @@
     }
   }
 
-  async function saveRequestChanges(id, changes) {
+  async function saveRequestChanges(id) {
     try {
-      const validUpdates = {}
+      const modal = document.getElementById("requestModal")
+      const paperSize = modal.querySelector('select[data-field="paperSize"]')?.value
+      const paperType = modal.querySelector('select[data-field="paperType"]')?.value
+      const paperSide = modal.querySelector('select[data-field="paperSide"]')?.value
+      const copies = modal.querySelector('input[data-field="copies"]')?.value
+      const pickupDateTime = modal.querySelector('input[data-field="pickupDateTime"]')?.value
 
-      if (changes.pickupDateTime) validUpdates.pickupDateTime = changes.pickupDateTime
-      if (changes.paperSize) validUpdates.paperSize = changes.paperSize
-      if (changes.paperType) validUpdates.paperType = changes.paperType
-      if (changes.paperSide) validUpdates.paperSide = changes.paperSide
-      if (changes.copies) {
-        // The backend expects numberOfCopies in documents array, but for a PATCH we send copies
-        validUpdates.copies = Number.parseInt(changes.copies)
+      const updates = {
+        pickupDateTime,
+        documents: currentDocuments
       }
 
-      console.log("[v0] Sending updates:", validUpdates)
+      if (paperSize) updates.paperSize = paperSize
+      if (paperType) updates.paperType = paperType
+      if (paperSide) updates.paperSide = paperSide
+      if (copies) updates.copies = Number.parseInt(copies)
+
+      console.log("Saving updates:", updates)
 
       const res = await fetch(`http://localhost:3000/requests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(validUpdates),
+        body: JSON.stringify(updates),
       })
 
       const result = await res.json()
-      console.log("[v0] Server response:", result)
+      console.log("Server response:", result)
 
       if (res.ok) {
         alert("Print request updated successfully")
+        isEditMode = false
         const modal = document.getElementById("requestModal")
         if (modal) modal.style.display = "none"
         initialize()
@@ -487,6 +702,8 @@
       })
     }
 
+    // Sort by most recent (newest first) after filtering
+    result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     filteredRequests = result
     renderCards(filteredRequests)
   }
