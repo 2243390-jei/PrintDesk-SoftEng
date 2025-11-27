@@ -301,19 +301,6 @@ app.post("/users", async (req, res) => {
 // --- UPDATE user ---
 app.patch("/users/:id", async (req, res) => {
   try {
-<<<<<<< HEAD
-    console.log(`PATCH /users/${req.params.id}`, req.body)
-
-    const { fullName, courseYear, role } = req.body
-    const updates = {}
-
-    if (fullName) updates.fullName = fullName
-    if (courseYear) updates.courseYear = courseYear
-    if (role) updates.role = role
-
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
-
-=======
     console.log(`PATCH /users/${req.params.id}`, req.body);
     
     const { fullName, courseYear, role, password } = req.body; // Add password
@@ -330,7 +317,6 @@ app.patch("/users/:id", async (req, res) => {
       { new: true, runValidators: true }
     );
     
->>>>>>> c600b8bfa4a19dd370bb348bb43f392531631822
     if (!updatedUser) {
       return res.status(404).json({ error: "User not found" })
     }
@@ -338,13 +324,8 @@ app.patch("/users/:id", async (req, res) => {
     console.log(`Updated user ${req.params.id}`)
     res.json(updatedUser)
   } catch (err) {
-<<<<<<< HEAD
-    console.error("Error updating user:", err)
-    res.status(500).json({ error: "Failed to update user", details: err.message })
-=======
-    console.error("Error updating user:", error);
+    console.error("Error updating user:", err); // fixed variable name
     res.status(500).json({ error: "Failed to update user", details: err.message });
->>>>>>> c600b8bfa4a19dd370bb348bb43f392531631822
   }
 })
 
@@ -578,34 +559,57 @@ app.get("/users/:email", async (req, res) => {
 // --- Submit Print Request ---
 app.post("/submit", upload.array("documents", 20), async (req, res) => {
   try {
-    const printJobs = JSON.parse(req.body.printJobs || "[]")
+    // printJobs may be sent as JSON string or as an already-parsed object
+    let printJobs = []
+    if (typeof req.body.printJobs === "string" && req.body.printJobs.trim() !== "") {
+      try {
+        printJobs = JSON.parse(req.body.printJobs)
+      } catch (parseErr) {
+        console.warn("Failed to parse printJobs JSON:", parseErr)
+        return res.status(400).json({ error: "Invalid printJobs JSON" })
+      }
+    } else if (Array.isArray(req.body.printJobs)) {
+      printJobs = req.body.printJobs
+    }
+
+    const files = req.files || []
     const documents = []
     let totalTokensRequest = 0
 
-    printJobs.forEach((job, i) => {
-      const file = req.files[i]
+    // Build documents array defensively; match jobs to files by index if present
+    (printJobs || []).forEach((job, i) => {
+      const file = files[i] || null
       const totalTokens = Number.parseInt(job.totalTokens) || 0
       const tokensPerPage = Number.parseInt(job.tokensPerPage) || 0
       const isImagePrint = job.isImagePrint === true || job.isImagePrint === "true"
       totalTokensRequest += totalTokens
 
       documents.push({
-        documentTitle: file ? file.originalname : "Untitled",
+        documentTitle: (job.documentTitle || (file ? file.originalname : "Untitled")) ,
         filePath: file ? "/uploads/" + file.filename : null,
-        numberOfCopies: job.copies || 1,
+        numberOfCopies: Number.parseInt(job.copies) || 1,
         paperSize: job.paperSize || "",
-        printingSide: job.paperSide || "",
+        printingSide: job.paperSide || job.paperSide || "",
         printType: job.paperType || "",
         notes: job.notes || "",
-        pageCount: job.pageCount || 1,
+        pageCount: Number.parseInt(job.pageCount) || 1,
         tokensPerPage,
         totalTokens,
         isImagePrint,
       })
     })
 
+    // Accept multiple variants for incoming fields (snake_case or camelCase)
+    const fullName = req.body.full_name || req.body.fullName || req.body.fullname || req.body.name || ""
+    const courseYear = req.body.course_year || req.body.courseYear || req.body.year || ""
+    const email = req.body.email || req.body.user_email
+
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" })
+    }
+
     // Find user
-    const user = await User.findOne({ email: req.body.email })
+    const user = await User.findOne({ email })
     if (!user) return res.status(404).json({ error: "User not found" })
 
     // Check if user has enough tokens
@@ -617,13 +621,13 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       })
     }
 
-    // Create new print request
+    // Create new print request (store fullName & courseYear with the normalized values)
     const newRequest = new PrintRequest({
-      fullName: req.body.full_name,
-      courseYear: req.body.course_year,
-      email: req.body.email,
+      fullName,
+      courseYear,
+      email,
       userId: user._id,
-      pickupDateTime: req.body.pickup_datetime,
+      pickupDateTime: req.body.pickup_datetime || req.body.pickupDateTime || "",
       documents,
       totalTokens: totalTokensRequest,
       status: "Pending",
@@ -644,6 +648,7 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       status: newRequest.status,
     })
   } catch (err) {
+    console.error("Error in /submit:", err)
     res.status(500).json({ error: "Failed to submit print request", details: err.message })
   }
 })
