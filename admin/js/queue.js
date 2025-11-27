@@ -40,11 +40,11 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentPage = 1;
   let queueData = []; // Will be populated from backend
   let filtered = [];
-  let activeFilters = { 
-    pickupTime: null, 
-    queueTime: null, 
-    dateFrom: null, 
-    dateTo: null 
+  let activeFilters = {
+    pickupTime: null,
+    queueTime: null,
+    dateFrom: null,
+    dateTo: null
   };
   let currentRequestId = null;
 
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
   }
-  
+
   function closeModal(modal) {
     if (!modal) return;
     modal.classList.remove('open');
@@ -92,20 +92,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // Function to format time for display
   function formatTime(dateString) {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     });
   }
 
   // Function to format date for display
   function formatDate(dateString) {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   }
 
@@ -119,17 +119,17 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Sort by createdAt (oldest first) to maintain queue order
       const sortedData = data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      
+
       // Filter only pending requests for queue
       const pendingRequests = sortedData.filter(request => request.status === "Pending");
-      
+
       // Transform backend data to frontend format with queue numbers
       const transformedData = [];
       let queueNumber = 1;
-      
+
       pendingRequests.forEach((request) => {
         // Create separate queue items for each document
         if (request.documents && request.documents.length > 0) {
@@ -139,11 +139,11 @@ document.addEventListener("DOMContentLoaded", () => {
             const formattedDate = formatDate(request.createdAt);
             const queueTime = formatTime(request.createdAt);
             const pickupTime = request.pickupDateTime ? formatTime(request.pickupDateTime) : "Not specified";
-            
+
             // Determine preview type and URL
             let previewImage = "../../images/SLU_Logo.png";
             let previewType = "image";
-            
+
             if (doc.filePath) {
               const fullFilePath = `${API_BASE}${doc.filePath}`;
               if (isImageFile(doc.documentTitle)) {
@@ -157,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 previewType = "document";
               }
             }
-            
+
             transformedData.push({
               id: `${request._id}_${docIndex}`, // Unique ID for each document
               requestId: request._id, // Original request ID
@@ -171,10 +171,10 @@ document.addEventListener("DOMContentLoaded", () => {
               documentIndex: docIndex,
               totalDocuments: request.documents.length,
               details: {
-                submittedOn: createdDate.toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
+                submittedOn: createdDate.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
                 }),
                 totalCost: `${request.totalTokens} tokens`,
                 status: request.status,
@@ -185,11 +185,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 paperSize: doc.paperSize,
                 printType: doc.printType,
                 printingSide: doc.printingSide,
-                pickupDate: request.pickupDateTime ? 
-                  new Date(request.pickupDateTime).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                pickupDate: request.pickupDateTime ?
+                  new Date(request.pickupDateTime).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                   }) : "Not specified",
                 previewImage: previewImage,
                 previewType: previewType,
@@ -207,7 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const formattedDate = formatDate(request.createdAt);
           const queueTime = formatTime(request.createdAt);
           const pickupTime = request.pickupDateTime ? formatTime(request.pickupDateTime) : "Not specified";
-          
+
           transformedData.push({
             id: request._id,
             requestId: request._id,
@@ -221,10 +221,10 @@ document.addEventListener("DOMContentLoaded", () => {
             documentIndex: 0,
             totalDocuments: 1,
             details: {
-              submittedOn: createdDate.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+              submittedOn: createdDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               }),
               totalCost: `${request.totalTokens} tokens`,
               status: request.status,
@@ -235,11 +235,11 @@ document.addEventListener("DOMContentLoaded", () => {
               paperSize: "Unknown",
               printType: "Unknown",
               printingSide: "Unknown",
-              pickupDate: request.pickupDateTime ? 
-                new Date(request.pickupDateTime).toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
+              pickupDate: request.pickupDateTime ?
+                new Date(request.pickupDateTime).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
                 }) : "Not specified",
               previewImage: "../../images/SLU_Logo.png",
               previewType: "image",
@@ -251,7 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
       });
-      
+
       return transformedData;
     } catch (error) {
       console.error("Error fetching print requests:", error);
@@ -269,11 +269,11 @@ document.addEventListener("DOMContentLoaded", () => {
         },
         body: JSON.stringify({ status: newStatus })
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error("Error updating request status:", error);
@@ -301,7 +301,7 @@ document.addEventListener("DOMContentLoaded", () => {
       queueBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #6b7780;">No pending requests in queue</td></tr>`;
       return;
     }
-    
+
     const start = (currentPage - 1) * perPage;
     const pageItems = list.slice(start, start + perPage);
 
@@ -311,7 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${item.queueNumber}</td>
         <td>
           <div class="user-name">
-            <div class="user-avatar" aria-hidden="true">${item.name.split(" ")[0].slice(0,1)}</div>
+            <div class="user-avatar" aria-hidden="true">${item.name.split(" ")[0].slice(0, 1)}</div>
             <div>
               <div style="font-weight:700; font-size:14px;">${item.name}</div>
               <div style="font-size:13px; color: #6b7780;">${item.course}</div>
@@ -365,7 +365,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (currentPage > 1) { currentPage--; renderView(queueData); }
     });
   }
-  
+
   if (nextPageBtn) {
     nextPageBtn.addEventListener("click", () => {
       const totalPages = Math.ceil(filtered.length / perPage);
@@ -380,9 +380,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : "";
     return list.filter(item => {
       // search
-      const matchesSearch = q === "" || 
-        item.name.toLowerCase().includes(q) || 
-        item.course.toLowerCase().includes(q) || 
+      const matchesSearch = q === "" ||
+        item.name.toLowerCase().includes(q) ||
+        item.course.toLowerCase().includes(q) ||
         item.date.includes(q) ||
         item.queueNumber.toString().includes(q);
 
@@ -391,7 +391,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (activeFilters.pickupTime) {
         matchesPickupTime = item.pickupTime.toLowerCase().includes(activeFilters.pickupTime.toLowerCase());
       }
-      
+
       // queue time filter
       let matchesQueueTime = true;
       if (activeFilters.queueTime) {
@@ -419,7 +419,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (currentPage > totalPages) currentPage = 1;
 
     renderTable(filtered);
-    
+
     // Update sidebar queue count
     if (sidebarQueueCount) {
       sidebarQueueCount.textContent = filtered.length;
@@ -505,22 +505,22 @@ document.addEventListener("DOMContentLoaded", () => {
     filterPanel.setAttribute("aria-hidden", "false");
 
     if (type === "pickupTime") {
-      const label = document.createElement("div"); 
-      label.textContent = "Pickup Time"; 
+      const label = document.createElement("div");
+      label.textContent = "Pickup Time";
       label.style.fontWeight = "700";
       label.style.marginBottom = "8px";
-      
+
       const timeSelect = document.createElement("select");
       timeSelect.style.width = "100%";
       timeSelect.style.padding = "8px";
       timeSelect.style.borderRadius = "4px";
       timeSelect.style.border = "1px solid #ddd";
-      
+
       const defaultOption = document.createElement("option");
       defaultOption.value = "";
       defaultOption.textContent = "All pickup times";
       timeSelect.appendChild(defaultOption);
-      
+
       // Add time options (you can customize these)
       const timeOptions = ["Morning", "Afternoon", "Evening"];
       timeOptions.forEach(time => {
@@ -530,23 +530,23 @@ document.addEventListener("DOMContentLoaded", () => {
         option.selected = activeFilters.pickupTime === time;
         timeSelect.appendChild(option);
       });
-      
-      const apply = document.createElement("button"); 
+
+      const apply = document.createElement("button");
       apply.textContent = "Apply";
-      const clear = document.createElement("button"); 
+      const clear = document.createElement("button");
       clear.textContent = "Clear";
 
       apply.addEventListener("click", () => {
         activeFilters.pickupTime = timeSelect.value || null;
-        currentPage = 1; 
-        renderView(queueData); 
+        currentPage = 1;
+        renderView(queueData);
         hideFilterPanel();
       });
-      
+
       clear.addEventListener("click", () => {
         activeFilters.pickupTime = null;
-        currentPage = 1; 
-        renderView(queueData); 
+        currentPage = 1;
+        renderView(queueData);
         hideFilterPanel();
       });
 
@@ -557,22 +557,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (type === "queueTime") {
-      const label = document.createElement("div"); 
-      label.textContent = "Queue Time"; 
+      const label = document.createElement("div");
+      label.textContent = "Queue Time";
       label.style.fontWeight = "700";
       label.style.marginBottom = "8px";
-      
+
       const timeSelect = document.createElement("select");
       timeSelect.style.width = "100%";
       timeSelect.style.padding = "8px";
       timeSelect.style.borderRadius = "4px";
       timeSelect.style.border = "1px solid #ddd";
-      
+
       const defaultOption = document.createElement("option");
       defaultOption.value = "";
       defaultOption.textContent = "All queue times";
       timeSelect.appendChild(defaultOption);
-      
+
       // Add time options
       const timeOptions = ["Morning", "Afternoon", "Evening"];
       timeOptions.forEach(time => {
@@ -582,23 +582,23 @@ document.addEventListener("DOMContentLoaded", () => {
         option.selected = activeFilters.queueTime === time;
         timeSelect.appendChild(option);
       });
-      
-      const apply = document.createElement("button"); 
+
+      const apply = document.createElement("button");
       apply.textContent = "Apply";
-      const clear = document.createElement("button"); 
+      const clear = document.createElement("button");
       clear.textContent = "Clear";
 
       apply.addEventListener("click", () => {
         activeFilters.queueTime = timeSelect.value || null;
-        currentPage = 1; 
-        renderView(queueData); 
+        currentPage = 1;
+        renderView(queueData);
         hideFilterPanel();
       });
-      
+
       clear.addEventListener("click", () => {
         activeFilters.queueTime = null;
-        currentPage = 1; 
-        renderView(queueData); 
+        currentPage = 1;
+        renderView(queueData);
         hideFilterPanel();
       });
 
@@ -609,45 +609,45 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (type === "date") {
-      const label = document.createElement("div"); 
-      label.textContent = "Date range"; 
+      const label = document.createElement("div");
+      label.textContent = "Date range";
       label.style.fontWeight = "700";
-      const from = document.createElement("input"); 
-      from.type = "date"; 
+      const from = document.createElement("input");
+      from.type = "date";
       from.value = activeFilters.dateFrom || "";
       from.style.width = "100%";
       from.style.padding = "8px";
       from.style.marginBottom = "8px";
       from.style.borderRadius = "4px";
       from.style.border = "1px solid #ddd";
-      
-      const to = document.createElement("input"); 
-      to.type = "date"; 
+
+      const to = document.createElement("input");
+      to.type = "date";
       to.value = activeFilters.dateTo || "";
       to.style.width = "100%";
       to.style.padding = "8px";
       to.style.marginBottom = "8px";
       to.style.borderRadius = "4px";
       to.style.border = "1px solid #ddd";
-      
-      const apply = document.createElement("button"); 
+
+      const apply = document.createElement("button");
       apply.textContent = "Apply";
-      const clear = document.createElement("button"); 
+      const clear = document.createElement("button");
       clear.textContent = "Clear";
 
       apply.addEventListener("click", () => {
         activeFilters.dateFrom = from.value || null;
         activeFilters.dateTo = to.value || null;
-        currentPage = 1; 
-        renderView(queueData); 
+        currentPage = 1;
+        renderView(queueData);
         hideFilterPanel();
       });
-      
+
       clear.addEventListener("click", () => {
-        activeFilters.dateFrom = null; 
+        activeFilters.dateFrom = null;
         activeFilters.dateTo = null;
-        currentPage = 1; 
-        renderView(queueData); 
+        currentPage = 1;
+        renderView(queueData);
         hideFilterPanel();
       });
 
@@ -675,9 +675,9 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Item not found for ID:", id);
       return;
     }
-    
+
     currentRequestId = id;
-    
+
     // Update basic detail elements
     if (submittedDate) submittedDate.textContent = item.details.submittedOn;
     if (totalCost) totalCost.textContent = item.details.totalCost;
@@ -841,21 +841,61 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // WebSocket setup for admin
+  let adminSocket = null;
+
+  function initializeAdminWebSocket() {
+    try {
+      adminSocket = new WebSocket('ws://localhost:3000/ws');
+
+      adminSocket.onopen = function () {
+        console.log('Admin WebSocket connected');
+      };
+
+      adminSocket.onclose = function () {
+        console.log('Admin WebSocket disconnected');
+        // Attempt to reconnect after 3 seconds
+        setTimeout(initializeAdminWebSocket, 3000);
+      };
+
+      adminSocket.onerror = function (error) {
+        console.error('Admin WebSocket error:', error);
+      };
+    } catch (error) {
+      console.error('Failed to initialize admin WebSocket:', error);
+    }
+  }
+
   // Handle reject action
   async function handleReject(id) {
     const item = queueData.find(item => item.id === id);
-    
+
     if (item) {
       try {
         // Update status in backend for the entire request
         await updateRequestStatus(item.requestId, "Rejected");
-        
+
+        // Emit WebSocket event
+        if (adminSocket && adminSocket.readyState === WebSocket.OPEN) {
+          adminSocket.send(JSON.stringify({
+            type: 'REQUEST_UPDATED',
+            requestId: item.requestId,
+            request: {
+              status: "Rejected",
+              email: item.details.email
+            },
+            userId: item.details.email // Send user email to target specific user
+          }));
+        } else {
+          console.warn('WebSocket not available for real-time update');
+        }
+
         // Show confirmation message
         alert(`Request Queue #${item.queueNumber} has been rejected.`);
-        
+
         // Close the modal
         closeModal(detailsModal);
-        
+
         // Refresh the data to reflect changes
         await initialize();
       } catch (error) {
@@ -868,24 +908,39 @@ document.addEventListener("DOMContentLoaded", () => {
   // Handle accept action
   async function handleAccept(id) {
     const item = queueData.find(item => item.id === id);
-    
+
     if (item) {
       try {
         // Update status in backend for the entire request
         await updateRequestStatus(item.requestId, "Accepted");
-        
+
+        // Emit WebSocket event
+        if (adminSocket && adminSocket.readyState === WebSocket.OPEN) {
+          adminSocket.send(JSON.stringify({
+            type: 'REQUEST_UPDATED',
+            requestId: item.requestId,
+            request: {
+              status: "Accepted",
+              email: item.details.email
+            },
+            userId: item.details.email
+          }));
+        } else {
+          console.warn('WebSocket not available for real-time update');
+        }
+
         // Store the request data in sessionStorage to pass to print management page
         sessionStorage.setItem('selectedRequest', JSON.stringify(item));
-        
+
         // Show confirmation message
         alert(`Request Queue #${item.queueNumber} has been accepted and moved to print management.`);
-        
+
         // Close modal
         closeModal(detailsModal);
-        
+
         // Refresh the data to reflect changes
         await initialize();
-        
+
         // Redirect to print management page
         window.location.href = '../html/printmanagement.html';
       } catch (error) {
@@ -897,13 +952,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Add event listeners to action buttons
   if (rejectBtn) {
-    rejectBtn.addEventListener('click', function() {
+    rejectBtn.addEventListener('click', function () {
       if (currentRequestId) handleReject(currentRequestId);
     });
   }
 
   if (acceptBtn) {
-    acceptBtn.addEventListener('click', function() {
+    acceptBtn.addEventListener('click', function () {
       if (currentRequestId) handleAccept(currentRequestId);
     });
   }
@@ -912,20 +967,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // Logout functionality
   // -------------------------
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', function(e) {
+    logoutBtn.addEventListener('click', function (e) {
       e.preventDefault();
       openModal(logoutModal);
     });
   }
 
   if (cancelLogout) {
-    cancelLogout.addEventListener('click', function() {
+    cancelLogout.addEventListener('click', function () {
       closeModal(logoutModal);
     });
   }
 
   if (confirmLogout) {
-    confirmLogout.addEventListener('click', function() {
+    confirmLogout.addEventListener('click', function () {
       // Perform logout actions here
       // For now, just redirect to login page
       window.location.href = '/index.html';
@@ -946,12 +1001,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // Escape closes modal
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (detailsModal && detailsModal.classList.contains('open')) { 
-        currentRequestId = null; 
-        closeModal(detailsModal); 
+      if (detailsModal && detailsModal.classList.contains('open')) {
+        currentRequestId = null;
+        closeModal(detailsModal);
       }
-      if (logoutModal && logoutModal.classList.contains('open')) { 
-        closeModal(logoutModal); 
+      if (logoutModal && logoutModal.classList.contains('open')) {
+        closeModal(logoutModal);
       }
     }
   });
@@ -984,14 +1039,19 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       // Show loading state
       if (queueBody) queueBody.innerHTML = "<tr><td colspan='6'>Loading print requests...</td></tr>";
-      
+
+      // Initialize WebSocket first
+      if (!adminSocket) {
+        initializeAdminWebSocket();
+      }
+
       // Fetch data from backend
       queueData = await fetchPrintRequests();
       console.log("Fetched queue data:", queueData);
-      
+
       // set footer year if element exists
       if (curYear) curYear.textContent = new Date().getFullYear();
-      
+
       // Render the view
       renderView(queueData);
     } catch (error) {
