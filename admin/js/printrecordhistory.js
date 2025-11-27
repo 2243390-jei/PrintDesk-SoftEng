@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let filtered = [];
   let view = "table";
   let activeFilters = { course: null, printType: null, dateFrom: null, dateTo: null };
-  
+
   // Document navigation state
   let currentRequestId = null;
   let currentDocuments = []; // Array of all documents for current request
@@ -85,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
   }
-  
+
   function closeModal(modal) {
     if (!modal) return;
     modal.classList.remove('open');
@@ -135,9 +135,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function createFilePreview(fileUrl, filename, documentTitle) {
     // Clear previous preview
     previewArea.innerHTML = '';
-    
+
     const fileExt = getFileExtension(filename);
-    
+
     if (isImageFile(filename)) {
       // Handle images
       const img = document.createElement('img');
@@ -147,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
       img.style.display = 'block';
       img.onerror = () => showPreviewUnavailable(filename);
       previewArea.appendChild(img);
-      
+
     } else if (isPDFFile(filename)) {
       // Handle PDF files using PDF.js or embed
       const pdfContainer = document.createElement('div');
@@ -159,15 +159,15 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
       previewArea.appendChild(pdfContainer);
-      
+
     } else if (isWordFile(filename) || isExcelFile(filename) || isPowerPointFile(filename)) {
       // Handle Office documents using Microsoft Office Online Viewer
       const officeContainer = document.createElement('div');
       officeContainer.className = 'office-preview-container';
-      
+
       // Microsoft Office Online Viewer URL
       const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
-      
+
       officeContainer.innerHTML = `
         <iframe src="${officeViewerUrl}" width="100%" height="400px" frameborder="0"></iframe>
         <div class="office-alternative">
@@ -175,7 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
       previewArea.appendChild(officeContainer);
-      
+
     } else {
       // Handle other file types
       showPreviewUnavailable(filename);
@@ -195,13 +195,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function downloadCurrentDocument() {
     if (currentDocuments.length === 0 || currentDocumentIndex >= currentDocuments.length) return;
-    
+
     const currentDoc = currentDocuments[currentDocumentIndex];
     if (!currentDoc.filePath) return;
-    
+
     const fileUrl = `${API_BASE}${currentDoc.filePath}`;
     const filename = currentDoc.documentTitle || 'document';
-    
+
     // Create a temporary anchor element to trigger download
     const a = document.createElement('a');
     a.href = fileUrl;
@@ -221,43 +221,43 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Filter only completed requests for history
-      const filteredData = data.filter(request => 
+      const filteredData = data.filter(request =>
         request.status === "Completed"
       );
-      
+
       // Sort by createdAt (newest first) for records
       const sortedData = filteredData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      
+
       // Transform backend data to frontend format
       return sortedData.map((request, index) => {
         // Use the first document for display purposes in table
-        const primaryDoc = request.documents && request.documents.length > 0 
-          ? request.documents[0] 
+        const primaryDoc = request.documents && request.documents.length > 0
+          ? request.documents[0]
           : {
-              documentTitle: "Unknown",
-              pageCount: 0,
-              numberOfCopies: 1,
-              paperSize: "Unknown",
-              printType: "Unknown",
-              printingSide: "Unknown"
-            };
-        
+            documentTitle: "Unknown",
+            pageCount: 0,
+            numberOfCopies: 1,
+            paperSize: "Unknown",
+            printType: "Unknown",
+            printingSide: "Unknown"
+          };
+
         // Calculate total pages across all documents
-        const totalPages = request.documents ? 
-          request.documents.reduce((total, doc) => total + (doc.pageCount || 0), 0) : 
+        const totalPages = request.documents ?
+          request.documents.reduce((total, doc) => total + (doc.pageCount || 0), 0) :
           primaryDoc.pageCount;
-        
+
         // Calculate total copies across all documents  
         const totalCopies = request.documents ?
           request.documents.reduce((total, doc) => total + (doc.numberOfCopies || 1), 0) :
           primaryDoc.numberOfCopies;
-        
+
         // Format date for display
         const createdDate = new Date(request.createdAt);
         const formattedDate = `${createdDate.getMonth() + 1}/${createdDate.getDate()}/${createdDate.getFullYear().toString().slice(-2)}`;
-        
+
         return {
           no: index + 1,
           name: request.fullName,
@@ -269,10 +269,10 @@ document.addEventListener("DOMContentLoaded", () => {
           status: request.status,
           details: {
             printerUsed: "Epson L3210", // You can update this with actual printer data if available
-            submittedOn: createdDate.toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
+            submittedOn: createdDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
             }),
             totalCost: `${request.totalTokens} tokens`,
             status: request.status,
@@ -283,14 +283,14 @@ document.addEventListener("DOMContentLoaded", () => {
             paperSize: primaryDoc.paperSize,
             printType: primaryDoc.printType,
             printingSide: primaryDoc.printingSide,
-            pickupDate: request.pickupDateTime ? 
-              new Date(request.pickupDateTime).toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+            pickupDate: request.pickupDateTime ?
+              new Date(request.pickupDateTime).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               }) : "Not specified",
-            previewImage: primaryDoc.filePath ? 
-              `${API_BASE}${primaryDoc.filePath}` : 
+            previewImage: primaryDoc.filePath ?
+              `${API_BASE}${primaryDoc.filePath}` :
               "../../images/SLU_Logo.png",
             // Include all documents for details view - IMPORTANT for multiple document support
             allDocuments: request.documents || [],
@@ -318,10 +318,10 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Count pending requests
       const pendingCount = data.filter(request => request.status === "Pending").length;
-      
+
       // Update sidebar queue count
       if (sidebarQueueCount) {
         sidebarQueueCount.textContent = pendingCount;
@@ -417,16 +417,43 @@ document.addEventListener("DOMContentLoaded", () => {
   function applyFiltersToList(list) {
     const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : "";
     return list.filter(r => {
-      const matchesSearch = q === "" || 
-        r.name.toLowerCase().includes(q) || 
+      const matchesSearch = q === "" ||
+        r.name.toLowerCase().includes(q) ||
         r.course.toLowerCase().includes(q) ||
         r.details.requestId.toLowerCase().includes(q) ||
         r.printType.toLowerCase().includes(q);
       const matchesCourse = activeFilters.course ? r.course === activeFilters.course : true;
       const matchesPrintType = activeFilters.printType ? r.printType === activeFilters.printType : true;
+
       let matchesDate = true;
-      if (activeFilters.dateFrom) matchesDate = matchesDate && (new Date(r.date) >= new Date(activeFilters.dateFrom));
-      if (activeFilters.dateTo) matchesDate = matchesDate && (new Date(r.date) <= new Date(activeFilters.dateTo));
+      if (activeFilters.dateFrom || activeFilters.dateTo) {
+        // Parse the record date (format: "MM/DD/YY")
+        const recordDateParts = r.date.split('/');
+        const recordDate = new Date(
+          parseInt(recordDateParts[2]) + 2000, // Convert YY to YYYY
+          parseInt(recordDateParts[0]) - 1,    // Month is 0-indexed
+          parseInt(recordDateParts[1])         // Day
+        );
+
+        // Normalize dates by setting them to start of day for proper comparison
+        const normalizeDate = (dateStr) => {
+          const date = new Date(dateStr);
+          date.setHours(0, 0, 0, 0);
+          return date;
+        };
+
+        if (activeFilters.dateFrom) {
+          const filterFrom = normalizeDate(activeFilters.dateFrom);
+          const recordDateNormalized = normalizeDate(recordDate);
+          matchesDate = matchesDate && (recordDateNormalized >= filterFrom);
+        }
+
+        if (activeFilters.dateTo) {
+          const filterTo = normalizeDate(activeFilters.dateTo);
+          const recordDateNormalized = normalizeDate(recordDate);
+          matchesDate = matchesDate && (recordDateNormalized <= filterTo);
+        }
+      }
 
       return matchesSearch && matchesCourse && matchesPrintType && matchesDate;
     });
@@ -515,128 +542,128 @@ document.addEventListener("DOMContentLoaded", () => {
     filterPanel.setAttribute("aria-hidden", "false");
 
     if (type === "course") {
-      const label = document.createElement("div"); 
-      label.textContent = "Course"; 
+      const label = document.createElement("div");
+      label.textContent = "Course";
       label.style.fontWeight = "700";
       label.style.color = "white";
       label.style.marginBottom = "8px";
-      
+
       const courses = Array.from(new Set(printData.map(r => r.course)));
       filterPanel.appendChild(label);
-      
+
       courses.forEach(c => {
-        const b = document.createElement("button"); 
-        b.textContent = c; 
+        const b = document.createElement("button");
+        b.textContent = c;
         b.className = "small";
         if (activeFilters.course === c) b.classList.add("active");
-        b.addEventListener("click", () => { 
-          activeFilters.course = c; 
-          currentPage = 1; 
-          renderView(printData); 
-          hideFilterPanel(); 
+        b.addEventListener("click", () => {
+          activeFilters.course = c;
+          currentPage = 1;
+          renderView(printData);
+          hideFilterPanel();
         });
         filterPanel.appendChild(b);
       });
-      
-      const clear = document.createElement("button"); 
-      clear.textContent = "Clear"; 
+
+      const clear = document.createElement("button");
+      clear.textContent = "Clear";
       clear.className = "small";
-      clear.addEventListener("click", () => { 
-        activeFilters.course = null; 
-        currentPage = 1; 
-        renderView(printData); 
-        hideFilterPanel(); 
+      clear.addEventListener("click", () => {
+        activeFilters.course = null;
+        currentPage = 1;
+        renderView(printData);
+        hideFilterPanel();
       });
       filterPanel.appendChild(clear);
     }
 
     if (type === "printType") {
-      const label = document.createElement("div"); 
-      label.textContent = "Print Type"; 
+      const label = document.createElement("div");
+      label.textContent = "Print Type";
       label.style.fontWeight = "700";
       label.style.color = "white";
       label.style.marginBottom = "8px";
-      
+
       const printTypes = Array.from(new Set(printData.map(r => r.printType)));
       filterPanel.appendChild(label);
-      
+
       printTypes.forEach(t => {
-        const b = document.createElement("button"); 
-        b.textContent = t; 
+        const b = document.createElement("button");
+        b.textContent = t;
         b.className = "small";
         if (activeFilters.printType === t) b.classList.add("active");
-        b.addEventListener("click", () => { 
-          activeFilters.printType = t; 
-          currentPage = 1; 
-          renderView(printData); 
-          hideFilterPanel(); 
+        b.addEventListener("click", () => {
+          activeFilters.printType = t;
+          currentPage = 1;
+          renderView(printData);
+          hideFilterPanel();
         });
         filterPanel.appendChild(b);
       });
-      
-      const clear = document.createElement("button"); 
-      clear.textContent = "Clear"; 
+
+      const clear = document.createElement("button");
+      clear.textContent = "Clear";
       clear.className = "small";
-      clear.addEventListener("click", () => { 
-        activeFilters.printType = null; 
-        currentPage = 1; 
-        renderView(printData); 
-        hideFilterPanel(); 
+      clear.addEventListener("click", () => {
+        activeFilters.printType = null;
+        currentPage = 1;
+        renderView(printData);
+        hideFilterPanel();
       });
       filterPanel.appendChild(clear);
     }
 
     if (type === "date") {
-      const label = document.createElement("div"); 
-      label.textContent = "Date range"; 
+      const label = document.createElement("div");
+      label.textContent = "Date range";
       label.style.fontWeight = "700";
       label.style.color = "white";
       label.style.marginBottom = "8px";
-      
-      const from = document.createElement("input"); 
-      from.type = "date"; 
+
+      const from = document.createElement("input");
+      from.type = "date";
       from.value = activeFilters.dateFrom || "";
       from.style.marginBottom = "8px";
       from.style.padding = "6px";
       from.style.borderRadius = "4px";
       from.style.border = "1px solid #ccc";
-      
-      const to = document.createElement("input"); 
-      to.type = "date"; 
+
+      const to = document.createElement("input");
+      to.type = "date";
       to.value = activeFilters.dateTo || "";
       to.style.marginBottom = "8px";
       to.style.padding = "6px";
       to.style.borderRadius = "4px";
       to.style.border = "1px solid #ccc";
-      
-      const apply = document.createElement("button"); 
+
+      const apply = document.createElement("button");
       apply.textContent = "Apply";
       apply.className = "small";
-      
-      const clear = document.createElement("button"); 
+
+      const clear = document.createElement("button");
       clear.textContent = "Clear";
       clear.className = "small";
-      
+
       apply.addEventListener("click", () => {
         activeFilters.dateFrom = from.value || null;
         activeFilters.dateTo = to.value || null;
-        currentPage = 1; 
-        renderView(printData); 
+        currentPage = 1;
+        renderView(printData);
         hideFilterPanel();
       });
-      
+
       clear.addEventListener("click", () => {
-        activeFilters.dateFrom = null; 
+        activeFilters.dateFrom = null;
         activeFilters.dateTo = null;
-        currentPage = 1; 
-        renderView(printData); 
+        currentPage = 1;
+        renderView(printData);
         hideFilterPanel();
       });
-      
-      filterPanel.appendChild(label); 
-      filterPanel.appendChild(from); 
-      filterPanel.appendChild(to); 
-      filterPanel.appendChild(apply); 
+
+      filterPanel.appendChild(label);
+      filterPanel.appendChild(from);
+      filterPanel.appendChild(to);
+      filterPanel.appendChild(apply);
       filterPanel.appendChild(clear);
     }
   }
@@ -807,20 +834,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // Logout functionality
   // -------------------------
   if (logoutBtn) {
-    logoutBtn.addEventListener('click', function(e) {
+    logoutBtn.addEventListener('click', function (e) {
       e.preventDefault();
       openModal(logoutModal);
     });
   }
 
   if (cancelLogout) {
-    cancelLogout.addEventListener('click', function() {
+    cancelLogout.addEventListener('click', function () {
       closeModal(logoutModal);
     });
   }
 
   if (confirmLogout) {
-    confirmLogout.addEventListener('click', function() {
+    confirmLogout.addEventListener('click', function () {
       // Perform logout actions here
       // For now, just redirect to login page
       window.location.href = '/index.html';
@@ -873,17 +900,17 @@ document.addEventListener("DOMContentLoaded", () => {
           </tr>
         `;
       }
-      
+
       // Fetch data from database
       printData = await fetchPrintRequests();
       filtered = [...printData];
-      
+
       // Update queue count
       await updateQueueCount();
-      
+
       // Render the view
       renderView(printData);
-      
+
     } catch (error) {
       console.error("Error initializing print records:", error);
       if (recordsBody) {
@@ -905,9 +932,9 @@ document.addEventListener("DOMContentLoaded", () => {
   setInterval(updateQueueCount, 30000);
 
   // expose for debugging
-  window.__printRecordDemo = { 
-    printData, 
-    renderView, 
+  window.__printRecordDemo = {
+    printData,
+    renderView,
     openFilterPanel: (t) => openFilterPanel(t),
     showDetails,
     fetchPrintRequests,

@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const prevDocumentBtn = document.getElementById('prevDocument');
   const nextDocumentBtn = document.getElementById('nextDocument');
   const previewArea = document.querySelector('.preview-area');
-  const previewPlaceholder = document.getElementById('previewPlaceholder');    
+  const previewPlaceholder = document.getElementById('previewPlaceholder');
 
   const filterBtn = document.getElementById("filterBtn");
   const filterMenu = document.getElementById("filterMenu");
@@ -128,9 +128,9 @@ document.addEventListener("DOMContentLoaded", () => {
   function createFilePreview(fileUrl, filename, documentTitle) {
     // Clear previous preview
     previewArea.innerHTML = '';
-    
+
     const fileExt = getFileExtension(filename);
-    
+
     if (isImageFile(filename)) {
       // Handle images
       const img = document.createElement('img');
@@ -140,7 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
       img.style.display = 'block';
       img.onerror = () => showPreviewUnavailable(filename);
       previewArea.appendChild(img);
-      
+
     } else if (isPDFFile(filename)) {
       // Handle PDF files using PDF.js or embed
       const pdfContainer = document.createElement('div');
@@ -152,15 +152,15 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
       previewArea.appendChild(pdfContainer);
-      
+
     } else if (isWordFile(filename) || isExcelFile(filename) || isPowerPointFile(filename)) {
       // Handle Office documents using Microsoft Office Online Viewer
       const officeContainer = document.createElement('div');
       officeContainer.className = 'office-preview-container';
-      
+
       // Microsoft Office Online Viewer URL
       const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
-      
+
       officeContainer.innerHTML = `
         <iframe src="${officeViewerUrl}" width="100%" height="400px" frameborder="0"></iframe>
         <div class="office-alternative">
@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
       previewArea.appendChild(officeContainer);
-      
+
     } else {
       // Handle other file types
       showPreviewUnavailable(filename);
@@ -188,13 +188,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function downloadCurrentDocument() {
     if (currentDocuments.length === 0 || currentDocumentIndex >= currentDocuments.length) return;
-    
+
     const currentDoc = currentDocuments[currentDocumentIndex];
     if (!currentDoc.filePath) return;
-    
+
     const fileUrl = `${API_BASE}${currentDoc.filePath}`;
     const filename = currentDoc.documentTitle || 'document';
-    
+
     // Create a temporary anchor element to trigger download
     const a = document.createElement('a');
     a.href = fileUrl;
@@ -290,10 +290,10 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      
+
       // Count pending requests
       const pendingCount = data.filter(request => request.status === "Pending").length;
-      
+
       // Update sidebar queue count
       if (sidebarQueueCount) {
         sidebarQueueCount.textContent = pendingCount;
@@ -434,9 +434,35 @@ document.addEventListener("DOMContentLoaded", () => {
         r.course.toLowerCase().includes(q) ||
         r.details.requestId.toLowerCase().includes(q);
       const matchesCourse = activeFilters.course ? r.course === activeFilters.course : true;
+
       let matchesDate = true;
-      if (activeFilters.dateFrom) matchesDate = matchesDate && (new Date(r.date) >= new Date(activeFilters.dateFrom));
-      if (activeFilters.dateTo) matchesDate = matchesDate && (new Date(r.date) <= new Date(activeFilters.dateTo));
+      if (activeFilters.dateFrom || activeFilters.dateTo) {
+        // Parse the record date (format: "MM/DD/YY")
+        const recordDateParts = r.date.split('/');
+        const recordDate = new Date(
+          parseInt(recordDateParts[2]) + 2000, // Convert YY to YYYY
+          parseInt(recordDateParts[0]) - 1,    // Month is 0-indexed
+          parseInt(recordDateParts[1])         // Day
+        );
+
+        // Create date objects for comparison (set to start and end of day)
+        const filterFrom = activeFilters.dateFrom ? new Date(activeFilters.dateFrom) : null;
+        const filterTo = activeFilters.dateTo ? new Date(activeFilters.dateTo) : null;
+
+        if (filterFrom) {
+          // Set filterFrom to start of day (00:00:00)
+          const startOfDay = new Date(filterFrom);
+          startOfDay.setHours(0, 0, 0, 0);
+          matchesDate = matchesDate && (recordDate >= startOfDay);
+        }
+
+        if (filterTo) {
+          // Set filterTo to end of day (23:59:59.999)
+          const endOfDay = new Date(filterTo);
+          endOfDay.setHours(23, 59, 59, 999);
+          matchesDate = matchesDate && (recordDate <= endOfDay);
+        }
+      }
 
       return matchesSearch && matchesCourse && matchesDate;
     });

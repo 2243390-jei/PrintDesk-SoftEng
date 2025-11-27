@@ -398,13 +398,68 @@ document.addEventListener("DOMContentLoaded", () => {
         matchesQueueTime = item.queueTime.toLowerCase().includes(activeFilters.queueTime.toLowerCase());
       }
 
-      // date range
+      // date range - FIXED VERSION
       let matchesDate = true;
-      if (activeFilters.dateFrom) {
-        matchesDate = matchesDate && (new Date(item.date) >= new Date(activeFilters.dateFrom));
-      }
-      if (activeFilters.dateTo) {
-        matchesDate = matchesDate && (new Date(item.date) <= new Date(activeFilters.dateTo));
+      if (activeFilters.dateFrom || activeFilters.dateTo) {
+        // Parse the record date (format: "MM/DD/YY" or similar)
+        const recordDateParts = item.date.split('/');
+        if (recordDateParts.length === 3) {
+          // Handle different date formats - try parsing as MM/DD/YY first
+          let recordDate;
+          try {
+            // Try parsing as MM/DD/YY format
+            recordDate = new Date(
+              parseInt(recordDateParts[2]) + 2000, // Convert YY to YYYY
+              parseInt(recordDateParts[0]) - 1,    // Month is 0-indexed
+              parseInt(recordDateParts[1])         // Day
+            );
+          } catch (error) {
+            // Fallback to direct date parsing
+            recordDate = new Date(item.date);
+          }
+
+          // Normalize dates by setting them to start of day for proper comparison
+          const normalizeToStartOfDay = (date) => {
+            const normalized = new Date(date);
+            normalized.setHours(0, 0, 0, 0);
+            return normalized;
+          };
+
+          if (activeFilters.dateFrom) {
+            const filterFrom = normalizeToStartOfDay(activeFilters.dateFrom);
+            const recordDateNormalized = normalizeToStartOfDay(recordDate);
+            matchesDate = matchesDate && (recordDateNormalized >= filterFrom);
+          }
+
+          if (activeFilters.dateTo) {
+            const filterTo = normalizeToStartOfDay(activeFilters.dateTo);
+            const recordDateNormalized = normalizeToStartOfDay(recordDate);
+            matchesDate = matchesDate && (recordDateNormalized <= filterTo);
+          }
+        } else {
+          // Fallback for other date formats
+          try {
+            const recordDate = new Date(item.date);
+
+            if (activeFilters.dateFrom) {
+              const filterFrom = new Date(activeFilters.dateFrom);
+              filterFrom.setHours(0, 0, 0, 0);
+              const recordDateNormalized = new Date(recordDate);
+              recordDateNormalized.setHours(0, 0, 0, 0);
+              matchesDate = matchesDate && (recordDateNormalized >= filterFrom);
+            }
+
+            if (activeFilters.dateTo) {
+              const filterTo = new Date(activeFilters.dateTo);
+              filterTo.setHours(23, 59, 59, 999); // Include entire end day
+              const recordDateNormalized = new Date(recordDate);
+              recordDateNormalized.setHours(23, 59, 59, 999);
+              matchesDate = matchesDate && (recordDateNormalized <= filterTo);
+            }
+          } catch (error) {
+            console.warn('Error parsing date for filtering:', error);
+          }
+        }
       }
 
       return matchesSearch && matchesPickupTime && matchesQueueTime && matchesDate;
