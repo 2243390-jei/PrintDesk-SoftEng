@@ -1,211 +1,219 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Admin — Queue Management</title>
-    <link rel="stylesheet" href="../css/queue.css" />
-    <script src="../js/queue.js" defer></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  </head>
-  <body>
-    <div class="dashboard-container">
-      <!-- Navigation Sidebar -->
-      <nav class="sidebar">
-        <div class="sidebar-header">
-          <div class="admin-profile">
-            <div class="admin-role">ADMIN</div>
-            <div class="admin-name">Admin Name</div>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — Queue Management</title>
+  <link rel="stylesheet" href="../css/queue.css" />
+  <script src="../js/queue.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+
+<body>
+  <div class="dashboard-container">
+    <!-- Navigation Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="admin-profile">
+          <div class="admin-role">ADMIN</div>
+          <div class="admin-name">Admin Name</div>
+        </div>
+      </div>
+
+      <ul class="nav-links">
+        <li class="nav-item active">
+          <a href="../html/queue.html">
+            <span class="text">QUEUE</span>
+            <span class="queue-count" id="sidebarQueueCount">0</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printmanagement.html">
+            <span class="text">PRINT</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/statistics.html">
+            <span class="text">STATISTICS</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printrecordhistory.html">
+            <span class="text">RECORDS</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/usermanagement.html">
+            <span class="text">MANAGE</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printTokens.html">
+            <span class="text">User Tokens</span>
+          </a>
+        </li>
+        <li class="nav-item logout-item">
+          <a href="#" id="logoutBtn">
+            <span class="text">LOGOUT</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <div class="content-area">
+        <header class="header">
+          <div class="title-block">
+            <h1 class="title">ADMIN DASHBOARD</h1>
+            <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span>
+            </p>
+          </div>
+
+          <div class="brand-right">
+            <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
+          </div>
+        </header>
+
+        <section class="card">
+          <div class="card-header">
+            <h2>Queue Management</h2>
+
+            <div class="controls">
+              <div class="search" role="search" aria-label="Search queue">
+                <img src="/images/admin_img/search (1).png" alt="Search" class="search-icon" />
+                <input id="searchInput" type="search" placeholder="Search..." aria-label="Search queue" />
+              </div>
+
+              <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false"
+                aria-controls="filterMenu">
+                <img src="/images/admin_img/filter.png" alt="Filter" class="filter-icon" />
+              </button>
+
+              <!-- Filter Dropdown Panel -->
+              <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
+                <!-- filters that open the small inline filter panel -->
+                <button type="button" data-action="open-filter" data-filter="pickupTime" role="menuitem">Pickup
+                  Time</button>
+                <button type="button" data-action="open-filter" data-filter="queueTime" role="menuitem">Queue
+                  Time</button>
+                <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
+                <div class="divider" aria-hidden="true"></div>
+
+                <!-- FIXED: Changed data-action from "apply" to "clear" and text to "Clear Filters" -->
+                <button type="button" data-action="clear" class="primary" role="menuitem">Clear Filters</button>
+
+                <!-- small inline panel for choosing filter values -->
+                <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-inner">
+            <div class="table-wrap">
+              <table class="queue-table" aria-describedby="queue-table">
+                <thead>
+                  <tr>
+                    <th>No.</th>
+                    <th>Name</th>
+                    <th>Course & Year</th>
+                    <th>Date</th>
+                    <th>Documents</th>
+                    <th class="col-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="queueBody">
+                  <!-- Queue data will be populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="table-footer">
+              <div class="pagination">
+                <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
+                <div id="pageNumbers" class="page-numbers"></div>
+                <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="footer muted">© <span id="curYear"></span> PrintDesk Queue Management</footer>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal for View Details -->
+  <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <button id="backBtn" class="back-btn">
+          <img src="../images/back-icon.png" alt="Back" class="back-icon" />
+        </button>
+        <h2>Document Details</h2>
+      </div>
+
+      <div class="modal-body">
+        <div class="details-top-row">
+          <div class="detail-item">
+            <div class="detail-label">Submitted on</div>
+            <div class="detail-value" id="submittedDate">October 10, 2025</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Total Cost</div>
+            <div class="detail-value" id="totalCost">15 tokens</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Status</div>
+            <div class="detail-value">
+              <span class="status-badge" id="statusBadge">Pending</span>
+            </div>
           </div>
         </div>
-        
-        <ul class="nav-links">
-          <li class="nav-item active">
-            <a href="../html/queue.html">
-              <span class="text">QUEUE</span>
-              <span class="queue-count" id="sidebarQueueCount">0</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printmanagement.html">
-              <span class="text">PRINT</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/statistics.html">
-              <span class="text">STATISTICS</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printrecordhistory.html">
-              <span class="text">RECORDS</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/usermanagement.html">
-              <span class="text">MANAGE</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printTokens.html">
-              <span class="text">User Tokens</span>
-            </a>
-          </li>
-          <li class="nav-item logout-item">
-            <a href="#" id="logoutBtn">
-              <span class="text">LOGOUT</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
 
-      <!-- Main Content Area -->
-      <main class="main-content">
-        <div class="content-area">
-          <header class="header">
-            <div class="title-block">
-              <h1 class="title">ADMIN DASHBOARD</h1>
-              <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
-            </div>
-
-            <div class="brand-right">
-              <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
-            </div>
-          </header>
-
-          <section class="card">
-            <div class="card-header">
-              <h2>Queue Management</h2>
-
-              <div class="controls">
-                <div class="search" role="search" aria-label="Search queue">
-                  <img src="/images/admin_img/search (1).png" alt="Search" class="search-icon" />
-                  <input id="searchInput" type="search" placeholder="Search..." aria-label="Search queue" />
-                </div>
-
-                <button id="filterBtn" class="icon-btn" title="Filters" aria-haspopup="true" aria-expanded="false" aria-controls="filterMenu">
-                  <img src="/images/admin_img/filter.png" alt="Filter" class="filter-icon" />
-                </button>
-
-                <!-- Filter Dropdown Panel -->
-                <div id="filterMenu" class="filter-menu" role="menu" aria-hidden="true" aria-labelledby="filterBtn">
-                  <!-- filters that open the small inline filter panel -->
-                  <button type="button" data-action="open-filter" data-filter="pickupTime" role="menuitem">Pickup Time</button>
-                  <button type="button" data-action="open-filter" data-filter="queueTime" role="menuitem">Queue Time</button>
-                  <button type="button" data-action="open-filter" data-filter="date" role="menuitem">Date</button>
-                  <div class="divider" aria-hidden="true"></div>
-
-                  <button type="button" data-action="apply" class="primary" role="menuitem">Filter</button>
-
-                  <!-- small inline panel for choosing filter values -->
-                  <div id="filterPanel" class="filter-panel visually-hidden" aria-hidden="true"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="card-inner">
-              <div class="table-wrap">
-                <table class="queue-table" aria-describedby="queue-table">
-                  <thead>
-                    <tr>
-                      <th>No.</th>
-                      <th>Name</th>
-                      <th>Course & Year</th>
-                      <th>Date</th>
-                      <th>Documents</th>
-                      <th class="col-actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="queueBody">
-                    <!-- Queue data will be populated by JavaScript -->
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="table-footer">
-                <div class="pagination">
-                  <button class="page-arrow" id="prevPage" title="Previous">&laquo;</button>
-                  <div id="pageNumbers" class="page-numbers"></div>
-                  <button class="page-arrow" id="nextPage" title="Next">&raquo;</button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <footer class="footer muted">© <span id="curYear"></span> PrintDesk Queue Management</footer>
+        <div class="request-id">
+          Request ID: <span id="requestId">RQRF2D7B</span>
         </div>
-      </main>
-    </div>
 
-<!-- Modal for View Details -->
-<div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-  <div class="modal-backdrop" data-close-modal></div>
-  <div class="modal-content">
-    <div class="modal-header">
-      <button id="backBtn" class="back-btn">
-        <img src="../images/back-icon.png" alt="Back" class="back-icon" />
-      </button>
-      <h2>Document Details</h2>
-    </div>
-    
-    <div class="modal-body">
-      <div class="details-top-row">
-        <div class="detail-item">
-          <div class="detail-label">Submitted on</div>
-          <div class="detail-value" id="submittedDate">October 10, 2025</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Total Cost</div>
-          <div class="detail-value" id="totalCost">15 tokens</div>
-        </div>
-        <div class="detail-item">
-          <div class="detail-label">Status</div>
-          <div class="detail-value">
-            <span class="status-badge" id="statusBadge">Pending</span>
+        <div class="document-preview">
+          <h3>Document Previews</h3>
+          <div id="documentsContainer" class="documents-container">
+            <!-- Documents will be populated here -->
           </div>
         </div>
-      </div>
-      
-      <div class="request-id">
-        Request ID: <span id="requestId">RQRF2D7B</span>
-      </div>
-      
-      <div class="document-preview">
-        <h3>Document Previews</h3>
-        <div id="documentsContainer" class="documents-container">
-          <!-- Documents will be populated here -->
+
+        <div class="action-buttons">
+          <button class="reject-btn" id="rejectBtn">
+            <img src="/images/admin_img/remove.png" alt="Reject" class="btn-icon" />
+            Reject
+          </button>
+          <button class="accept-btn" id="acceptBtn">
+            <img src="/images/admin_img/accept.png" alt="Accept" class="btn-icon" />
+            Accept
+          </button>
         </div>
-      </div>
-      
-      <div class="action-buttons">
-        <button class="reject-btn" id="rejectBtn">
-          <img src="/images/admin_img/remove.png" alt="Reject" class="btn-icon" />
-          Reject
-        </button>
-        <button class="accept-btn" id="acceptBtn">
-          <img src="/images/admin_img/accept.png" alt="Accept" class="btn-icon" />
-          Accept
-        </button>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Logout Confirmation Modal -->
-<div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-  <div class="modal-backdrop" data-close-modal></div>
-  <div class="modal-content small-modal">
-    <div class="modal-header">
-      <h2>Confirm Logout</h2>
-    </div>
-    <div class="modal-body">
-      <p>Are you sure you want to logout?</p>
-      <div class="action-buttons">
-        <button class="reject-btn" id="cancelLogout">Cancel</button>
-        <button class="accept-btn" id="confirmLogout">Logout</button>
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content small-modal">
+      <div class="modal-header">
+        <h2>Confirm Logout</h2>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to logout?</p>
+        <div class="action-buttons">
+          <button class="reject-btn" id="cancelLogout">Cancel</button>
+          <button class="accept-btn" id="confirmLogout">Logout</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
-  </body>
+</body>
+
 </html>

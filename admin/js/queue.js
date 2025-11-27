@@ -542,9 +542,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (action === "open-filter") {
           const f = btn.dataset.filter;
           openFilterPanel(f);
-        } else if (action === "apply") {
+        } else if (action === "clear") { 
+          // Clear all active filters
+          activeFilters = {
+            pickupTime: null,
+            queueTime: null,
+            dateFrom: null,
+            dateTo: null
+          };
+          currentPage = 1;
+          renderView(queueData);
+          hideFilterPanel();
           filterMenu.classList.remove("open");
-          if (filterPanel) filterPanel.classList.add("visually-hidden");
         }
       });
     });
