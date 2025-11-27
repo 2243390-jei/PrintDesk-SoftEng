@@ -268,13 +268,26 @@
   background-color: #2a2461;
 }
 
-/* no-data / error states */
-.no-data,
-.error-message {
+.no-data {
   max-width: 640px;
-  margin: 2rem auto;
+  margin: 0 auto;
   text-align: center;
   color: #475569;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed; /* Use fixed instead of absolute */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  padding: 2rem;
+}
+
+.no-data img {
+  width: 120px;
+  margin-bottom: 1.5rem;
 }
 
 /* =========================

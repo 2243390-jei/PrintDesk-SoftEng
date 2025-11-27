@@ -63,7 +63,7 @@
     if (!currentUserEmail) {
       submissionList.innerHTML = `
       <div class="no-data">
-        <img src="../images/student_img/no-data.png" alt="No Data" style="width:120px;margin-bottom:1rem;">
+        <img src="../images/student_img/history/folder.png" alt="No Data" style="width:120px;margin-bottom:1rem;">
         <p>Please log in to view your print history.</p>
       </div>`
       return
@@ -89,7 +89,7 @@
     if (!requests || requests.length === 0) {
       submissionList.innerHTML = `
       <div class="no-data">
-        <img src="../images/student_img/no-data.png" alt="No Data" style="width:120px;margin-bottom:1rem;">
+        <img src="../images/student_img/history/folder.png" alt="No Data" style="width:120px;margin-bottom:1rem;">
         <p>No print requests found</p>
       </div>`
       return
