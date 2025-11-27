@@ -7,6 +7,7 @@
   let isEditMode = false
   let originalRequestData = null
   let currentDocuments = []
+  let pollingInterval = null
 
   // Helper: fetch with timeout
   async function fetchWithTimeout(resource, options = {}) {
@@ -58,17 +59,134 @@
     ensureContainers()
     attachFilterHandlers()
     await initialize()
+
+    // Start polling for real-time updates
+    startPolling()
   })
+
+  // Polling for real-time updates
+  function startPolling() {
+    // Check for updates every 5 seconds (same as queue)
+    pollingInterval = setInterval(async () => {
+      try {
+        await checkForUpdates()
+      } catch (error) {
+        console.error('Polling error:', error)
+      }
+    }, 5000) // 5 seconds
+  }
+
+  function stopPolling() {
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
+    }
+  }
+
+  async function checkForUpdates() {
+    try {
+      const resp = await fetchWithTimeout(API_URL)
+      const data = await resp.json()
+      const newAllRequests = Array.isArray(data) ? data : []
+
+      // Check if requests have changed
+      const hasChanges = JSON.stringify(newAllRequests) !== JSON.stringify(allRequests)
+
+      if (hasChanges) {
+        console.log('Changes detected in requests, updating...')
+        allRequests = newAllRequests
+
+        // Reapply filters and update display
+        const previousFilteredCount = filteredRequests.length
+        const userEmail = sessionStorage.getItem("userEmail") || null
+
+        if (userEmail) {
+          filteredRequests = allRequests.filter((r) => (r.email || "").toLowerCase() === userEmail.toLowerCase())
+          filteredRequests.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+
+          // Only show notification if the filtered data actually changed
+          if (filteredRequests.length !== previousFilteredCount ||
+            JSON.stringify(filteredRequests) !== JSON.stringify(previousFilteredRequests)) {
+            showUpdateNotification()
+            renderCards(filteredRequests)
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Polling update error:", err)
+    }
+  }
+
+  function showUpdateNotification() {
+    // Remove any existing notifications
+    const existingNotification = document.querySelector('.update-notification')
+    if (existingNotification) {
+      existingNotification.remove()
+    }
+
+    const notification = document.createElement('div')
+    notification.className = 'update-notification'
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #3d2ee7;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10000;
+      cursor: pointer;
+      animation: slideIn 0.3s ease-out;
+    `
+
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span>🔄 Requests updated</span>
+        <button style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">×</button>
+      </div>
+    `
+
+    // Add click handler for close button
+    notification.querySelector('button').addEventListener('click', () => {
+      notification.remove()
+    })
+
+    document.body.appendChild(notification)
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove()
+      }
+    }, 5000)
+  }
+
+  // Add CSS for animation
+  const style = document.createElement('style')
+  style.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .update-notification:hover {
+      transform: translateY(-2px);
+      transition: transform 0.2s ease;
+    }
+  `
+  document.head.appendChild(style)
 
   async function initialize() {
     const submissionList = document.getElementById("submissionList")
 
     if (!currentUserEmail) {
       submissionList.innerHTML = `
-    <div class="no-data">
-      <img src="../images/student_img/history/folder.png" alt="No Data" style="width:120px;margin-bottom:1rem;">
-      <p>Please log in to view your print history.</p>
-    </div>`
+      <div class="no-data">
+        <img src="../images/student_img/history/folder.png" alt="No Data" style="width:120px;margin-bottom:1rem;">
+        <p>Please log in to view your print history.</p>
+      </div>`
+      stopPolling()
       return
     }
 
@@ -81,16 +199,21 @@
       // Sort by most recent by default (newest first)
       filteredRequests.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
       renderCards(filteredRequests)
-
-      // Initialize WebSocket after data load if not already initialized
-      if (!window.userWebSocket) {
-        window.userWebSocket = initializeWebSocket();
-      }
     } catch (err) {
       submissionList.innerHTML = `<div class="error-message"><p>Error loading requests: ${err.message}</p></div>`
       console.error("history init error:", err)
+      stopPolling()
     }
   }
+
+  // Stop polling when page is not visible to save resources
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      stopPolling()
+    } else {
+      startPolling()
+    }
+  })
 
   // Calculate total tokens for a request
   function calculateTotalTokens(request) {
@@ -215,22 +338,6 @@
         deleteRequest(id)
       }
     }
-
-    // Delete Document Button
-    const deleteDocBtn = e.target.closest(".delete-document")
-    if (deleteDocBtn) {
-      const docIndex = parseInt(deleteDocBtn.dataset.index)
-      deleteDocument(docIndex)
-      return
-    }
-
-    // Replace Document Button
-    const replaceDocBtn = e.target.closest(".replace-document")
-    if (replaceDocBtn) {
-      const docIndex = parseInt(replaceDocBtn.dataset.index)
-      triggerDocumentReplace(docIndex)
-      return
-    }
   })
 
   // Enable edit mode for a request
@@ -247,12 +354,6 @@
       field.disabled = false
       field.style.backgroundColor = '#fff'
       field.style.borderColor = '#3d2ee7'
-    })
-
-    // Show document management controls - use more specific selector
-    const docControls = modal.querySelectorAll('.document-controls')
-    docControls.forEach(control => {
-      control.style.display = 'flex'
     })
 
     // Show save button, hide edit button
@@ -272,63 +373,6 @@
     const requestDetailsSection = modal.querySelector('.modal-section')
     if (requestDetailsSection) {
       requestDetailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }
-
-  // Delete a document
-  function deleteDocument(docIndex) {
-    if (currentDocuments.length <= 1) {
-      alert("Cannot delete the only document. The request must have at least one document.")
-      return
-    }
-
-    if (confirm("Are you sure you want to delete this document?")) {
-      currentDocuments.splice(docIndex, 1)
-      updateDocumentsPreview()
-    }
-  }
-
-  // Trigger document replace
-  function triggerDocumentReplace(docIndex) {
-    const fileInput = document.createElement('input')
-    fileInput.type = 'file'
-    fileInput.accept = '.pdf,.jpg,.jpeg,.png,.doc,.docx'
-    fileInput.onchange = (event) => handleDocumentReplace(event, docIndex)
-    fileInput.click()
-  }
-
-  // Handle document replace
-  function handleDocumentReplace(event, docIndex) {
-    const file = event.target.files[0]
-    if (!file) return
-
-    // Replace the document at the specified index
-    const newDoc = {
-      documentTitle: file.name,
-      filePath: URL.createObjectURL(file), // Temporary local URL
-      pageCount: 1, // Default, would need actual calculation
-      numberOfCopies: 1,
-      tokensPerPage: 1,
-      totalTokens: 1
-    }
-
-    currentDocuments[docIndex] = newDoc
-    updateDocumentsPreview()
-  }
-
-  // Update documents preview section
-  function updateDocumentsPreview() {
-    const modal = document.getElementById("requestModal")
-    const docsSection = modal.querySelector('.documents-section')
-
-    if (docsSection) {
-      const docsHtml = currentDocuments.map((doc, index) => getDocumentPreview(doc, index, true)).join("")
-      docsSection.innerHTML = `
-        <h3>Documents & Preview</h3>
-        <div class="documents-list">
-          ${docsHtml}
-        </div>
-      `
     }
   }
 
@@ -366,7 +410,7 @@
     const isPending = (req.status || "").toLowerCase() === "pending"
     const isAcceptedOrCompleted = ["accepted", "completed"].includes((req.status || "").toLowerCase())
 
-    const docsHtml = currentDocuments.map((doc, index) => getDocumentPreview(doc, index, false)).join("")
+    const docsHtml = currentDocuments.map((doc, index) => getDocumentPreview(doc, index)).join("")
 
     const detailsHtml = isPending
       ? `
@@ -501,30 +545,10 @@
     modal.style.display = "flex"
   }
 
-  function getDocumentPreview(doc, index, showControls = false) {
+  function getDocumentPreview(doc, index) {
     const filename = doc.documentTitle || (doc.filePath ? doc.filePath.split("/").pop() : "Document")
     const ext = filename.split(".").pop().toLowerCase()
     const link = doc.filePath ? `${doc.filePath}` : "#"
-
-    const controlsHtml = showControls ? `
-      <div class="document-controls" style="display: flex; gap: 8px; margin-top: 8px;">
-        <button type="button" class="btn btn-small btn-secondary replace-document" data-index="${index}">
-          Replace Document
-        </button>
-        <button type="button" class="btn btn-small btn-danger delete-document" data-index="${index}" ${currentDocuments.length <= 1 ? 'disabled' : ''}>
-          Delete Document
-        </button>
-      </div>
-    ` : `
-      <div class="document-controls" style="display: none; gap: 8px; margin-top: 8px;">
-        <button type="button" class="btn btn-small btn-secondary replace-document" data-index="${index}">
-          Replace Document
-        </button>
-        <button type="button" class="btn btn-small btn-danger delete-document" data-index="${index}" ${currentDocuments.length <= 1 ? 'disabled' : ''}>
-          Delete Document
-        </button>
-      </div>
-    `
 
     if (["pdf", "jpg", "jpeg", "png", "gif"].includes(ext)) {
       return `
@@ -541,7 +565,6 @@
             <a href="${link}" target="_blank" style="display:inline-block;color:#3d2ee7;text-decoration:none;font-size:0.9rem;font-weight:500">View Full Size ↗</a>
           </div>
           <div style="font-weight:600;color:#1e1362;text-align:right">${doc.totalTokens ?? 0} tokens</div>
-          ${controlsHtml}
         </div>
       `
     } else {
@@ -554,7 +577,6 @@
             <a href="${link}" target="_blank" style="display:inline-block;color:#3d2ee7;text-decoration:none;font-size:0.9rem;font-weight:500">Download ↗</a>
           </div>
           <div style="font-weight:600;color:#1e1362;text-align:right">${doc.totalTokens ?? 0} tokens</div>
-          ${controlsHtml}
         </div>
       `
     }
@@ -685,119 +707,4 @@
     filteredRequests = result
     renderCards(filteredRequests)
   }
-
-  // WebSocket setup for real-time updates
-  function initializeWebSocket() {
-    try {
-      // Use your actual WebSocket server URL
-      const socket = new WebSocket('ws://localhost:3000/ws');
-
-      socket.onopen = function () {
-        console.log('WebSocket connected for real-time updates');
-      };
-
-      socket.onmessage = function (event) {
-        try {
-          const data = JSON.parse(event.data);
-
-          // Only process updates for the current user
-          if ((data.type === 'REQUEST_UPDATED' || data.type === 'REQUEST_DELETED') &&
-            data.userId === currentUserEmail) {
-            console.log('Real-time update received:', data);
-
-            // Show notification to user
-            showUpdateNotification(data);
-
-            // Refresh the data
-            initialize();
-          }
-        } catch (err) {
-          console.error('Error processing WebSocket message:', err);
-        }
-      };
-
-      socket.onclose = function () {
-        console.log('WebSocket disconnected. Attempting to reconnect...');
-        // Reconnect after 5 seconds
-        setTimeout(initializeWebSocket, 5000);
-      };
-
-      socket.onerror = function (error) {
-        console.error('WebSocket error:', error);
-      };
-
-      return socket;
-    } catch (error) {
-      console.error('Failed to initialize WebSocket:', error);
-      return null;
-    }
-  }
-
-  // Show notification when request is updated
-  function showUpdateNotification(data) {
-    // Remove any existing notifications
-    const existingNotification = document.querySelector('.update-notification');
-    if (existingNotification) {
-      existingNotification.remove();
-    }
-
-    const notification = document.createElement('div');
-    notification.className = 'update-notification';
-    notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #3d2ee7;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 10000;
-    cursor: pointer;
-    animation: slideIn 0.3s ease-out;
-  `;
-
-    let message = '';
-    if (data.type === 'REQUEST_UPDATED') {
-      message = `Your print request status updated to: ${data.request.status}`;
-    } else if (data.type === 'REQUEST_DELETED') {
-      message = 'Your print request has been processed';
-    }
-
-    notification.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <span>🔄 ${message}</span>
-      <button style="background: none; border: none; color: white; cursor: pointer; font-size: 16px;">×</button>
-    </div>
-  `;
-
-    // Add click handler for close button
-    notification.querySelector('button').addEventListener('click', () => {
-      notification.remove();
-    });
-
-    document.body.appendChild(notification);
-
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-      if (notification.parentElement) {
-        notification.remove();
-      }
-    }, 5000);
-  }
-
-  // Add CSS for animation
-  const style = document.createElement('style');
-  style.textContent = `
-  @keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-  
-  .update-notification:hover {
-    transform: translateY(-2px);
-    transition: transform 0.2s ease;
-  }
-`;
-  document.head.appendChild(style);
 })()
