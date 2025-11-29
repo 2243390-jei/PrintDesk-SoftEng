@@ -559,58 +559,89 @@ app.get("/users/:email", async (req, res) => {
 // --- Submit Print Request ---
 app.post("/submit", upload.array("documents", 20), async (req, res) => {
   try {
-    // printJobs may be sent as JSON string or as an already-parsed object
-    let printJobs = []
+    // Normalize printJobs into an array
+    let printJobs = [];
     if (typeof req.body.printJobs === "string" && req.body.printJobs.trim() !== "") {
       try {
-        printJobs = JSON.parse(req.body.printJobs)
+        printJobs = JSON.parse(req.body.printJobs);
+        if (!Array.isArray(printJobs)) {
+          // if server receives an object with jobs keyed, try to extract array
+          printJobs = Array.isArray(printJobs.jobs) ? printJobs.jobs : [printJobs];
+        }
       } catch (parseErr) {
-        console.warn("Failed to parse printJobs JSON:", parseErr)
-        return res.status(400).json({ error: "Invalid printJobs JSON" })
+        console.warn("Failed to parse printJobs JSON:", parseErr);
+        return res.status(400).json({ error: "Invalid printJobs JSON" });
       }
     } else if (Array.isArray(req.body.printJobs)) {
-      printJobs = req.body.printJobs
+      printJobs = req.body.printJobs;
+    } else {
+      // no jobs provided
+      printJobs = [];
     }
 
-    const files = req.files || []
-    const documents = []
-    let totalTokensRequest = 0
+    const files = Array.isArray(req.files) ? req.files : [];
+    const documents = [];
+    let totalTokensRequest = 0;
 
-    // Build documents array defensively; match jobs to files by index if present
-    (printJobs || []).forEach((job, i) => {
-      const file = files[i] || null
-      const totalTokens = Number.parseInt(job.totalTokens) || 0
-      const tokensPerPage = Number.parseInt(job.tokensPerPage) || 0
-      const isImagePrint = job.isImagePrint === true || job.isImagePrint === "true"
-      totalTokensRequest += totalTokens
+    // If printJobs is empty, bail early (optional)
+    if (!printJobs.length) {
+      console.warn("/submit: no printJobs provided");
+    }
 
-      documents.push({
-        documentTitle: (job.documentTitle || (file ? file.originalname : "Untitled")) ,
-        filePath: file ? "/uploads/" + file.filename : null,
-        numberOfCopies: Number.parseInt(job.copies) || 1,
-        paperSize: job.paperSize || "",
-        printingSide: job.paperSide || job.paperSide || "",
-        printType: job.paperType || "",
-        notes: job.notes || "",
-        pageCount: Number.parseInt(job.pageCount) || 1,
-        tokensPerPage,
-        totalTokens,
-        isImagePrint,
-      })
-    })
+    // Build documents array defensively; prefer matching files by originalname
+    for (let i = 0; i < printJobs.length; i++) {
+      const job = printJobs[i] || {};
+      try {
+        // Attempt to find a file that matches job's filename (client may send formatted filename)
+        let file = null;
+        if (files.length > 0) {
+          // try match by originalname (safe) otherwise fallback to index
+          if (job.documentTitle) {
+            file = files.find(f => f.originalname === job.documentTitle) || files[i] || null;
+          } else {
+            // sometimes client sets originalname to formatted filename
+            file = files[i] || null;
+          }
+        }
+
+        const totalTokens = Number.parseInt(job.totalTokens ?? "0", 10) || 0;
+        const tokensPerPage = Number.parseInt(job.tokensPerPage ?? "0", 10) || 0;
+        const isImagePrint = job.isImagePrint === true || job.isImagePrint === "true" || job.isImagePrint === "1";
+
+        totalTokensRequest += totalTokens;
+
+        documents.push({
+          documentTitle: job.documentTitle || (file ? file.originalname : "Untitled"),
+          filePath: file ? "/uploads/" + file.filename : null,
+          numberOfCopies: Number.parseInt(job.copies ?? "1", 10) || 1,
+          paperSize: job.paperSize || "",
+          printingSide: job.paperSide || job.paper_side || "",
+          printType: job.paperType || job.paper_type || "",
+          notes: job.notes || "",
+          pageCount: Number.parseInt(job.pageCount ?? "1", 10) || 1,
+          tokensPerPage,
+          totalTokens,
+          isImagePrint,
+        });
+      } catch (jobErr) {
+        // log per-job errors but continue building other jobs
+        console.error(`Error processing printJob index ${i}:`, jobErr);
+        return res.status(400).json({ error: `Invalid print job at index ${i}`, details: jobErr.message });
+      }
+    }
 
     // Accept multiple variants for incoming fields (snake_case or camelCase)
-    const fullName = req.body.full_name || req.body.fullName || req.body.fullname || req.body.name || ""
-    const courseYear = req.body.course_year || req.body.courseYear || req.body.year || ""
-    const email = req.body.email || req.body.user_email
+    const fullName = req.body.full_name || req.body.fullName || req.body.fullname || req.body.name || "";
+    const courseYear = req.body.course_year || req.body.courseYear || req.body.year || "";
+    const email = req.body.email || req.body.user_email;
 
     if (!email) {
-      return res.status(400).json({ error: "Email is required" })
+      return res.status(400).json({ error: "Email is required" });
     }
 
     // Find user
-    const user = await User.findOne({ email })
-    if (!user) return res.status(404).json({ error: "User not found" })
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: "User not found" });
 
     // Check if user has enough tokens
     if (user.tokenBalance < totalTokensRequest) {
@@ -618,10 +649,10 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
         error: "Insufficient tokens",
         currentBalance: user.tokenBalance,
         required: totalTokensRequest,
-      })
+      });
     }
 
-    // Create new print request (store fullName & courseYear with the normalized values)
+    // Create new print request
     const newRequest = new PrintRequest({
       fullName,
       courseYear,
@@ -631,27 +662,29 @@ app.post("/submit", upload.array("documents", 20), async (req, res) => {
       documents,
       totalTokens: totalTokensRequest,
       status: "Pending",
-    })
+    });
 
-    await newRequest.save()
+    await newRequest.save();
 
-    // Deduct tokens from user's balance
-    user.tokenBalance -= totalTokensRequest
-    await user.save()
+    // Deduct tokens and persist
+    user.tokenBalance -= totalTokensRequest;
+    await user.save();
 
-    // Respond with success
-    res.status(201).json({
+    console.log("/submit: success. requestId=", newRequest._id.toString());
+    res.status(200).json({
       message: "Print request submitted successfully",
       requestId: newRequest._id,
       totalTokens: totalTokensRequest,
       remainingTokens: user.tokenBalance,
       status: newRequest.status,
-    })
+    });
   } catch (err) {
-    console.error("Error in /submit:", err)
-    res.status(500).json({ error: "Failed to submit print request", details: err.message })
+    console.error("Error in /submit:", err);
+    // include stack so you can see where the '0 is not a function' originates
+    res.status(500).json({ error: "Failed to submit print request", details: err.message, stack: err.stack });
   }
-})
+});
+
 
 // DELETE a print request
 app.delete("/requests/:id", async (req, res) => {

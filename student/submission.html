@@ -141,21 +141,7 @@
                             </div>
 
                             <!-- File preview section -->
-                            <div class="file-preview" style="margin-top: 12px; display: none;">
-                                <div class="preview-container">
-                                    <p class="preview-title">File Preview:</p>
-                                    <div class="preview-content">
-                                        <p class="preview-filename"></p>
-                                        <p class="preview-details">
-                                            <span class="preview-size"></span> • <span class="preview-pages"></span> pages
-                                        </p>
-                                        <div class="preview-buttons">
-                                            <button type="button" class="view-file-btn">View File</button>
-                                            <button type="button" class="remove-file-btn">Remove</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="file-preview" style="margin-top: 12px; display: none;"></div>
                         </div>
 
                         <div class="form-group">
@@ -240,6 +226,21 @@
             </div>
         </div>
     </div>
+
+    <!-- Success Modal -->
+<div id="successModal" class="modal">
+  <div class="modal-content" style="text-align: center; max-width: 500px;">
+    <div style="font-size: 60px; margin-bottom: 20px;">✅</div>
+    <h2 style="color: #2e7d32; margin: 0 0 20px 0;">Submission Successful!</h2>
+    <div id="successDetails" style="text-align: left; background: #f0fff0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2e7d32;">
+      <!-- Success details will be filled in by JavaScript -->
+    </div>
+    <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
+      <button id="successHomeBtn" class="reset-btn" style="padding: 10px 30px;">Go to Home</button>
+      <button id="successNewSubmissionBtn" class="submit-btn" style="padding: 10px 30px;">Make Another Submission</button>
+    </div>
+  </div>
+</div>
 </body>
 
 </html>

@@ -1128,6 +1128,16 @@ body.history-body {
   color: #333;
 }
 
+.modal-open {
+  overflow: hidden;
+}
+
+.success-modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
 .profile-header {
   display: flex;
   align-items: center;

@@ -1,4 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
+  /* =========================
+     DOM refs
+     ========================= */
   const form = document.getElementById("printRequestForm")
   const printJobs = document.getElementById("printJobs")
   const addPrintJobBtn = document.getElementById("addPrintJob")
@@ -6,474 +9,328 @@ document.addEventListener("DOMContentLoaded", () => {
   const pickupDateTime = document.getElementById("pickupDateTime")
   const confirmationModal = document.getElementById("confirmationModal")
   const filePreviewModal = document.getElementById("filePreviewModal")
+  const successModal = document.getElementById("successModal")
   const cancelSubmissionBtn = document.getElementById("cancelSubmission")
   const confirmSubmissionBtn = document.getElementById("confirmSubmission")
   const filePreviewContent = document.getElementById("filePreviewContent")
   const customResetBtn = document.getElementById("customResetBtn")
-  const confirmCheckbox = document.getElementById("confirmCheckbox") 
-  
-  let jobCount = 1
+  const confirmCheckbox = document.getElementById("confirmCheckbox")
+  const successHomeBtn = document.getElementById("successHomeBtn")
+  const successDetails = document.getElementById("successDetails")
+  const successNewSubmissionBtn = document.getElementById("successNewSubmissionBtn")
 
-  // Import pdfjsLib or declare it before using it
+  /* =========================
+     State + constants
+     ========================= */
+  let jobCount = 1
+  const currentUserEmail = sessionStorage.getItem("userEmail")
   const pdfjsLib = window["pdfjs-dist/build/pdf"]
 
-  // =============================
-  // Logo click redirect to home
-  // =============================
-  if (logoRefresh) {
-    logoRefresh.addEventListener("click", () => {
-      window.location.href = "home.html"
-    })
-  }
+  const FORM_STATE_KEY = "printFormState_v1"
+  const LAST_SUCCESS_KEY = "lastPrintSuccess_v1"
 
-  // =============================
-  // 🧠 Auto-fill user info from session
-  // =============================
-  const currentUserEmail = sessionStorage.getItem("userEmail")
-
-  function loadUserData() {
-    if (currentUserEmail) {
-      fetch(`http://localhost:3000/users/${encodeURIComponent(currentUserEmail)}`)
-        .then((res) => res.json())
-        .then((user) => {
-          // Set values and make them readonly
-          const fullNameInput = document.getElementById("fullNameInput")
-          const emailInput = document.getElementById("emailInput")
-          
-          fullNameInput.value = user.fullName || ""
-          emailInput.value = user.email || ""
-          fullNameInput.readOnly = true
-          emailInput.readOnly = true
-          
-          // Auto-fill course and year if available in user data
-          if (user.courseYear) {
-            const [course, year] = user.courseYear.split('-');
-            if (course) document.getElementById("courseInput").value = course
-            if (year) document.getElementById("yearSelect").value = year
-          }
-        })
-        .catch((err) => console.error("Failed to fetch user:", err))
+  // File type mappings for better icons and handling
+  const FILE_TYPES = {
+    pdf: {
+      icon: '📄',
+      label: 'PDF Document',
+      preview: 'embed'
+    },
+    image: {
+      icon: '🖼️',
+      label: 'Image',
+      preview: 'image'
+    },
+    word: {
+      icon: '📝',
+      label: 'Word Document',
+      preview: 'icon'
+    },
+    text: {
+      icon: '📄',
+      label: 'Text File',
+      preview: 'text'
+    },
+    default: {
+      icon: '📎',
+      label: 'File',
+      preview: 'icon'
     }
   }
 
-  loadUserData()
-
-  // =============================
-  // Set minimum datetime for pickup (current time + 1 hour)
-  // =============================
-  function setMinPickupDateTime() {
-    const now = new Date()
-    // Set minimum to current time + 1 hour
-    now.setHours(now.getHours() + 1)
-    
-    // Format to YYYY-MM-DDTHH:MM
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    const hours = String(now.getHours()).padStart(2, '0')
-    const minutes = String(now.getMinutes()).padStart(2, '0')
-    
-    const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`
-    pickupDateTime.min = minDateTime
-    
-    // Set max time to 5pm and min time to 7am
-    pickupDateTime.addEventListener('change', validatePickupTime)
+  /* =========================
+     Modal Functions
+     ========================= */
+  function closeAllModals() {
+    confirmationModal.style.display = "none"
+    filePreviewModal.style.display = "none"
+    document.body.classList.remove("modal-open")
   }
 
-  function validatePickupTime() {
-    const selectedDateTime = new Date(pickupDateTime.value)
-    const hours = selectedDateTime.getHours()
-    
-    if (hours < 7 || hours >= 17) {
-      alert('Pickup time must be between 7:00 AM and 5:00 PM')
-      pickupDateTime.value = ''
-    }
+  function closeSuccessModal() {
+    successModal.style.display = "none"
+    document.body.classList.remove("modal-open")
   }
 
-  setMinPickupDateTime()
-
-  // =============================
-  // FIXED: Token calculation - PROPERLY TRIGGERED
-  // =============================
-  function calculateTokens(jobElement) {
-    const paperTypeSelect = jobElement.querySelector(`select[name^="paper_type_"]`)
-    const pageCountSpan = jobElement.querySelector(".page-count span")
-    const copiesInput = jobElement.querySelector(`input[name^="copies_"]`)
-    const dropZoneInput = jobElement.querySelector(".drop-zone-input")
-    const file = dropZoneInput?.files?.[0]
-
-    // Get values with defaults
-    const paperType = paperTypeSelect ? paperTypeSelect.value : ""
-    const pageCount = Number.parseInt(pageCountSpan.textContent) || 0
-    const copies = Number.parseInt(copiesInput ? copiesInput.value : 1) || 1
-
-    let isImagePrint = false
-    let tokensPerPage = 0
-
-    if (file && file.type.startsWith("image/")) isImagePrint = true
-
-    if (paperType === "Black & White") tokensPerPage = isImagePrint ? 10 : 1
-    else if (paperType === "Colored") tokensPerPage = isImagePrint ? 15 : 10
-
-    const totalTokens = tokensPerPage * pageCount * copies
-
-    let tokenDisplay = jobElement.querySelector(".token-cost")
-    if (!tokenDisplay) {
-      tokenDisplay = document.createElement("div")
-      tokenDisplay.className = "token-cost"
-      tokenDisplay.style.marginTop = "8px"
-      tokenDisplay.style.color = "#333"
-      tokenDisplay.style.fontWeight = "bold"
-      tokenDisplay.style.padding = "8px 12px"
-      tokenDisplay.style.background = "#f0f8ff"
-      tokenDisplay.style.borderRadius = "6px"
-      tokenDisplay.style.borderLeft = "3px solid #3d2ee7"
-      jobElement.appendChild(tokenDisplay)
-    }
-    tokenDisplay.textContent = `🪙 Tokens for this job: ${totalTokens}`
-    updateTotalTokens()
-  }
-
-  function updateTotalTokens() {
-    const allJobTokens = Array.from(document.querySelectorAll(".token-cost")).map(
-      (div) => Number.parseInt(div.textContent.replace(/\D/g, "")) || 0,
-    )
-    const total = allJobTokens.reduce((a, b) => a + b, 0)
-
-    let totalDisplay = document.getElementById("totalTokens")
-    if (!totalDisplay) {
-      totalDisplay = document.createElement("div")
-      totalDisplay.id = "totalTokens"
-      totalDisplay.style.marginTop = "15px"
-      totalDisplay.style.padding = "10px 15px"
-      totalDisplay.style.background = "#f8f9ff"
-      totalDisplay.style.borderRadius = "8px"
-      totalDisplay.style.color = "#1e1362"
-      totalDisplay.style.fontWeight = "bold"
-      totalDisplay.style.textAlign = "right"
-      form.appendChild(totalDisplay)
-    }
-    totalDisplay.textContent = `💰 Total Tokens Required: ${total}`
-
-    if (currentUserEmail) {
-      fetch(`http://localhost:3000/users/${encodeURIComponent(currentUserEmail)}`)
-        .then((res) => res.json())
-        .then((user) => {
-          const userBalance = user.tokenBalance ?? 0
-          const remainingTokens = Math.max(userBalance - total, 0)
-          let remainingDisplay = document.getElementById("remainingTokens")
-          if (!remainingDisplay) {
-            remainingDisplay = document.createElement("div")
-            remainingDisplay.id = "remainingTokens"
-            remainingDisplay.style.marginTop = "10px"
-            remainingDisplay.style.padding = "10px 15px"
-            remainingDisplay.style.borderRadius = "8px"
-            remainingDisplay.style.fontWeight = "bold"
-            remainingDisplay.style.textAlign = "right"
-            form.appendChild(remainingDisplay)
-          }
-          
-          remainingDisplay.className = remainingTokens > 0 ? "" : "low-tokens"
-          if (remainingTokens > 0) {
-            remainingDisplay.style.background = "#f0fff0"
-            remainingDisplay.style.color = "#2e7d32"
-          } else {
-            remainingDisplay.style.background = "#fff0f0"
-            remainingDisplay.style.color = "#c62828"
-          }
-          remainingDisplay.textContent = `🪙 Remaining Tokens After Transaction: ${remainingTokens}`
-        })
-        .catch((err) => console.error("Failed to fetch token balance:", err))
-    }
-  }
-
-  // =============================
-  // FIXED: Drop Zone Logic with PROPER document preview
-  // =============================
-  function initializeDropZone(dropZone) {
-    const fileInput = dropZone.querySelector(".drop-zone-input")
-    const pageCountSpan = dropZone.closest(".form-group").querySelector(".page-count span")
-    const jobElement = dropZone.closest(".print-job")
-    const filePreview = dropZone.closest(".form-group").querySelector(".file-preview")
-
-    const handleFileChange = (event) => {
-      const input = event.target
-      if (input.files && input.files.length > 0) {
-        const file = input.files[0]
-        const formattedName = formatFilename(file.name)
-        showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, input.name, jobElement)
-        countPages(file, pageCountSpan, jobElement)
-      }
-    }
-
-    // Remove existing event listeners and add new ones
-    const newFileInput = fileInput.cloneNode(true)
-    fileInput.replaceWith(newFileInput)
-    newFileInput.addEventListener("change", handleFileChange)
-
-    dropZone.addEventListener("click", (e) => {
-      if (e.target === dropZone || !e.target.closest(".remove-file-btn")) {
-        newFileInput.click()
+  // Modal close buttons
+  const closeModalButtons = document.querySelectorAll(".close-modal")
+  closeModalButtons.forEach(button => {
+    button.addEventListener("click", (e) => {
+      const modal = e.target.closest('.modal')
+      if (modal && modal.id !== 'successModal') {
+        closeAllModals()
       }
     })
+  })
 
-    dropZone.addEventListener("dragover", (e) => {
-      e.preventDefault()
-      dropZone.classList.add("drop-zone--active")
-      dropZone.style.borderColor = "#3d2ee7"
-      dropZone.style.backgroundColor = "#f0f0ff"
-    })
-    
-    ;["dragleave", "dragend"].forEach((type) => {
-      dropZone.addEventListener(type, () => {
-        dropZone.classList.remove("drop-zone--active")
-        dropZone.style.borderColor = "#a8a8ff"
-        dropZone.style.backgroundColor = "#f9f9ff"
+  cancelSubmissionBtn.addEventListener("click", closeAllModals)
+
+  successHomeBtn.addEventListener("click", () => {
+    clearStoredSuccess()
+    closeSuccessModal()
+    location.href = "home.html"
+  })
+
+  window.addEventListener("click", (e) => {
+    if (e.target === confirmationModal || e.target === filePreviewModal) {
+      closeAllModals()
+    }
+  })
+
+  successNewSubmissionBtn.addEventListener("click", () => {
+    clearStoredSuccess()
+    closeSuccessModal()
+  })
+
+  /* =========================
+     Form State Management
+     ========================= */
+  function collectFormState() {
+    const state = {
+      meta: {
+        fullName: document.getElementById("fullNameInput")?.value || "",
+        email: document.getElementById("emailInput")?.value || "",
+        course: document.getElementById("courseInput")?.value || "",
+        year: document.getElementById("yearSelect")?.value || "",
+        pickupDateTime: document.getElementById("pickupDateTime")?.value || "",
+      },
+      jobs: []
+    }
+
+    document.querySelectorAll(".print-job").forEach((job, i) => {
+      const jobId = i + 1
+      const copies = job.querySelector(`input[name="copies_${jobId}"]`)?.value || 1
+      const paperSize = job.querySelector(`select[name^="paper_size_"]`)?.value || ""
+      const paperSide = job.querySelector(`select[name^="paper_side_"]`)?.value || ""
+      const paperType = job.querySelector(`select[name^="paper_type_"]`)?.value || ""
+      const notes = job.querySelector(`textarea[name^="notes_"]`)?.value || ""
+      const pageCount = Number.parseInt(job.querySelector(".page-count span")?.textContent) || 0
+      const fileInput = job.querySelector(".drop-zone-input")
+      const fileMeta = fileInput && fileInput.files && fileInput.files[0]
+        ? { name: fileInput.files[0].name, type: fileInput.files[0].type }
+        : null
+
+      state.jobs.push({
+        copies, paperSize, paperSide, paperType, notes, pageCount, fileMeta
       })
     })
 
-    dropZone.addEventListener("drop", (e) => {
-      e.preventDefault()
-      dropZone.classList.remove("drop-zone--active")
-      
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        const file = e.dataTransfer.files[0]
-        const formattedName = formatFilename(file.name)
-        
-        // Create a new DataTransfer to set the file
-        const dt = new DataTransfer()
-        dt.items.add(file)
-        newFileInput.files = dt.files
-        
-        showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, newFileInput.name, jobElement)
-        countPages(file, pageCountSpan, jobElement)
-        
-        // Trigger change event manually
-        newFileInput.dispatchEvent(new Event('change', { bubbles: true }))
-      }
-    })
+    return state
+  }
 
-    // If there's already a file, show the preview
-    if (newFileInput.files && newFileInput.files.length > 0) {
-      const file = newFileInput.files[0]
-      const formattedName = formatFilename(file.name)
-      showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, newFileInput.name, jobElement)
-      countPages(file, pageCountSpan, jobElement)
+  function saveFormState() {
+    try {
+      const state = collectFormState()
+      localStorage.setItem(FORM_STATE_KEY, JSON.stringify(state))
+    } catch (e) {
+      console.warn("Failed to save form state:", e)
     }
   }
 
-  // Format filename with date at the end
-  function formatFilename(originalName) {
-    const date = new Date()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const year = date.getFullYear()
-    
-    const ext = originalName.substring(originalName.lastIndexOf("."))
-    const name = originalName.substring(0, originalName.lastIndexOf("."))
-    
-    // Date added at the end as requested: filename_MM-DD-YYYY.ext
-    return `${name}_${month}-${day}-${year}${ext}`
-  }
+  function resetJobsAfterSubmit() {    
+    const currentName = document.getElementById("fullNameInput")?.value || ""
+    const currentEmail = document.getElementById("emailInput")?.value || ""
+    const currentCourse = document.getElementById("courseInput")?.value || "" 
+    const currentYear = document.getElementById("yearSelect")?.value || "" 
 
-  function formatFileSize(bytes) {
-    if (bytes < 1024) return bytes + " bytes";
-    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-    else return (bytes / 1048576).toFixed(1) + " MB";
-  }
+    const allJobs = Array.from(document.querySelectorAll(".print-job"))
+    allJobs.slice(1).forEach(j => j.remove())
 
-  // FIXED: Show file preview with document styling like the image
-  function showFilePreview(preview, filename, filesize, pageCountSpan, file, inputName, jobElement) {
-    if (preview) {
-      preview.style.display = "block"
-      
-      // Get current job settings for token calculation
-      const copies = Number.parseInt(jobElement.querySelector(`input[name^="copies_"]`).value) || 1
-      const paperType = jobElement.querySelector(`select[name^="paper_type_"]`).value
-      const pageCount = Number.parseInt(pageCountSpan.textContent) || 0
-      
-      let tokensPerPage = 0
-      const isImagePrint = file && file.type.startsWith("image/")
-      
-      if (paperType === "Black & White") tokensPerPage = isImagePrint ? 10 : 1
-      else if (paperType === "Colored") tokensPerPage = isImagePrint ? 15 : 10
-
-      const totalTokens = tokensPerPage * pageCount * copies
-      
-      // Create document preview HTML like the image
-      preview.innerHTML = `
-        <div class="document-preview-container" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; background: #f9f9f9; margin-top: 10px;">
-          <h4 style="margin: 0 0 12px 0; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 8px;">Documents & Preview</h4>
-          <div style="border-top: 2px solid #ddd; padding-top: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-              <div style="flex: 1;">
-                <strong style="color: #333; font-size: 14px;">${filename}</strong>
-                <div style="color: #666; font-size: 12px; margin-top: 4px;">
-                  Pages: ${pageCount} • Copies: ${copies} • Tokens/page: ${tokensPerPage}
-                </div>
-              </div>
-              <div style="display: flex; gap: 8px;">
-                <button type="button" class="view-file-btn" style="padding: 6px 12px; background: #3d2ee7; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                  View Full Size
-                </button>
-                <button type="button" class="remove-file-btn" style="padding: 6px 12px; background: #ff4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                  Remove
-                </button>
-              </div>
-            </div>
-            <div style="background: #e8f4ff; padding: 8px; border-radius: 4px; margin-top: 8px;">
-              <strong style="color: #1a73e8;">🪙 Total Tokens for this document: ${totalTokens}</strong>
-            </div>
-          </div>
-        </div>
-      `
-      
-      // Add event listeners to the new buttons
-      const viewBtn = preview.querySelector(".view-file-btn")
-      const removeBtn = preview.querySelector(".remove-file-btn")
-      
-      viewBtn.onclick = () => previewFile(file)
-      removeBtn.onclick = () => removeFile(preview, pageCountSpan, inputName, jobElement)
-    }
-  }
-
-  // FIXED: Large file preview modal
-  function previewFile(file) {
-    if (!file) return
-    
-    filePreviewContent.innerHTML = ""
-    
-    // Create a larger container for better visibility
-    const previewContainer = document.createElement("div")
-    previewContainer.style.width = "90vw"
-    previewContainer.style.height = "80vh"
-    previewContainer.style.maxWidth = "1200px"
-    previewContainer.style.maxHeight = "800px"
-    previewContainer.style.display = "flex"
-    previewContainer.style.flexDirection = "column"
-    previewContainer.style.alignItems = "center"
-    previewContainer.style.justifyContent = "center"
-    
-    const fileName = document.createElement("h3")
-    fileName.textContent = `Preview: ${file.name}`
-    fileName.style.marginBottom = "20px"
-    fileName.style.color = "#333"
-    previewContainer.appendChild(fileName)
-    
-    if (file.type.startsWith("image/")) {
-      const img = document.createElement("img")
-      img.src = URL.createObjectURL(file)
-      img.alt = "File Preview"
-      img.style.maxWidth = "100%"
-      img.style.maxHeight = "70vh"
-      img.style.objectFit = "contain"
-      img.style.border = "2px solid #ddd"
-      img.style.borderRadius = "8px"
-      previewContainer.appendChild(img)
-    } else if (file.type === "application/pdf") {
-      const object = document.createElement("object")
-      object.data = URL.createObjectURL(file)
-      object.type = "application/pdf"
-      object.width = "100%"
-      object.height = "600"
-      object.style.border = "2px solid #ddd"
-      object.style.borderRadius = "8px"
-      previewContainer.appendChild(object)
-    } else {
-      const notSupported = document.createElement("div")
-      notSupported.innerHTML = `
-        <div style="text-align: center; padding: 40px;">
-          <h4>Preview not available for this file type</h4>
-          <p>File: ${file.name}</p>
-          <p>Type: ${file.type}</p>
-        </div>
-      `
-      previewContainer.appendChild(notSupported)
-    }
-    
-    // Add close button
-    const closeButton = document.createElement("button")
-    closeButton.textContent = "Close Preview"
-    closeButton.style.marginTop = "20px"
-    closeButton.style.padding = "10px 20px"
-    closeButton.style.backgroundColor = "#3d2ee7"
-    closeButton.style.color = "white"
-    closeButton.style.border = "none"
-    closeButton.style.borderRadius = "5px"
-    closeButton.style.cursor = "pointer"
-    closeButton.onclick = () => {
-      filePreviewModal.style.display = "none"
-      // Clean up object URLs
-      if (file.type.startsWith("image/")) {
-        URL.revokeObjectURL(file)
-      }
-    }
-    previewContainer.appendChild(closeButton)
-    
-    filePreviewContent.appendChild(previewContainer)
-    filePreviewModal.style.display = "block"
-  }
-
-  // FIXED: Remove file function
-  function removeFile(preview, pageCountSpan, inputName, jobElement) {
-    const dropZone = preview.closest(".form-group").querySelector(".drop-zone")
-    const fileInput = dropZone.querySelector(".drop-zone-input")
-    
-    // Clear the file input
-    fileInput.value = ""
-    
-    // Reset preview and page count
-    preview.style.display = "none"
-    preview.innerHTML = '' // Clear the preview content
-    pageCountSpan.textContent = "0"
-    
-    // Recalculate tokens
-    calculateTokens(jobElement)
-    
-    console.log("File removed successfully")
-  }
-
-  async function countPages(file, pageCountSpan, jobElement) {
-    let pageCount = 1; // Default for non-PDF files
-    
-    if (file.type === "application/pdf") {
+    const firstJob = document.querySelector(".print-job")
+    if (firstJob) {
       try {
-        console.log("Counting PDF pages for:", file.name);
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-        pageCount = pdf.numPages;
-        console.log("PDF pages counted:", pageCount);
-      } catch (err) {
-        console.error("Error counting PDF pages:", err);
-        pageCount = 1; // Fallback to 1 page if counting fails
+        firstJob.querySelector(`input[name^="copies_"]`).value = 1
+        firstJob.querySelector(`select[name^="paper_size_"]`).value = ""
+        firstJob.querySelector(`select[name^="paper_side_"]`).value = ""
+        firstJob.querySelector(`select[name^="paper_type_"]`).value = ""
+        firstJob.querySelector(`textarea[name^="notes_"]`).value = ""
+
+        const dropZone = firstJob.querySelector(".drop-zone")
+        if (dropZone) {
+          const oldInput = dropZone.querySelector(".drop-zone-input")
+          if (oldInput) {
+            const newInput = document.createElement("input")
+            newInput.type = "file"
+            newInput.name = "documents"
+            newInput.className = "drop-zone-input"
+            newInput.required = true
+            newInput.accept = ".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
+            oldInput.replaceWith(newInput)
+            initializeDropZone(dropZone)
+          }
+        }
+
+        const filePreview = firstJob.querySelector(".file-preview")
+        if (filePreview) {
+          filePreview.style.display = "none"
+          filePreview.innerHTML = ""
+        }
+        const pageCountSpan = firstJob.querySelector(".page-count span")
+        if (pageCountSpan) pageCountSpan.textContent = "0"
+      } catch (e) {
+        console.warn("Failed to reset first job", e)
       }
-    } else if (file.type.startsWith("image/")) {
-      pageCount = 1; // Images are always 1 page
     }
-    
-    // Update the page count display
-    pageCountSpan.textContent = pageCount;
-    
-    // Update the file preview with the correct page count if it exists
-    const filePreview = jobElement.querySelector(".file-preview");
-    if (filePreview && filePreview.style.display !== "none") {
-      // Recreate the preview with updated page count
-      const fileInput = jobElement.querySelector(".drop-zone-input")
-      const file = fileInput?.files?.[0]
-      if (file) {
-        const formattedName = formatFilename(file.name)
-        showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, fileInput.name, jobElement)
-      }
-    }
-    
-    // Recalculate tokens after page count is updated
-    calculateTokens(jobElement);
+
+    jobCount = 1
+    document.querySelectorAll(".token-cost").forEach(el => el.remove())
+    const totalDisplay = document.getElementById("totalTokens")
+    if (totalDisplay) totalDisplay.remove()
+    const remainingDisplay = document.getElementById("remainingTokens")
+    if (remainingDisplay) remainingDisplay.remove()
+
+    const confirmCheckboxEl = document.getElementById("confirmCheckbox")
+    if (confirmCheckboxEl) confirmCheckboxEl.checked = false
+
+    localStorage.removeItem(FORM_STATE_KEY)
+
+    const fullNameInput = document.getElementById("fullNameInput")
+    const emailInput = document.getElementById("emailInput")
+    const courseInput = document.getElementById("courseInput") 
+    const yearSelect = document.getElementById("yearSelect") 
+    if (fullNameInput) { fullNameInput.value = currentName; fullNameInput.readOnly = true }
+    if (emailInput) { emailInput.value = currentEmail; emailInput.readOnly = true }
+    if (yearSelect) { yearSelect.value = currentYear }
+    if (courseInput) { courseInput.value = currentCourse }
   }
 
-  // =============================
-  // Add / Remove Print Jobs - WITH PROPER PREVIEW AND TOKEN CALCULATION
-  // =============================
-  addPrintJobBtn.addEventListener("click", () => {
+  function restoreFormState() {
+    const raw = localStorage.getItem(FORM_STATE_KEY)
+    if (!raw) return
+    try {
+      const state = JSON.parse(raw)
+      const m = state.meta || {}
+
+      if (m.fullName) document.getElementById("fullNameInput").value = m.fullName
+      if (m.email) document.getElementById("emailInput").value = m.email
+      if (m.course) document.getElementById("courseInput").value = m.course
+      if (m.year) document.getElementById("yearSelect").value = m.year
+      if (m.pickupDateTime) document.getElementById("pickupDateTime").value = m.pickupDateTime
+
+      const savedJobs = state.jobs || []
+      const existing = Array.from(document.querySelectorAll(".print-job"))
+      existing.slice(1).forEach(n => n.remove())
+      jobCount = 1
+
+      savedJobs.forEach((j, idx) => {
+        if (idx === 0) {
+          const firstJob = document.querySelector(".print-job")
+          if (firstJob) {
+            populateJobFields(firstJob, j, 1)
+          }
+        } else {
+          addPrintJobProgrammatic()
+          const newJob = printJobs.querySelector(`.print-job[data-job-id="${idx+1}"]`)
+          if (newJob) populateJobFields(newJob, j, idx+1)
+        }
+      })
+
+      document.querySelectorAll(".print-job").forEach(job => {
+        calculateTokens(job)
+      })
+    } catch (e) {
+      console.warn("Failed to restore form state:", e)
+    }
+  }
+
+  function populateJobFields(jobElement, jobData, jobId) {
+    try {
+      if (jobData.copies !== undefined) jobElement.querySelector(`input[name^="copies_"]`).value = jobData.copies
+      if (jobData.paperSize !== undefined) {
+        const sel = jobElement.querySelector(`select[name^="paper_size_"]`)
+        if (sel) sel.value = jobData.paperSize
+      }
+      if (jobData.paperSide !== undefined) {
+        const sel = jobElement.querySelector(`select[name^="paper_side_"]`)
+        if (sel) sel.value = jobData.paperSide
+      }
+      if (jobData.paperType !== undefined) {
+        const sel = jobElement.querySelector(`select[name^="paper_type_"]`)
+        if (sel) sel.value = jobData.paperType
+      }
+      if (jobData.notes !== undefined) jobElement.querySelector(`textarea[name^="notes_"]`).value = jobData.notes || ""
+      if (jobData.pageCount !== undefined) jobElement.querySelector(".page-count span").textContent = jobData.pageCount
+
+      const preview = jobElement.querySelector(".file-preview")
+      if (jobData.fileMeta && preview) {
+        preview.style.display = "block"
+        preview.innerHTML = `
+          <div style="padding:8px;color:#444;">
+            <strong>${jobData.fileMeta.name}</strong>
+            <div style="font-size:12px;color:#666">(File not reattached — please reselect file before submitting)</div>
+          </div>
+        `
+      }
+    } catch (e) {
+      console.warn("populateJobFields error", e)
+    }
+  }
+
+  /* =========================
+     Success Modal Functions
+     ========================= */
+  function storeSuccess(result, sentMeta) {
+    const data = {
+      requestId: result.requestId || null,
+      totalTokens: result.totalTokens || null,
+      remainingTokens: result.remainingTokens || null,
+      status: result.status || "Submitted",
+      fullName: sentMeta.fullName || "",
+      courseYear: sentMeta.courseYear || "",
+      time: new Date().toISOString()
+    }
+    localStorage.setItem(LAST_SUCCESS_KEY, JSON.stringify(data))
+  }
+
+  function showStoredSuccessIfAny() {
+    const raw = localStorage.getItem(LAST_SUCCESS_KEY)
+    if (!raw) return
+    try {
+      const s = JSON.parse(raw)
+      successDetails.innerHTML = `
+        <p><strong>Request ID:</strong> ${s.requestId || "-"}</p>
+        <p><strong>Full Name:</strong> ${s.fullName || "-"}</p>
+        <p><strong>Course Year:</strong> ${s.courseYear || "-"}</p>
+        <p><strong>Total Tokens Used:</strong> ${s.totalTokens ?? "-"}</p>
+        <p><strong>Remaining Tokens:</strong> ${s.remainingTokens ?? "-"}</p>
+        <p><strong>Status:</strong> ${s.status}</p>
+        <p style="font-size:12px;color:#666">Submitted at: ${new Date(s.time).toLocaleString()}</p>
+      `
+      successModal.style.display = "block"
+      document.body.classList.add("modal-open")
+    } catch (e) {
+      console.warn("showStoredSuccessIfAny error", e)
+    }
+  }
+
+  function clearStoredSuccess() {
+    localStorage.removeItem(LAST_SUCCESS_KEY)
+  }
+
+  /* =========================
+     Print Job Functions
+     ========================= */
+  function addPrintJobProgrammatic() {
     jobCount++
     const newJob = document.createElement("div")
     newJob.className = "print-job"
@@ -526,7 +383,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="drop-zone" id="dropZone_${jobCount}">
           <p>Browse File</p>
           <span>Drag & Drop files here</span>
-          <input type="file" name="documents" class="drop-zone-input" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+          <input type="file" name="documents" class="drop-zone-input" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt" />
         </div>
         <div class="page-count" style="margin-top: 8px; color: #666;">Pages: <span>0</span></div>
         <div class="file-preview" style="margin-top: 12px; display: none;"></div>
@@ -540,200 +397,677 @@ document.addEventListener("DOMContentLoaded", () => {
     printJobs.appendChild(newJob)
     initializeDropZone(newJob.querySelector(".drop-zone"))
 
-    // Add token calculation to the new job - FIXED EVENT LISTENERS
-    const jobElement = newJob
-    
-    // Add change listeners to all form elements
-    const formElements = newJob.querySelectorAll('select, input[type="number"]')
-    formElements.forEach(element => {
-      element.addEventListener('change', () => {
-        calculateTokens(jobElement)
-        // Update preview if file exists
-        const filePreview = jobElement.querySelector(".file-preview")
-        const fileInput = jobElement.querySelector(".drop-zone-input")
-        const pageCountSpan = jobElement.querySelector(".page-count span")
-        if (filePreview.style.display !== "none" && fileInput.files.length > 0) {
-          const file = fileInput.files[0]
-          const formattedName = formatFilename(file.name)
-          showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, fileInput.name, jobElement)
-        }
-      })
+    newJob.querySelectorAll('select, input[type="number"], textarea').forEach(el => {
+      el.addEventListener("change", saveFormState)
+      el.addEventListener("input", saveFormState)
     })
 
     newJob.querySelector(".remove-job-btn").addEventListener("click", (e) => {
       e.preventDefault()
       newJob.remove()
       updateTotalTokens()
+      saveFormState()
     })
+  }
+
+  function calculateTokens(jobElement) {
+    const paperTypeSelect = jobElement.querySelector(`select[name^="paper_type_"]`)
+    const pageCountSpan = jobElement.querySelector(".page-count span")
+    const copiesInput = jobElement.querySelector(`input[name^="copies_"]`)
+    const dropZoneInput = jobElement.querySelector(".drop-zone-input")
+    const file = dropZoneInput?.files?.[0]
+
+    const paperType = paperTypeSelect ? paperTypeSelect.value : ""
+    const pageCount = Number.parseInt(pageCountSpan.textContent) || 0
+    const copies = Number.parseInt(copiesInput ? copiesInput.value : 1) || 1
+
+    let isImagePrint = false
+    let tokensPerPage = 0
+
+    if (file && file.type.startsWith("image/")) isImagePrint = true
+
+    if (paperType === "Black & White") tokensPerPage = isImagePrint ? 10 : 1
+    else if (paperType === "Colored") tokensPerPage = isImagePrint ? 15 : 10
+
+    const totalTokens = tokensPerPage * pageCount * copies
+
+    let tokenDisplay = jobElement.querySelector(".token-cost")
+    if (!tokenDisplay) {
+      tokenDisplay = document.createElement("div")
+      tokenDisplay.className = "token-cost"
+      tokenDisplay.style.marginTop = "8px"
+      tokenDisplay.style.color = "#333"
+      tokenDisplay.style.fontWeight = "bold"
+      tokenDisplay.style.padding = "8px 12px"
+      tokenDisplay.style.background = "#f0f8ff"
+      tokenDisplay.style.borderRadius = "6px"
+      tokenDisplay.style.borderLeft = "3px solid #3d2ee7"
+      jobElement.appendChild(tokenDisplay)
+    }
+    tokenDisplay.textContent = `🪙 Tokens for this job: ${totalTokens}`
+    updateTotalTokens()
+    saveFormState()
+  }
+
+  function updateTotalTokens() {
+    const allJobTokens = Array.from(document.querySelectorAll(".token-cost")).map(
+      (div) => Number.parseInt(div.textContent.replace(/\D/g, "")) || 0,
+    )
+    const total = allJobTokens.reduce((a, b) => a + b, 0)
+
+    let totalDisplay = document.getElementById("totalTokens")
+    if (!totalDisplay) {
+      totalDisplay = document.createElement("div")
+      totalDisplay.id = "totalTokens"
+      totalDisplay.style.marginTop = "15px"
+      totalDisplay.style.padding = "10px 15px"
+      totalDisplay.style.background = "#f8f9ff"
+      totalDisplay.style.borderRadius = "8px"
+      totalDisplay.style.color = "#1e1362"
+      totalDisplay.style.fontWeight = "bold"
+      totalDisplay.style.textAlign = "right"
+      form.appendChild(totalDisplay)
+    }
+    totalDisplay.textContent = `💰 Total Tokens Required: ${total}`
+
+    if (currentUserEmail) {
+      fetch(`http://localhost:3000/users/${encodeURIComponent(currentUserEmail)}`)
+        .then((res) => res.json())
+        .then((user) => {
+          const userBalance = user.tokenBalance ?? 0
+          const remainingTokens = Math.max(userBalance - total, 0)
+          let remainingDisplay = document.getElementById("remainingTokens")
+          if (!remainingDisplay) {
+            remainingDisplay = document.createElement("div")
+            remainingDisplay.id = "remainingTokens"
+            remainingDisplay.style.marginTop = "10px"
+            remainingDisplay.style.padding = "10px 15px"
+            remainingDisplay.style.borderRadius = "8px"
+            remainingDisplay.style.fontWeight = "bold"
+            remainingDisplay.style.textAlign = "right"
+            form.appendChild(remainingDisplay)
+          }
+          
+          if (remainingTokens > 0) {
+            remainingDisplay.style.background = "#f0fff0"
+            remainingDisplay.style.color = "#2e7d32"
+          } else {
+            remainingDisplay.style.background = "#fff0f0"
+            remainingDisplay.style.color = "#c62828"
+          }
+          remainingDisplay.textContent = `🪙 Remaining Tokens After Transaction: ${remainingTokens}`
+        })
+        .catch((err) => console.error("Failed to fetch token balance:", err))
+    }
+  }
+
+  /* =========================
+     IMPROVED FILE HANDLING SYSTEM
+     ========================= */
+
+  // Get file type information
+  function getFileTypeInfo(file) {
+    if (!file) return FILE_TYPES.default
+    
+    if (file.type === 'application/pdf') {
+      return FILE_TYPES.pdf
+    } else if (file.type.startsWith('image/')) {
+      return FILE_TYPES.image
+    } else if (file.type.includes('word') || file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
+      return FILE_TYPES.word
+    } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
+      return FILE_TYPES.text
+    } else {
+      return FILE_TYPES.default
+    }
+  }
+
+  // Format file size
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  function initializeDropZone(dropZone) {
+    const fileInput = dropZone.querySelector(".drop-zone-input")
+    const pageCountSpan = dropZone.closest(".form-group").querySelector(".page-count span")
+    const jobElement = dropZone.closest(".print-job")
+    const filePreview = dropZone.closest(".form-group").querySelector(".file-preview")
+
+    const handleFileChange = (event) => {
+      const input = event.target
+      if (input.files && input.files.length > 0) {
+        const file = input.files[0]
+        const formattedName = formatFilename(file.name)
+        showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, input.name, jobElement)
+        countPages(file, pageCountSpan, jobElement)
+        saveFormState()
+      }
+    }
+
+    const newFileInput = fileInput.cloneNode(true)
+    fileInput.replaceWith(newFileInput)
+    newFileInput.addEventListener("change", handleFileChange)
+
+    dropZone.addEventListener("click", (e) => {
+      if (e.target === dropZone || !e.target.closest(".file-action-btn")) {
+        newFileInput.click()
+      }
+    })
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault()
+      dropZone.classList.add("drop-zone--active")
+      dropZone.style.borderColor = "#3d2ee7"
+      dropZone.style.backgroundColor = "#f0f0ff"
+    })
+    
+    ;["dragleave", "dragend"].forEach((type) => {
+      dropZone.addEventListener(type, () => {
+        dropZone.classList.remove("drop-zone--active")
+        dropZone.style.borderColor = "#a8a8ff"
+        dropZone.style.backgroundColor = "#f9f9ff"
+      })
+    })
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault()
+      dropZone.classList.remove("drop-zone--active")
+      
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0]
+        const formattedName = formatFilename(file.name)
+        
+        const dt = new DataTransfer()
+        dt.items.add(file)
+        newFileInput.files = dt.files
+        
+        showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, newFileInput.name, jobElement)
+        countPages(file, pageCountSpan, jobElement)
+        
+        newFileInput.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    })
+
+    if (newFileInput.files && newFileInput.files.length > 0) {
+      const file = newFileInput.files[0]
+      const formattedName = formatFilename(file.name)
+      showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, newFileInput.name, jobElement)
+      countPages(file, pageCountSpan, jobElement)
+    }
+  }
+
+  function formatFilename(originalName) {
+    const date = new Date()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const year = date.getFullYear()
+    const ext = originalName.substring(originalName.lastIndexOf("."))
+    const name = originalName.substring(0, originalName.lastIndexOf("."))
+    return `${name}_${month}-${day}-${year}${ext}`
+  }
+
+  function showFilePreview(preview, filename, filesize, pageCountSpan, file, inputName, jobElement) {
+    if (preview) {
+      preview.style.display = "block"
+      const copies = Number.parseInt(jobElement.querySelector(`input[name^="copies_"]`).value) || 1
+      const paperType = jobElement.querySelector(`select[name^="paper_type_"]`).value
+      const pageCount = Number.parseInt(pageCountSpan.textContent) || 0
+      
+      let tokensPerPage = 0
+      const isImagePrint = file && file.type.startsWith("image/")
+      
+      if (paperType === "Black & White") tokensPerPage = isImagePrint ? 10 : 1
+      else if (paperType === "Colored") tokensPerPage = isImagePrint ? 15 : 10
+
+      const totalTokens = tokensPerPage * pageCount * copies
+      const fileTypeInfo = getFileTypeInfo(file)
+      
+      const previewHTML = `
+        <div class="file-preview-card" style="border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px; background: #fff; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <div class="file-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+            <div class="file-info" style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <div style="font-size: 24px;">${fileTypeInfo.icon}</div>
+                <div>
+                  <strong style="color: #333; font-size: 14px; display: block;">${filename}</strong>
+                  <div style="color: #666; font-size: 12px;">
+                    ${fileTypeInfo.label} • ${formatFileSize(filesize)}
+                  </div>
+                </div>
+              </div>
+              <div style="color: #666; font-size: 12px; background: #f8f9fa; padding: 8px; border-radius: 6px;">
+                Pages: ${pageCount} • Copies: ${copies} • Tokens/page: ${tokensPerPage}
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="file-action-btn replace-btn" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                <span>        <img src="../images/student_img/submission/replace.png" alt=""> </span> Replace
+              </button>
+              <button type="button" class="file-action-btn remove-btn" style="padding: 6px 12px; background: #ff4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                <span> <img src="../images/student_img/submission/trash.png" alt=""></span> Remove
+              </button>
+            </div>
+          </div>
+          
+          <div style="background: #e8f4ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
+            <strong style="color: #1a73e8; font-size: 14px;">🪙 Total Tokens for this document: ${totalTokens}</strong>
+          </div>
+          
+          <div class="file-preview-content" style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 16px; text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center;">
+            ${generateFilePreviewContent(file)}
+          </div>
+        </div>
+      `
+      preview.innerHTML = previewHTML
+      
+      const replaceBtn = preview.querySelector(".replace-btn")
+      const removeBtn = preview.querySelector(".remove-btn")
+      
+      replaceBtn.onclick = () => replaceFile(preview, jobElement)
+      removeBtn.onclick = () => removeFile(preview, pageCountSpan, inputName, jobElement)
+    }
+  }
+
+  function generateFilePreviewContent(file) {
+    if (!file) {
+      return '<p style="color: #999; margin: 0;">No file preview available</p>'
+    }
+
+    const fileTypeInfo = getFileTypeInfo(file)
+    
+    switch (fileTypeInfo.preview) {
+      case 'image':
+        const imageUrl = URL.createObjectURL(file)
+        return `
+          <div style="width: 100%; text-align: center;">
+            <img src="${imageUrl}" alt="File preview" style="max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" />
+            <p style="margin: 12px 0 0 0; color: #666; font-size: 12px;">Image Preview - ${file.name}</p>
+          </div>
+        `
+        
+      case 'embed':
+        const pdfUrl = URL.createObjectURL(file)
+        return `
+          <div style="width: 100%; height: 400px;">
+            <embed src="${pdfUrl}" type="application/pdf" width="100%" height="100%" style="border-radius: 6px; border: 1px solid #ddd;" />
+            <p style="margin: 12px 0 0 0; color: #666; font-size: 12px;">PDF Preview - ${file.name}</p>
+          </div>
+        `
+        
+      case 'text':
+        return `
+          <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">${fileTypeInfo.icon}</div>
+            <p style="margin: 0 0 8px 0; font-weight: bold; color: #333;">${file.name}</p>
+            <p style="margin: 0; color: #666; font-size: 14px;">Text file - Content will be processed for printing</p>
+          </div>
+        `
+        
+      default:
+        return `
+          <div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 16px;">${fileTypeInfo.icon}</div>
+            <p style="margin: 0 0 8px 0; font-weight: bold; color: #333;">${file.name}</p>
+            <p style="margin: 0; color: #666; font-size: 14px;">${fileTypeInfo.label} - Ready for printing</p>
+            <p style="margin: 8px 0 0 0; color: #999; font-size: 12px;">File type: ${file.type || 'Unknown'}</p>
+          </div>
+        `
+    }
+  }
+
+  function replaceFile(preview, jobElement) {
+    const dropZone = preview.closest(".form-group").querySelector(".drop-zone")
+    const fileInput = dropZone.querySelector(".drop-zone-input")
+    fileInput.click()
+  }
+
+  function removeFile(preview, pageCountSpan, inputName, jobElement) {
+    const dropZone = preview.closest(".form-group").querySelector(".drop-zone")
+    const fileInput = dropZone.querySelector(".drop-zone-input")
+    fileInput.value = ""
+    preview.style.display = "none"
+    preview.innerHTML = ''
+    pageCountSpan.textContent = "0"
+    calculateTokens(jobElement)
+    saveFormState()
+  }
+
+  async function countPages(file, pageCountSpan, jobElement) {
+    let pageCount = 1
+    if (file.type === "application/pdf") {
+      try {
+        const arrayBuffer = await file.arrayBuffer()
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise
+        pageCount = pdf.numPages
+      } catch (err) {
+        console.error("Error counting PDF pages:", err)
+        pageCount = 1
+      }
+    } else if (file.type.startsWith("image/")) {
+      pageCount = 1
+    } else if (file.type.includes('word') || file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
+      // For Word documents, we'll estimate 1 page per 500 words (rough estimate)
+      try {
+        const text = await readFileAsText(file)
+        const wordCount = text.split(/\s+/).length
+        pageCount = Math.max(1, Math.ceil(wordCount / 500))
+      } catch (err) {
+        console.error("Error estimating Word document pages:", err)
+        pageCount = 1
+      }
+    } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
+      // For text files, estimate 1 page per 500 words
+      try {
+        const text = await readFileAsText(file)
+        const wordCount = text.split(/\s+/).length
+        pageCount = Math.max(1, Math.ceil(wordCount / 500))
+      } catch (err) {
+        console.error("Error estimating text file pages:", err)
+        pageCount = 1
+      }
+    }
+    pageCountSpan.textContent = pageCount
+    const filePreview = jobElement.querySelector(".file-preview")
+    const fileInput = jobElement.querySelector(".drop-zone-input")
+    if (filePreview && fileInput && fileInput.files[0]) {
+      const formattedName = formatFilename(fileInput.files[0].name)
+      showFilePreview(filePreview, formattedName, fileInput.files[0].size, pageCountSpan, fileInput.files[0], fileInput.name, jobElement)
+    }
+    calculateTokens(jobElement)
+    saveFormState()
+  }
+
+  // Helper function to read file as text
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = e => resolve(e.target.result)
+      reader.onerror = reject
+      reader.readAsText(file)
+    })
+  }
+
+
+
+  /* =========================
+     Form Submission
+     ========================= */
+  confirmSubmissionBtn.addEventListener("click", async () => {
+    confirmationModal.style.display = "none"
+    document.body.classList.remove("modal-open")
+
+    const sentMeta = {
+      fullName: document.getElementById("fullNameInput").value,
+      email: document.getElementById("emailInput").value,
+      course: document.getElementById("courseInput").value,
+      year: document.getElementById("yearSelect").value,
+      courseYear: `${document.getElementById("courseInput").value}-${document.getElementById("yearSelect").value}`,
+      pickupDateTime: document.getElementById("pickupDateTime").value
+    }
+
+    const formData = new FormData()
+    formData.append("fullName", sentMeta.fullName)
+    formData.append("email", sentMeta.email)
+    formData.append("course", sentMeta.course)
+    formData.append("year", sentMeta.year)
+    formData.append("courseYear", sentMeta.courseYear)
+    formData.append("pickupDateTime", sentMeta.pickupDateTime || "")
+
+    const printJobsData = []
+    document.querySelectorAll(".print-job").forEach((job, i) => {
+      const jobId = i + 1
+      const pageCount = Number.parseInt(job.querySelector(".page-count span").textContent) || 0
+      const copies = Number.parseInt(job.querySelector(`input[name="copies_${jobId}"]`)?.value || 1) || 1
+      const paperSize = job.querySelector(`select[name^="paper_size_"]`)?.value || ""
+      const paperSide = job.querySelector(`select[name^="paper_side_"]`)?.value || ""
+      const paperType = job.querySelector(`select[name^="paper_type_"]`)?.value || ""
+      const notes = job.querySelector(`textarea[name^="notes_"]`)?.value || ""
+      const fileInput = job.querySelector(".drop-zone-input")
+      const originalFile = fileInput?.files?.[0] || null
+      const isImagePrint = originalFile && originalFile.type.startsWith("image/")
+
+      let tokensPerPage = 0
+      if (paperType === "Black & White") tokensPerPage = isImagePrint ? 10 : 1
+      else if (paperType === "Colored") tokensPerPage = isImagePrint ? 15 : 10
+      const totalTokens = tokensPerPage * pageCount * copies
+
+      printJobsData.push({
+        jobId, copies, paperSize, paperSide, paperType, notes, pageCount, tokensPerPage, totalTokens, isImagePrint
+      })
+
+      if (originalFile) {
+        const formattedName = formatFilename(originalFile.name)
+        const formattedFile = new File([originalFile], formattedName, { type: originalFile.type, lastModified: originalFile.lastModified })
+        formData.append("documents", formattedFile)
+      }
+    })
+
+    formData.append("printJobs", JSON.stringify(printJobsData))
+
+    try {
+      const res = await fetch("http://localhost:3000/submit", {
+        method: "POST",
+        body: formData,
+      })
+
+      const responseText = await res.text()
+      let result
+      try {
+        result = JSON.parse(responseText)
+      } catch (err) {
+        throw new Error(`Server returned invalid JSON: ${responseText}`)
+      }
+
+      if (!res.ok) {
+        const errorMsg = result.error || result.message || "Unknown server error"
+        throw new Error(errorMsg)
+      }
+
+      // SUCCESS PATH
+      successDetails.innerHTML = `
+        <p><strong>Request ID:</strong> ${result.requestId || "-"}</p>
+        <p><strong>Full Name:</strong> ${sentMeta.fullName}</p>
+        <p><strong>Course Year:</strong> ${sentMeta.courseYear}</p>
+        <p><strong>Total Tokens Used:</strong> ${result.totalTokens ?? "-"}</p>
+        <p><strong>Remaining Tokens:</strong> ${result.remainingTokens ?? "-"}</p>
+        <p><strong>Status:</strong> ${result.status || "Submitted"}</p>
+      `
+      
+      // Show the success modal
+      successModal.style.display = "block"
+      document.body.classList.add("modal-open")
+
+      // Save success details and reset form
+      storeSuccess(result, sentMeta)
+      localStorage.removeItem(FORM_STATE_KEY)
+      resetJobsAfterSubmit()
+
+    } catch (err) {
+      alert("⚠️ Error submitting form: " + err.message)
+      console.error(err)
+    }
   })
+
+  /* =========================
+     Event Listeners & Initialization
+     ========================= */
+  if (logoRefresh) {
+    logoRefresh.addEventListener("click", () => (window.location.href = "home.html"))
+  }
+
+  function setMinPickupDateTime() {
+    const now = new Date()
+    now.setHours(now.getHours() + 1)
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`
+    pickupDateTime.min = minDateTime
+    pickupDateTime.addEventListener('change', validatePickupTime)
+  }
+
+  function validatePickupTime() {
+    const selectedDateTime = new Date(pickupDateTime.value)
+    const hours = selectedDateTime.getHours()
+    if (hours < 7 || hours >= 17) {
+      alert('Pickup time must be between 7:00 AM and 5:00 PM')
+      pickupDateTime.value = ''
+    }
+  }
+
+  setMinPickupDateTime()
+
+  function loadUserData() {
+    if (currentUserEmail) {
+      fetch(`http://localhost:3000/users/${encodeURIComponent(currentUserEmail)}`)
+        .then((res) => res.json())
+        .then((user) => {
+          const fullNameInput = document.getElementById("fullNameInput")
+          const emailInput = document.getElementById("emailInput")
+          
+          fullNameInput.value = user.fullName || ""
+          emailInput.value = user.email || ""
+          fullNameInput.readOnly = true
+          emailInput.readOnly = true
+          
+          if (user.courseYear) {
+            const [course, year] = user.courseYear.split('-')
+            if (course) document.getElementById("courseInput").value = course
+            if (year) document.getElementById("yearSelect").value = year
+          }
+          saveFormState()
+        })
+        .catch((err) => console.error("Failed to fetch user:", err))
+    }
+  }
+
+  loadUserData()
+
+  if (addPrintJobBtn) {
+    addPrintJobBtn.addEventListener("click", () => {
+      addPrintJobProgrammatic()
+      saveFormState()
+    })
+  }
 
   printJobs.addEventListener("click", (e) => {
     if (e.target.matches(".remove-job-btn")) {
       e.preventDefault()
-      e.target.closest(".print-job").remove()
+      const job = e.target.closest(".print-job")
+      job.remove()
       updateTotalTokens()
+      saveFormState()
     }
   })
 
-  // =============================
-  // FIXED: Token recalculation when settings change - PROPER EVENT DELEGATION
-  // =============================
   printJobs.addEventListener("change", (e) => {
     const job = e.target.closest(".print-job")
     if (job) {
       calculateTokens(job)
     }
+    saveFormState()
   })
 
-  // =============================
-  // Initialize for first job with token calculation
-  // =============================
   const firstDropZone = document.querySelector(".drop-zone")
   if (firstDropZone) {
     const firstFileInput = firstDropZone.querySelector('.drop-zone-input')
     firstFileInput.name = 'documents'
     initializeDropZone(firstDropZone)
-    
-    // Add token calculation to first job
     const firstJob = document.querySelector(".print-job")
-    firstJob.querySelectorAll('select, input[type="number"]').forEach(element => {
-      element.addEventListener('change', () => calculateTokens(firstJob))
+    if (firstJob) {
+      firstJob.querySelectorAll('select, input[type="number"], textarea').forEach(element => {
+        element.addEventListener('change', () => calculateTokens(firstJob))
+        element.addEventListener('input', saveFormState)
+      })
+    }
+  }
+
+  if (customResetBtn) {
+    customResetBtn.addEventListener("click", () => {
+      const currentName = document.getElementById("fullNameInput").value
+      const currentEmail = document.getElementById("emailInput").value
+      const currentCourse = document.getElementById("courseInput").value
+      const currentYear = document.getElementById("yearSelect").value
+      
+      document.getElementById("pickupDateTime").value = ""
+      confirmCheckbox.checked = false
+      
+      const allJobs = document.querySelectorAll(".print-job")
+      allJobs.forEach((job, index) => {
+        if (index > 0) job.remove()
+      })
+      
+      const firstJob = document.querySelector(".print-job")
+      if (firstJob) {
+        try {
+          firstJob.querySelector(`input[name="copies_1"]`).value = 1
+          firstJob.querySelector(`select[name="paper_size_1"]`).value = ""
+          firstJob.querySelector(`select[name="paper_side_1"]`).value = ""
+          firstJob.querySelector(`select[name="paper_type_1"]`).value = ""
+          firstJob.querySelector(`textarea[name="notes_1"]`).value = ""
+          const dropZone = firstJob.querySelector(".drop-zone")
+          const fileInput = dropZone.querySelector(".drop-zone-input")
+          fileInput.value = ""
+          fileInput.name = 'documents'
+          const filePreview = firstJob.querySelector(".file-preview")
+          filePreview.style.display = "none"
+          filePreview.innerHTML = ''
+          firstJob.querySelector(".page-count span").textContent = "0"
+        } catch (e) { /* ignore */ }
+      }
+      
+      jobCount = 1
+      const tokenDisplay = document.querySelector(".token-cost")
+      if (tokenDisplay) tokenDisplay.remove()
+      const totalDisplay = document.getElementById("totalTokens")
+      if (totalDisplay) totalDisplay.remove()
+      const remainingDisplay = document.getElementById("remainingTokens")
+      if (remainingDisplay) remainingDisplay.remove()
+      
+      document.getElementById("fullNameInput").value = currentName
+      document.getElementById("emailInput").value = currentEmail
+      document.getElementById("courseInput").value = currentCourse
+      document.getElementById("yearSelect").value = currentYear
+      document.getElementById("fullNameInput").readOnly = true
+      document.getElementById("emailInput").readOnly = true
+
+      saveFormState()
     })
   }
 
-  // =============================
-  // Custom Reset Function - PRESERVE NAME AND EMAIL
-  // =============================
-  customResetBtn.addEventListener("click", () => {
-    // Store current name and email values before reset
-    const currentName = document.getElementById("fullNameInput").value
-    const currentEmail = document.getElementById("emailInput").value
-    
-    // Reset only specific fields - DO NOT reset name and email
-    document.getElementById("courseInput").value = ""
-    document.getElementById("yearSelect").value = ""
-    document.getElementById("pickupDateTime").value = ""
-    confirmCheckbox.checked = false
-    
-    // Reset all print jobs to first job only
-    const allJobs = document.querySelectorAll(".print-job")
-    allJobs.forEach((job, index) => {
-      if (index > 0) {
-        job.remove()
-      }
-    })
-    
-    // Reset the first job
-    const firstJob = document.querySelector(".print-job")
-    if (firstJob) {
-      firstJob.querySelector(`input[name="copies_1"]`).value = 1
-      firstJob.querySelector(`select[name="paper_size_1"]`).value = ""
-      firstJob.querySelector(`select[name="paper_side_1"]`).value = ""
-      firstJob.querySelector(`select[name="paper_type_1"]`).value = ""
-      firstJob.querySelector(`textarea[name="notes_1"]`).value = ""
-      
-      // Reset file upload
-      const dropZone = firstJob.querySelector(".drop-zone")
-      const fileInput = dropZone.querySelector(".drop-zone-input")
-      fileInput.value = ""
-      fileInput.name = 'documents'
-      
-      // Hide file preview
-      const filePreview = firstJob.querySelector(".file-preview")
-      filePreview.style.display = "none"
-      filePreview.innerHTML = ''
-      
-      // Reset page count
-      const pageCount = firstJob.querySelector(".page-count span")
-      pageCount.textContent = "0"
-    }
-    
-    // Reset job count
-    jobCount = 1
-    
-    // Clear token displays
-    const tokenDisplay = document.querySelector(".token-cost")
-    if (tokenDisplay) tokenDisplay.remove()
-    
-    const totalDisplay = document.getElementById("totalTokens")
-    if (totalDisplay) totalDisplay.remove()
-    
-    const remainingDisplay = document.getElementById("remainingTokens")
-    if (remainingDisplay) remainingDisplay.remove()
-    
-    // Ensure name and email remain locked and preserved
-    document.getElementById("fullNameInput").value = currentName
-    document.getElementById("emailInput").value = currentEmail
-    
-    // Re-set the readonly attribute to ensure they stay locked
-    document.getElementById("fullNameInput").readOnly = true
-    document.getElementById("emailInput").readOnly = true
-    
-    console.log("Form reset successfully - name and email preserved")
-  })
-
-  // =============================
-  // Modal Logic
-  // =============================
-  const closeModalButtons = document.querySelectorAll(".close-modal")
-  
-  closeModalButtons.forEach(button => {
-    button.addEventListener("click", () => {
-      confirmationModal.style.display = "none"
-      filePreviewModal.style.display = "none"
-    })
-  })
-  
-  cancelSubmissionBtn.addEventListener("click", () => {
-    confirmationModal.style.display = "none"
-  })
-  
-  window.addEventListener("click", (e) => {
-    if (e.target === confirmationModal || e.target === filePreviewModal) {
-      confirmationModal.style.display = "none"
-      filePreviewModal.style.display = "none"
-    }
-  })
-
-  // =============================
-  // Form Validation
-  // =============================
   form.addEventListener("submit", (e) => {
     e.preventDefault()
-    
-    // Check form validity
+    e.stopPropagation()
     let formIsValid = true
     let errorMessage = ""
 
-    // Check required fields
     if (!document.getElementById("courseInput").value) {
       formIsValid = false
       errorMessage = "Please fill in your Course\n"
     }
-    
     if (!document.getElementById("yearSelect").value) {
       formIsValid = false
       errorMessage += "Please select your Year\n"
     }
-    
     if (!document.getElementById("pickupDateTime").value) {
       formIsValid = false
       errorMessage += "Please select a Pickup Date & Time\n"
     }
 
-    // Check print jobs
     const printJobElements = document.querySelectorAll(".print-job")
-    let hasValidFile = false
-    
     printJobElements.forEach((job, index) => {
       const jobNumber = index + 1
-      
       const fileInput = job.querySelector(`input[name="documents"]`)
       if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
         formIsValid = false
         errorMessage += `Please upload a file for Print Job #${jobNumber}\n`
       } else {
-        hasValidFile = true
         const pageCountSpan = job.querySelector(".page-count span")
         const pageCount = Number.parseInt(pageCountSpan.textContent) || 0
         if (pageCount === 0) {
@@ -741,229 +1075,49 @@ document.addEventListener("DOMContentLoaded", () => {
           errorMessage += `Please wait for file processing to complete for Print Job #${jobNumber}\n`
         }
       }
-      
       const copies = job.querySelector(`input[name="copies_${jobNumber}"]`)
       const paperSize = job.querySelector(`select[name="paper_size_${jobNumber}"]`)
       const paperSide = job.querySelector(`select[name="paper_side_${jobNumber}"]`)
       const paperType = job.querySelector(`select[name="paper_type_${jobNumber}"]`)
-      
       if (!copies || !copies.value) {
         formIsValid = false
         errorMessage += `Please enter number of copies for Print Job #${jobNumber}\n`
       }
-      
       if (!paperSize || !paperSize.value) {
         formIsValid = false
         errorMessage += `Please select paper size for Print Job #${jobNumber}\n`
       }
-      
       if (!paperSide || !paperSide.value) {
         formIsValid = false
         errorMessage += `Please select paper side for Print Job #${jobNumber}\n`
       }
-      
       if (!paperType || !paperType.value) {
         formIsValid = false
         errorMessage += `Please select paper type for Print Job #${jobNumber}\n`
       }
     })
-    
+
     if (!confirmCheckbox.checked) {
       formIsValid = false
       errorMessage += "Please confirm that the information provided is accurate and complete\n"
     }
-    
+
     if (!formIsValid) {
       alert("Please fix the following errors:\n\n" + errorMessage)
       return
     }
-    
-    // Show confirmation modal instead of directly submitting
+
     confirmationModal.style.display = "block"
+    document.body.classList.add("modal-open")
   })
 
-  // =============================
-  // DEBUG: Form Submission with enhanced logging
-  // =============================
-  confirmSubmissionBtn.addEventListener("click", async () => {
-    confirmationModal.style.display = "none"
-    
-    const formData = new FormData()
-    const printJobsData = []
+  restoreFormState()
+  showStoredSuccessIfAny()
 
-    // DEBUG: Collect all form data with enhanced logging
-    const fullName = document.getElementById("fullNameInput").value
-    const email = document.getElementById("emailInput").value
-    const course = document.getElementById("courseInput").value
-    const year = document.getElementById("yearSelect").value
-    const courseYear = `${course}-${year}`.trim()
-    const pickupDateTimeValue = document.getElementById("pickupDateTime").value
-
-    console.log("🔍 === DEBUG: FORM DATA COLLECTION ===")
-    console.log("📝 User Information:")
-    console.log("   - Full Name:", fullName)
-    console.log("   - Email:", email)
-    console.log("   - Course:", course)
-    console.log("   - Year:", year)
-    console.log("   - Course Year:", courseYear)
-    console.log("   - Pickup DateTime:", pickupDateTimeValue)
-
-    // FIX: Add all user data to FormData with consistent field names
-    formData.append("fullName", fullName)
-    formData.append("email", email)
-    formData.append("course", course)
-    formData.append("year", year)
-    formData.append("courseYear", courseYear)
-    formData.append("pickupDateTime", pickupDateTimeValue)
-
-    // Process each print job
-    console.log("📦 Processing Print Jobs:")
-    document.querySelectorAll(".print-job").forEach((job, i) => {
-      const jobId = i + 1
-      
-      const pageCount = Number.parseInt(job.querySelector(".page-count span").textContent) || 0
-      const copies = Number.parseInt(job.querySelector(`input[name="copies_${jobId}"]`).value) || 1
-      const paperSize = job.querySelector(`select[name="paper_size_${jobId}"]`).value
-      const paperSide = job.querySelector(`select[name="paper_side_${jobId}"]`).value
-      const paperType = job.querySelector(`select[name="paper_type_${jobId}"]`).value
-      const fileInput = job.querySelector(`input[name="documents"]`)
-      const originalFile = fileInput?.files?.[0]
-      const notes = job.querySelector(`textarea[name="notes_${jobId}"]`).value
-      const isImagePrint = originalFile && originalFile.type.startsWith("image/")
-      
-      let tokensPerPage = 0
-      if (paperType === "Black & White") tokensPerPage = isImagePrint ? 10 : 1
-      else if (paperType === "Colored") tokensPerPage = isImagePrint ? 15 : 10
-
-      const totalTokens = tokensPerPage * pageCount * copies
-
-      const jobData = {
-        jobId: jobId,
-        copies: copies,
-        paperSize: paperSize,
-        paperSide: paperSide,
-        paperType: paperType,
-        notes: notes,
-        pageCount: pageCount,
-        tokensPerPage: tokensPerPage,
-        totalTokens: totalTokens,
-        isImagePrint: isImagePrint,
-      }
-
-      console.log(`   📄 Print Job #${jobId}:`, jobData)
-
-      printJobsData.push(jobData)
-
-      // Apply date formatting to filename when submitting
-      if (originalFile) {
-        const formattedName = formatFilename(originalFile.name)
-        // Create new File object with formatted name
-        const formattedFile = new File([originalFile], formattedName, {
-          type: originalFile.type,
-          lastModified: originalFile.lastModified
-        })
-        formData.append("documents", formattedFile)
-        console.log(`   📎 File: ${originalFile.name} -> ${formattedName}`)
-      }
-    })
-
-    formData.append("printJobs", JSON.stringify(printJobsData))
-
-    // DEBUG: Log complete FormData before sending
-    console.log("🚀 === DEBUG: FINAL FORM DATA ===")
-    console.log("FormData entries:")
-    for (let [key, value] of formData.entries()) {
-      if (key === 'documents') {
-        console.log(`   📁 ${key}: [File] ${value.name} (${value.size} bytes, ${value.type})`)
-      } else {
-        console.log(`   📋 ${key}:`, value)
-      }
-    }
-
-    try {
-      console.log("🌐 === DEBUG: SENDING REQUEST TO SERVER ===")
-      console.log("Endpoint: http://localhost:3000/submit")
-      console.log("Method: POST")
-      
-      const res = await fetch("http://localhost:3000/submit", {
-        method: "POST",
-        body: formData,
-      })
-
-      console.log("📡 === DEBUG: SERVER RESPONSE ===")
-      console.log("Status:", res.status, res.statusText)
-      
-      const responseText = await res.text()
-      console.log("Raw response text:", responseText)
-
-      let result;
-      try {
-        result = JSON.parse(responseText)
-        console.log("Parsed JSON response:", result)
-      } catch (parseError) {
-        console.error("❌ Failed to parse server response as JSON:", parseError)
-        console.error("Raw response that failed to parse:", responseText)
-        throw new Error(`Server returned invalid JSON: ${responseText}`)
-      }
-
-      if (res.ok) {
-        if (result.success || result.requestId) {
-          console.log("✅ === DEBUG: SUBMISSION SUCCESSFUL ===")
-          console.log("Request ID:", result.requestId)
-          console.log("Full Name:", fullName)
-          console.log("Course Year:", courseYear)
-          console.log("Total Tokens:", result.totalTokens)
-          console.log("Remaining Tokens:", result.remainingTokens)
-          
-          alert(
-            `✅ Print request submitted successfully!\n\nRequest ID: ${result.requestId}\nFull Name: ${fullName}\nCourse Year: ${courseYear}\nTotal Tokens: ${result.totalTokens}\nRemaining Tokens: ${result.remainingTokens}\nStatus: ${result.status}`
-          )
-          setTimeout(() => (location.href = "home.html"), 1500)
-        } else {
-          console.error("❌ Server responded with unexpected format:", result)
-          alert("❌ Submission failed: Server responded with unexpected format")
-        }
-      } else {
-        const errorMsg = result.error || result.message || "Unknown server error"
-        console.error("❌ Server error response:", errorMsg)
-        alert(`❌ Submission failed: ${errorMsg}`)
-      }
-    } catch (err) {
-      console.error("💥 === DEBUG: SUBMISSION ERROR ===")
-      console.error("Error message:", err.message)
-      console.error("Error stack:", err.stack)
-      alert("⚠️ Error submitting form: " + err.message)
-    }
+  form.querySelectorAll("input, textarea, select").forEach(el => {
+    el.addEventListener("change", saveFormState)
+    el.addEventListener("input", saveFormState)
   })
 
-  // Example function to submit a print request
-  async function submitPrintRequest({ email, fullName, courseYear, pickupDatetime, jobs, files }) {
-    // jobs is an array of job objects (tokensPerPage, totalTokens, copies, etc.)
-    // files is an array of File objects corresponding to jobs (can be empty elements)
-    const form = new FormData()
-    form.append("email", email)
-    // append both variants if you want compatibility
-    form.append("full_name", fullName)
-    form.append("fullName", fullName)
-    form.append("course_year", courseYear)
-    form.append("courseYear", courseYear)
-    form.append("pickup_datetime", pickupDatetime || "")
-    form.append("printJobs", JSON.stringify(jobs || []))
-
-    // append files under the same field name used by multer: "documents"
-    (files || []).forEach((f) => {
-      if (f) form.append("documents", f)
-    })
-
-    const res = await fetch("/submit", {
-      method: "POST",
-      body: form,
-    })
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => null)
-      throw new Error(err && err.error ? err.error : `Submit failed: ${res.status}`)
-    }
-    return res.json()
-  }
+  document.querySelectorAll(".print-job").forEach(job => calculateTokens(job))
 })
