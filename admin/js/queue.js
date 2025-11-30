@@ -608,7 +608,7 @@ document.addEventListener("DOMContentLoaded", () => {
       timeSelect.appendChild(defaultOption);
 
       // Add time options (you can customize these)
-      const timeOptions = ["Morning", "Afternoon", "Evening"];
+      const timeOptions = ["Morning", "Afternoon"];
       timeOptions.forEach(time => {
         const option = document.createElement("option");
         option.value = time;
@@ -660,7 +660,7 @@ document.addEventListener("DOMContentLoaded", () => {
       timeSelect.appendChild(defaultOption);
 
       // Add time options
-      const timeOptions = ["Morning", "Afternoon", "Evening"];
+      const timeOptions = ["Morning", "Afternoon"];
       timeOptions.forEach(time => {
         const option = document.createElement("option");
         option.value = time;
