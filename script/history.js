@@ -51,18 +51,22 @@
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
-    const logoRefresh = document.getElementById("logoRefresh")
+    const logoRefresh = document.getElementById("logoRefresh");
     if (logoRefresh) {
-      logoRefresh.addEventListener("click", () => location.reload())
+      logoRefresh.addEventListener("click", () => location.reload());
     }
 
-    ensureContainers()
-    attachFilterHandlers()
-    await initialize()
+    ensureContainers();
+    attachFilterHandlers();
+
+    // Initialize user profile and logout functionality
+    initializeUserProfileAndLogout();
+
+    await initialize();
 
     // Start polling for real-time updates
-    startPolling()
-  })
+    startPolling();
+  });
 
   // Polling for real-time updates
   function startPolling() {
@@ -706,5 +710,184 @@
     result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     filteredRequests = result
     renderCards(filteredRequests)
+  }
+  // --- Modal Utility Functions ---
+  function openModal(modal) {
+    if (!modal) return;
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  }
+
+  // --- Initialize Profile and Logout Functionality ---
+  function initializeUserProfileAndLogout() {
+    const navbarProfilePic = document.getElementById("nav-profile-pic");
+    const profileModal = document.getElementById("profileModal");
+    const closeProfileBtn = document.querySelector(".close-modal");
+    const logoutBtn = document.getElementById('profileLogoutBtn');
+    const logoutModal = document.getElementById('logoutModal');
+    const cancelLogout = document.getElementById('cancelLogout');
+    const confirmLogout = document.getElementById('confirmLogout');
+
+    // Initialize profile modal
+    if (navbarProfilePic && profileModal) {
+      // Load user details if session exists
+      if (currentUserEmail) {
+        fetchAndDisplayUser(currentUserEmail);
+      }
+
+      navbarProfilePic.addEventListener("click", async () => {
+        if (!currentUserEmail) {
+          alert("⚠️ Please log in first.");
+          return;
+        }
+        openModal(profileModal);
+        await fetchAndDisplayUser(currentUserEmail);
+      });
+
+      if (closeProfileBtn) {
+        closeProfileBtn.addEventListener("click", () => {
+          closeModal(profileModal);
+        });
+      }
+    }
+
+    // Initialize logout functionality
+    if (logoutBtn && logoutModal && cancelLogout && confirmLogout) {
+      // Open logout modal when clicking logout in profile modal
+      logoutBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        closeModal(document.getElementById('profileModal'));
+        setTimeout(() => {
+          openModal(logoutModal);
+        }, 200);
+      });
+
+      // Cancel logout
+      cancelLogout.addEventListener('click', function () {
+        closeModal(logoutModal);
+      });
+
+      // Confirm logout
+      confirmLogout.addEventListener('click', function () {
+        // Perform logout actions
+        console.log('User logging out...');
+
+        // Clear all user session data
+        sessionStorage.removeItem('userEmail');
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('userData');
+
+        // Clear current user email
+        currentUserEmail = null;
+
+        // Close modals
+        closeModal(logoutModal);
+        closeModal(document.getElementById('profileModal'));
+
+        // Redirect to login page
+        setTimeout(() => {
+          window.location.href = '../../index.html';
+        }, 300);
+      });
+
+      // Backdrop click to close modal
+      document.querySelectorAll('[data-close-modal]').forEach(el => {
+        el.addEventListener('click', (e) => {
+          const modal = e.target.closest('.modal');
+          if (modal) {
+            closeModal(modal);
+          }
+        });
+      });
+
+      // Escape key closes modal
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const openModals = document.querySelectorAll('.modal.open');
+          if (openModals.length > 0) {
+            openModals.forEach(modal => closeModal(modal));
+          }
+        }
+      });
+    }
+  }
+
+  // --- Fetch and Display User Data ---
+  async function fetchAndDisplayUser(email) {
+    try {
+      const res = await fetch(`http://localhost:3000/users/${encodeURIComponent(email)}`);
+      if (!res.ok) throw new Error("User not found");
+      const user = await res.json();
+
+      // Update both modal and navbar
+      updateProfileModal(user.fullName, user.email, user.tokenBalance, user.role, user.picture);
+      updateNavbarProfilePic(user.picture);
+      updateTokenProgress(user.tokenBalance);
+    } catch (err) {
+      console.error("⚠️ Failed to fetch user:", err);
+    }
+  }
+
+  function updateProfileModal(name, email, tokens, role, picture) {
+    const studentName = document.getElementById("studentName");
+    const studentId = document.getElementById("studentId");
+    const tokenCount = document.getElementById("tokenCount");
+    const profilePic = document.querySelector("#profileModalPic") || document.querySelector("#profileModal .modal-profile-pic");
+
+    if (studentName) studentName.textContent = name || "Unknown User";
+    if (studentId) studentId.textContent = email || "N/A";
+    if (tokenCount) tokenCount.textContent = tokens ?? 0;
+    if (profilePic && picture) {
+      profilePic.src = picture;
+      profilePic.style.borderRadius = "50%";
+    }
+  }
+
+  function updateNavbarProfilePic(picture) {
+    const navbarProfilePic = document.getElementById("nav-profile-pic");
+    if (!navbarProfilePic) return;
+
+    if (picture) {
+      navbarProfilePic.src = picture;
+    } else {
+      // fallback avatar for manual logins or missing Google picture
+      navbarProfilePic.src = "../images/student_img/profile.png";
+    }
+    navbarProfilePic.style.borderRadius = "50%";
+  }
+
+  function updateTokenProgress(currentTokens = 0) {
+    const tokenCount = document.getElementById("tokenCount");
+    const progressBar = document.getElementById("tokenProgressBar");
+    const maxTokens = 500;
+
+    if (tokenCount && progressBar) {
+      tokenCount.textContent = currentTokens;
+      const progress = (currentTokens / maxTokens) * 100;
+      progressBar.style.width = progress + "%";
+    }
+
+    const notificationsList = document.getElementById("notificationsList");
+    if (notificationsList) {
+      notificationsList.innerHTML = `
+      <div class="notification-item">
+        <div class="notification-content">
+          <div class="notification-title">Token Update</div>
+          <div class="notification-message">You currently have ${currentTokens} tokens.</div>
+          <div class="notification-time">Just now</div>
+        </div>
+      </div>
+    `;
+    }
   }
 })()

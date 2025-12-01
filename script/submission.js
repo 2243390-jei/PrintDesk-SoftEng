@@ -59,7 +59,184 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
-     Modal Functions
+     Modal Utility Functions
+     ========================= */
+  function openModal(modal) {
+    if (!modal) return;
+    modal.style.display = 'flex';
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+  }
+
+  /* =========================
+     Initialize Logout Functionality
+     ========================= */
+  function initializeLogout() {
+    const logoutBtn = document.getElementById('profileLogoutBtn');
+    const logoutModal = document.getElementById('logoutModal');
+    const cancelLogout = document.getElementById('cancelLogout');
+    const confirmLogout = document.getElementById('confirmLogout');
+
+    if (!logoutBtn || !logoutModal || !cancelLogout || !confirmLogout) {
+      console.warn('Logout elements not found');
+      return;
+    }
+
+    logoutBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      closeModal(document.getElementById('profileModal'));
+      setTimeout(() => {
+        openModal(logoutModal);
+      }, 200);
+    });
+
+    cancelLogout.addEventListener('click', function () {
+      closeModal(logoutModal);
+    });
+
+    confirmLogout.addEventListener('click', function () {
+      console.log('User logging out...');
+      sessionStorage.removeItem('userEmail');
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('userData');
+      closeModal(logoutModal);
+      closeModal(document.getElementById('profileModal'));
+      setTimeout(() => {
+        window.location.href = '../../index.html';
+      }, 300);
+    });
+
+    document.querySelectorAll('[data-close-modal]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        const modal = e.target.closest('.modal');
+        if (modal) {
+          closeModal(modal);
+        }
+      });
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const openModals = document.querySelectorAll('.modal.open');
+        if (openModals.length > 0) {
+          openModals.forEach(modal => closeModal(modal));
+        }
+      }
+    });
+  }
+
+  /* =========================
+     Initialize Profile Functionality
+     ========================= */
+  function initializeProfile() {
+    const navbarProfilePic = document.getElementById("nav-profile-pic");
+    const profileModal = document.getElementById("profileModal");
+    const closeProfileBtn = document.querySelector(".close-modal");
+
+    if (navbarProfilePic) {
+      if (currentUserEmail) {
+        fetchAndDisplayUser(currentUserEmail);
+      }
+
+      navbarProfilePic.addEventListener("click", async () => {
+        if (!currentUserEmail) {
+          alert("⚠️ Please log in first.");
+          return;
+        }
+        openModal(profileModal);
+        await fetchAndDisplayUser(currentUserEmail);
+      });
+
+      if (closeProfileBtn) {
+        closeProfileBtn.addEventListener("click", () => {
+          closeModal(profileModal);
+        });
+      }
+
+      // Initialize logout functionality
+      initializeLogout();
+    }
+  }
+
+  /* =========================
+     User Profile Functions
+     ========================= */
+  async function fetchAndDisplayUser(email) {
+    try {
+      const res = await fetch(`http://localhost:3000/users/${encodeURIComponent(email)}`);
+      if (!res.ok) throw new Error("User not found");
+      const user = await res.json();
+      updateProfileModal(user.fullName, user.email, user.tokenBalance, user.role, user.picture);
+      updateNavbarProfilePic(user.picture);
+      updateTokenProgress(user.tokenBalance);
+    } catch (err) {
+      console.error("⚠️ Failed to fetch user:", err);
+    }
+  }
+
+  function updateProfileModal(name, email, tokens, role, picture) {
+    const studentName = document.getElementById("studentName");
+    const studentId = document.getElementById("studentId");
+    const tokenCount = document.getElementById("tokenCount");
+    const profilePic = document.getElementById("profileModalPic");
+
+    if (studentName) studentName.textContent = name || "Unknown User";
+    if (studentId) studentId.textContent = email || "N/A";
+    if (tokenCount) tokenCount.textContent = tokens ?? 0;
+    if (profilePic && picture) {
+      profilePic.src = picture;
+      profilePic.style.borderRadius = "50%";
+    }
+  }
+
+  function updateNavbarProfilePic(picture) {
+    const navbarProfilePic = document.getElementById("nav-profile-pic");
+    if (!navbarProfilePic) return;
+
+    if (picture) {
+      navbarProfilePic.src = picture;
+    } else {
+      navbarProfilePic.src = "../images/student_img/profile.png";
+    }
+    navbarProfilePic.style.borderRadius = "50%";
+  }
+
+  function updateTokenProgress(currentTokens = 0) {
+    const tokenCount = document.getElementById("tokenCount");
+    const progressBar = document.getElementById("tokenProgressBar");
+    const maxTokens = 500;
+
+    if (tokenCount && progressBar) {
+      tokenCount.textContent = currentTokens;
+      const progress = (currentTokens / maxTokens) * 100;
+      progressBar.style.width = progress + "%";
+    }
+
+    const notificationsList = document.getElementById("notificationsList");
+    if (notificationsList) {
+      notificationsList.innerHTML = `
+        <div class="notification-item">
+          <div class="notification-content">
+            <div class="notification-title">Token Update</div>
+            <div class="notification-message">You currently have ${currentTokens} tokens.</div>
+            <div class="notification-time">Just now</div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  /* =========================
+     Other Modal Functions
      ========================= */
   function closeAllModals() {
     confirmationModal.style.display = "none"
@@ -72,7 +249,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.remove("modal-open")
   }
 
-  // Modal close buttons
   const closeModalButtons = document.querySelectorAll(".close-modal")
   closeModalButtons.forEach(button => {
     button.addEventListener("click", (e) => {
@@ -147,11 +323,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function resetJobsAfterSubmit() {    
+  function resetJobsAfterSubmit() {
     const currentName = document.getElementById("fullNameInput")?.value || ""
     const currentEmail = document.getElementById("emailInput")?.value || ""
-    const currentCourse = document.getElementById("courseInput")?.value || "" 
-    const currentYear = document.getElementById("yearSelect")?.value || "" 
+    const currentCourse = document.getElementById("courseInput")?.value || ""
+    const currentYear = document.getElementById("yearSelect")?.value || ""
 
     const allJobs = Array.from(document.querySelectorAll(".print-job"))
     allJobs.slice(1).forEach(j => j.remove())
@@ -206,8 +382,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const fullNameInput = document.getElementById("fullNameInput")
     const emailInput = document.getElementById("emailInput")
-    const courseInput = document.getElementById("courseInput") 
-    const yearSelect = document.getElementById("yearSelect") 
+    const courseInput = document.getElementById("courseInput")
+    const yearSelect = document.getElementById("yearSelect")
     if (fullNameInput) { fullNameInput.value = currentName; fullNameInput.readOnly = true }
     if (emailInput) { emailInput.value = currentEmail; emailInput.readOnly = true }
     if (yearSelect) { yearSelect.value = currentYear }
@@ -240,8 +416,8 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         } else {
           addPrintJobProgrammatic()
-          const newJob = printJobs.querySelector(`.print-job[data-job-id="${idx+1}"]`)
-          if (newJob) populateJobFields(newJob, j, idx+1)
+          const newJob = printJobs.querySelector(`.print-job[data-job-id="${idx + 1}"]`)
+          if (newJob) populateJobFields(newJob, j, idx + 1)
         }
       })
 
@@ -487,7 +663,7 @@ document.addEventListener("DOMContentLoaded", () => {
             remainingDisplay.style.textAlign = "right"
             form.appendChild(remainingDisplay)
           }
-          
+
           if (remainingTokens > 0) {
             remainingDisplay.style.background = "#f0fff0"
             remainingDisplay.style.color = "#2e7d32"
@@ -504,11 +680,9 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =========================
      IMPROVED FILE HANDLING SYSTEM
      ========================= */
-
-  // Get file type information
   function getFileTypeInfo(file) {
     if (!file) return FILE_TYPES.default
-    
+
     if (file.type === 'application/pdf') {
       return FILE_TYPES.pdf
     } else if (file.type.startsWith('image/')) {
@@ -522,7 +696,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Format file size
   function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes'
     const k = 1024
@@ -564,30 +737,30 @@ document.addEventListener("DOMContentLoaded", () => {
       dropZone.style.borderColor = "#3d2ee7"
       dropZone.style.backgroundColor = "#f0f0ff"
     })
-    
-    ;["dragleave", "dragend"].forEach((type) => {
-      dropZone.addEventListener(type, () => {
-        dropZone.classList.remove("drop-zone--active")
-        dropZone.style.borderColor = "#a8a8ff"
-        dropZone.style.backgroundColor = "#f9f9ff"
+
+      ;["dragleave", "dragend"].forEach((type) => {
+        dropZone.addEventListener(type, () => {
+          dropZone.classList.remove("drop-zone--active")
+          dropZone.style.borderColor = "#a8a8ff"
+          dropZone.style.backgroundColor = "#f9f9ff"
+        })
       })
-    })
 
     dropZone.addEventListener("drop", (e) => {
       e.preventDefault()
       dropZone.classList.remove("drop-zone--active")
-      
+
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0]
         const formattedName = formatFilename(file.name)
-        
+
         const dt = new DataTransfer()
         dt.items.add(file)
         newFileInput.files = dt.files
-        
+
         showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, newFileInput.name, jobElement)
         countPages(file, pageCountSpan, jobElement)
-        
+
         newFileInput.dispatchEvent(new Event('change', { bubbles: true }))
       }
     })
@@ -616,16 +789,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const copies = Number.parseInt(jobElement.querySelector(`input[name^="copies_"]`).value) || 1
       const paperType = jobElement.querySelector(`select[name^="paper_type_"]`).value
       const pageCount = Number.parseInt(pageCountSpan.textContent) || 0
-      
+
       let tokensPerPage = 0
       const isImagePrint = file && file.type.startsWith("image/")
-      
+
       if (paperType === "Black & White") tokensPerPage = isImagePrint ? 10 : 1
       else if (paperType === "Colored") tokensPerPage = isImagePrint ? 15 : 10
 
       const totalTokens = tokensPerPage * pageCount * copies
       const fileTypeInfo = getFileTypeInfo(file)
-      
+
       const previewHTML = `
         <div class="file-preview-card" style="border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px; background: #fff; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
           <div class="file-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
@@ -645,10 +818,10 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <div style="display: flex; gap: 8px;">
               <button type="button" class="file-action-btn replace-btn" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
-                <span>        <img src="../images/student_img/submission/replace.png" alt=""> </span> Replace
+                <span>Replace</span>
               </button>
               <button type="button" class="file-action-btn remove-btn" style="padding: 6px 12px; background: #ff4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
-                <span> <img src="../images/student_img/submission/trash.png" alt=""></span> Remove
+                <span>Remove</span>
               </button>
             </div>
           </div>
@@ -663,10 +836,10 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `
       preview.innerHTML = previewHTML
-      
+
       const replaceBtn = preview.querySelector(".replace-btn")
       const removeBtn = preview.querySelector(".remove-btn")
-      
+
       replaceBtn.onclick = () => replaceFile(preview, jobElement)
       removeBtn.onclick = () => removeFile(preview, pageCountSpan, inputName, jobElement)
     }
@@ -678,7 +851,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const fileTypeInfo = getFileTypeInfo(file)
-    
+
     switch (fileTypeInfo.preview) {
       case 'image':
         const imageUrl = URL.createObjectURL(file)
@@ -688,7 +861,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <p style="margin: 12px 0 0 0; color: #666; font-size: 12px;">Image Preview - ${file.name}</p>
           </div>
         `
-        
+
       case 'embed':
         const pdfUrl = URL.createObjectURL(file)
         return `
@@ -697,7 +870,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <p style="margin: 12px 0 0 0; color: #666; font-size: 12px;">PDF Preview - ${file.name}</p>
           </div>
         `
-        
+
       case 'text':
         return `
           <div style="text-align: center; padding: 20px;">
@@ -706,7 +879,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <p style="margin: 0; color: #666; font-size: 14px;">Text file - Content will be processed for printing</p>
           </div>
         `
-        
+
       default:
         return `
           <div style="text-align: center; padding: 20px;">
@@ -750,7 +923,6 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (file.type.startsWith("image/")) {
       pageCount = 1
     } else if (file.type.includes('word') || file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
-      // For Word documents, we'll estimate 1 page per 500 words (rough estimate)
       try {
         const text = await readFileAsText(file)
         const wordCount = text.split(/\s+/).length
@@ -760,7 +932,6 @@ document.addEventListener("DOMContentLoaded", () => {
         pageCount = 1
       }
     } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
-      // For text files, estimate 1 page per 500 words
       try {
         const text = await readFileAsText(file)
         const wordCount = text.split(/\s+/).length
@@ -781,7 +952,6 @@ document.addEventListener("DOMContentLoaded", () => {
     saveFormState()
   }
 
-  // Helper function to read file as text
   function readFileAsText(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -790,8 +960,6 @@ document.addEventListener("DOMContentLoaded", () => {
       reader.readAsText(file)
     })
   }
-
-
 
   /* =========================
      Form Submission
@@ -876,12 +1044,10 @@ document.addEventListener("DOMContentLoaded", () => {
         <p><strong>Remaining Tokens:</strong> ${result.remainingTokens ?? "-"}</p>
         <p><strong>Status:</strong> ${result.status || "Submitted"}</p>
       `
-      
-      // Show the success modal
+
       successModal.style.display = "block"
       document.body.classList.add("modal-open")
 
-      // Save success details and reset form
       storeSuccess(result, sentMeta)
       localStorage.removeItem(FORM_STATE_KEY)
       resetJobsAfterSubmit()
@@ -930,12 +1096,12 @@ document.addEventListener("DOMContentLoaded", () => {
         .then((user) => {
           const fullNameInput = document.getElementById("fullNameInput")
           const emailInput = document.getElementById("emailInput")
-          
+
           fullNameInput.value = user.fullName || ""
           emailInput.value = user.email || ""
           fullNameInput.readOnly = true
           emailInput.readOnly = true
-          
+
           if (user.courseYear) {
             const [course, year] = user.courseYear.split('-')
             if (course) document.getElementById("courseInput").value = course
@@ -947,7 +1113,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  // Initialize everything
   loadUserData()
+  initializeProfile()
+  showStoredSuccessIfAny()
 
   if (addPrintJobBtn) {
     addPrintJobBtn.addEventListener("click", () => {
@@ -994,15 +1163,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const currentEmail = document.getElementById("emailInput").value
       const currentCourse = document.getElementById("courseInput").value
       const currentYear = document.getElementById("yearSelect").value
-      
+
       document.getElementById("pickupDateTime").value = ""
       confirmCheckbox.checked = false
-      
+
       const allJobs = document.querySelectorAll(".print-job")
       allJobs.forEach((job, index) => {
         if (index > 0) job.remove()
       })
-      
+
       const firstJob = document.querySelector(".print-job")
       if (firstJob) {
         try {
@@ -1021,7 +1190,7 @@ document.addEventListener("DOMContentLoaded", () => {
           firstJob.querySelector(".page-count span").textContent = "0"
         } catch (e) { /* ignore */ }
       }
-      
+
       jobCount = 1
       const tokenDisplay = document.querySelector(".token-cost")
       if (tokenDisplay) tokenDisplay.remove()
@@ -1029,7 +1198,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (totalDisplay) totalDisplay.remove()
       const remainingDisplay = document.getElementById("remainingTokens")
       if (remainingDisplay) remainingDisplay.remove()
-      
+
       document.getElementById("fullNameInput").value = currentName
       document.getElementById("emailInput").value = currentEmail
       document.getElementById("courseInput").value = currentCourse
@@ -1112,7 +1281,6 @@ document.addEventListener("DOMContentLoaded", () => {
   })
 
   restoreFormState()
-  showStoredSuccessIfAny()
 
   form.querySelectorAll("input, textarea, select").forEach(el => {
     el.addEventListener("change", saveFormState)

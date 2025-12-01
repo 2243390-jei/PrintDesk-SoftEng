@@ -88,10 +88,31 @@
           <!-- Notifications will be dynamically added here -->
         </div>
       </div>
+      <!-- Logout Button in Profile Modal -->
+      <div class="profile-modal-footer">
+        <button id="profileLogoutBtn" class="logout-btn">
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content small-modal">
+      <div class="modal-header">
+        <h2>Confirm Logout</h2>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to logout?</p>
+        <div class="action-buttons">
+          <button class="reject-btn" id="cancelLogout">Cancel</button>
+          <button class="accept-btn" id="confirmLogout">Logout</button>
+        </div>
+      </div>
     </div>
   </div>
 </body>
 
 </html>
-
-
