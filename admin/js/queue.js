@@ -110,27 +110,29 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // API Functions
+  // API Functions - FIXED VERSION
   // -------------------------
   async function fetchPrintRequests() {
     try {
+      console.log("Fetching queue requests from:", REQUESTS_ENDPOINT);
       const response = await fetch(REQUESTS_ENDPOINT);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-
-      // Sort by createdAt (oldest first) to maintain queue order
-      const sortedData = data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      console.log("Raw API data:", data);
 
       // Filter only pending requests for queue
-      const pendingRequests = sortedData.filter(request => request.status === "Pending");
+      const pendingRequests = data.filter(request => request.status === "Pending");
+      console.log("Pending requests:", pendingRequests);
 
       // Transform backend data to frontend format with queue numbers
       const transformedData = [];
       let queueNumber = 1;
 
       pendingRequests.forEach((request) => {
+        console.log("Processing request:", request);
+        
         // Create separate queue items for each document
         if (request.documents && request.documents.length > 0) {
           request.documents.forEach((doc, docIndex) => {
@@ -162,8 +164,8 @@ document.addEventListener("DOMContentLoaded", () => {
               id: `${request._id}_${docIndex}`, // Unique ID for each document
               requestId: request._id, // Original request ID
               queueNumber: queueNumber++,
-              name: request.fullName,
-              course: request.courseYear,
+              name: request.fullName || "Unknown",
+              course: request.courseYear || "Unknown",
               date: formattedDate,
               queueTime: queueTime,
               pickupTime: pickupTime,
@@ -176,15 +178,15 @@ document.addEventListener("DOMContentLoaded", () => {
                   month: 'long',
                   day: 'numeric'
                 }),
-                totalCost: `${request.totalTokens} tokens`,
+                totalCost: `${request.totalTokens || 0} tokens`,
                 status: request.status,
                 requestId: request._id,
-                fileName: doc.documentTitle,
-                pageCount: doc.pageCount,
-                copies: doc.numberOfCopies,
-                paperSize: doc.paperSize,
-                printType: doc.printType,
-                printingSide: doc.printingSide,
+                fileName: doc.documentTitle || "Unknown Document",
+                pageCount: doc.pageCount || 0,
+                copies: doc.numberOfCopies || 1,
+                paperSize: doc.paperSize || "Unknown",
+                printType: doc.printType || "Unknown",
+                printingSide: doc.printingSide || "Unknown",
                 pickupDate: request.pickupDateTime ?
                   new Date(request.pickupDateTime).toLocaleDateString('en-US', {
                     year: 'numeric',
@@ -203,6 +205,7 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         } else {
           // Fallback for requests without documents
+          console.log("Request has no documents:", request);
           const createdDate = new Date(request.createdAt);
           const formattedDate = formatDate(request.createdAt);
           const queueTime = formatTime(request.createdAt);
@@ -212,8 +215,8 @@ document.addEventListener("DOMContentLoaded", () => {
             id: request._id,
             requestId: request._id,
             queueNumber: queueNumber++,
-            name: request.fullName,
-            course: request.courseYear,
+            name: request.fullName || "Unknown",
+            course: request.courseYear || "Unknown",
             date: formattedDate,
             queueTime: queueTime,
             pickupTime: pickupTime,
@@ -226,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 month: 'long',
                 day: 'numeric'
               }),
-              totalCost: `${request.totalTokens} tokens`,
+              totalCost: `${request.totalTokens || 0} tokens`,
               status: request.status,
               requestId: request._id,
               fileName: "Unknown Document",
@@ -252,6 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
+      console.log("Transformed queue data:", transformedData);
       return transformedData;
     } catch (error) {
       console.error("Error fetching print requests:", error);
@@ -282,10 +286,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // Renderers
+  // Renderers - FIXED VERSION
   // -------------------------
   function renderTable(list) {
-    if (!queueBody) return;
+    if (!queueBody) {
+      console.error("Queue body element not found!");
+      return;
+    }
+    
     queueBody.innerHTML = "";
 
     // Remove the "Status" and "Actions" header text (if present) to hide those column labels
@@ -311,7 +319,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${item.queueNumber}</td>
         <td>
           <div class="user-name">
-            <div class="user-avatar" aria-hidden="true">${item.name.split(" ")[0].slice(0, 1)}</div>
+            <div class="user-avatar" aria-hidden="true">${item.name.charAt(0).toUpperCase()}</div>
             <div>
               <div style="font-weight:700; font-size:14px;">${item.name}</div>
               <div style="font-size:13px; color: #6b7780;">${item.course}</div>
@@ -327,8 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </td>
         <td class="col-actions">
           <button class="view-details-btn" data-id="${item.id}" aria-label="View details for queue ${item.queueNumber}" title="View details">
-            <span class="icon" aria-hidden="true"></span>
-            <span class="btn-text" style="margin-left:6px;">View Details</span>
+            View Details
           </button>
         </td>
       `;
@@ -377,83 +384,71 @@ document.addEventListener("DOMContentLoaded", () => {
   // Filters (search + pickupTime/queueTime/date)
   // -------------------------
   function applyFiltersToList(list) {
-    const q = (searchInput && searchInput.value) ? searchInput.value.trim().toLowerCase() : "";
+    // Always read the current search input from the DOM (handles cloned/replaced input)
+    const searchEl = document.getElementById('searchInput');
+    const q = (searchEl && searchEl.value) ? searchEl.value.trim().toLowerCase() : "";
+    
     return list.filter(item => {
-      // search
+      // Search across multiple fields
       const matchesSearch = q === "" ||
-        item.name.toLowerCase().includes(q) ||
-        item.course.toLowerCase().includes(q) ||
-        item.date.includes(q) ||
-        item.queueNumber.toString().includes(q);
+        (item.name && item.name.toLowerCase().includes(q)) ||
+        (item.course && item.course.toLowerCase().includes(q)) ||
+        (item.date && item.date.toLowerCase().includes(q)) ||
+        (item.queueNumber && item.queueNumber.toString().includes(q));
 
       // pickup time filter
       let matchesPickupTime = true;
-      if (activeFilters.pickupTime) {
+      if (activeFilters.pickupTime && item.pickupTime) {
         matchesPickupTime = item.pickupTime.toLowerCase().includes(activeFilters.pickupTime.toLowerCase());
       }
 
       // queue time filter
       let matchesQueueTime = true;
-      if (activeFilters.queueTime) {
+      if (activeFilters.queueTime && item.queueTime) {
         matchesQueueTime = item.queueTime.toLowerCase().includes(activeFilters.queueTime.toLowerCase());
       }
 
-      // date range - FIXED VERSION
+      // date range - unchanged
       let matchesDate = true;
       if (activeFilters.dateFrom || activeFilters.dateTo) {
-        // Parse the record date (format: "MM/DD/YY" or similar)
-        const recordDateParts = item.date.split('/');
+        const recordDateParts = item.date ? item.date.split('/') : [];
         if (recordDateParts.length === 3) {
-          // Handle different date formats - try parsing as MM/DD/YY first
           let recordDate;
           try {
-            // Try parsing as MM/DD/YY format
             recordDate = new Date(
-              parseInt(recordDateParts[2]) + 2000, // Convert YY to YYYY
-              parseInt(recordDateParts[0]) - 1,    // Month is 0-indexed
-              parseInt(recordDateParts[1])         // Day
+              parseInt(recordDateParts[2]) + 2000,
+              parseInt(recordDateParts[0]) - 1,
+              parseInt(recordDateParts[1])
             );
           } catch (error) {
-            // Fallback to direct date parsing
             recordDate = new Date(item.date);
           }
-
-          // Normalize dates by setting them to start of day for proper comparison
-          const normalizeToStartOfDay = (date) => {
-            const normalized = new Date(date);
-            normalized.setHours(0, 0, 0, 0);
-            return normalized;
-          };
-
+          const normalizeToStartOfDay = (date) => { const d = new Date(date); d.setHours(0,0,0,0); return d; };
           if (activeFilters.dateFrom) {
             const filterFrom = normalizeToStartOfDay(activeFilters.dateFrom);
             const recordDateNormalized = normalizeToStartOfDay(recordDate);
             matchesDate = matchesDate && (recordDateNormalized >= filterFrom);
           }
-
           if (activeFilters.dateTo) {
             const filterTo = normalizeToStartOfDay(activeFilters.dateTo);
             const recordDateNormalized = normalizeToStartOfDay(recordDate);
             matchesDate = matchesDate && (recordDateNormalized <= filterTo);
           }
         } else {
-          // Fallback for other date formats
           try {
             const recordDate = new Date(item.date);
-
             if (activeFilters.dateFrom) {
               const filterFrom = new Date(activeFilters.dateFrom);
-              filterFrom.setHours(0, 0, 0, 0);
+              filterFrom.setHours(0,0,0,0);
               const recordDateNormalized = new Date(recordDate);
-              recordDateNormalized.setHours(0, 0, 0, 0);
+              recordDateNormalized.setHours(0,0,0,0);
               matchesDate = matchesDate && (recordDateNormalized >= filterFrom);
             }
-
             if (activeFilters.dateTo) {
               const filterTo = new Date(activeFilters.dateTo);
-              filterTo.setHours(23, 59, 59, 999); // Include entire end day
+              filterTo.setHours(23,59,59,999);
               const recordDateNormalized = new Date(recordDate);
-              recordDateNormalized.setHours(23, 59, 59, 999);
+              recordDateNormalized.setHours(23,59,59,999);
               matchesDate = matchesDate && (recordDateNormalized <= filterTo);
             }
           } catch (error) {
@@ -487,10 +482,37 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // Search
+  // Search - FIXED: Added proper event listener
   // -------------------------
-  if (searchInput) {
-    searchInput.addEventListener("input", () => { currentPage = 1; renderView(queueData); });
+  function setupSearch() {
+    if (!searchInput) {
+      console.error("Search input element not found!");
+      return;
+    }
+    
+    // Clear any existing event listeners first
+    const newSearchInput = searchInput.cloneNode(true);
+    searchInput.parentNode.replaceChild(newSearchInput, searchInput);
+    
+    // Get the new reference
+    const currentSearchInput = document.getElementById("searchInput");
+    
+    currentSearchInput.addEventListener("input", (e) => {
+      currentPage = 1;
+      renderView(queueData);
+    });
+    
+    // Also add keydown for Enter key
+    currentSearchInput.addEventListener("keydown", (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // Prevent form submission
+        currentPage = 1;
+        renderView(queueData);
+      }
+    });
+    
+    // Clear search when page loads
+    currentSearchInput.value = '';
   }
 
   // -------------------------
@@ -586,7 +608,7 @@ document.addEventListener("DOMContentLoaded", () => {
       timeSelect.appendChild(defaultOption);
 
       // Add time options (you can customize these)
-      const timeOptions = ["Morning", "Afternoon", "Evening"];
+      const timeOptions = ["Morning", "Afternoon"];
       timeOptions.forEach(time => {
         const option = document.createElement("option");
         option.value = time;
@@ -638,7 +660,7 @@ document.addEventListener("DOMContentLoaded", () => {
       timeSelect.appendChild(defaultOption);
 
       // Add time options
-      const timeOptions = ["Morning", "Afternoon", "Evening"];
+      const timeOptions = ["Morning", "Afternoon"];
       timeOptions.forEach(time => {
         const option = document.createElement("option");
         option.value = time;
@@ -1042,10 +1064,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // Initialize (fetch data and render first view)
+  // Initialize (fetch data and render first view) - FIXED VERSION
   // -------------------------
   async function initialize() {
     try {
+      console.log("Initializing queue management...");
+      
       // Show loading state
       if (queueBody) queueBody.innerHTML = "<tr><td colspan='6'>Loading print requests...</td></tr>";
 
@@ -1055,6 +1079,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // set footer year if element exists
       if (curYear) curYear.textContent = new Date().getFullYear();
+
+      // Setup search functionality
+      setupSearch();
 
       // Render the view
       renderView(queueData);
