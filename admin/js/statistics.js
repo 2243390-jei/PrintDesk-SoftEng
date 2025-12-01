@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupEventListeners();
     initializeCharts();
     updateCharts();
-    fetchQueueCount();
+    await fetchQueueCount();
     buildSemesterOptions();
     buildTermOptions();
     updateFilterLabel();
@@ -596,9 +596,25 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = '/index.html';
     });
     if (refreshBtn) refreshBtn.addEventListener('click', async () => {
-      await fetchAnalyticsData();
-      updateCharts();
-      fetchQueueCount();
+      refreshBtn.disabled = true;
+      refreshBtn.style.opacity = '0.6';
+      
+      try {
+        // Re-fetch all data
+        await fetchAnalyticsData();
+        // Reapply current filters
+        const filtered = applyFilters(lastFetchedRequests);
+        processAnalyticsData(filtered);
+        updateCharts();
+        // Update queue count in sidebar
+        await fetchQueueCount();
+        console.log('Refresh complete');
+      } catch (err) {
+        console.error('Refresh error:', err);
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.style.opacity = '1';
+      }
     });
 
     if (semesterSelect) {
