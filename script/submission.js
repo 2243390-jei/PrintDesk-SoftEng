@@ -170,7 +170,6 @@ const academicYearInput = document.getElementById("academicYearInput")
         course: document.getElementById("courseInput")?.value || "",
         year: document.getElementById("yearSelect")?.value || "",
         pickupDateTime: document.getElementById("pickupDateTime")?.value || "",
-        pickupDateTime: document.getElementById("pickupDateTime")?.value || "",
 semester: document.getElementById("semesterInput")?.value || "",
 academicYear: document.getElementById("academicYearInput")?.value || "",
       },
@@ -288,7 +287,7 @@ academicYear: document.getElementById("academicYearInput")?.value || "",
       if (m.year) document.getElementById("yearSelect").value = m.year
       if (m.pickupDateTime) document.getElementById("pickupDateTime").value = m.pickupDateTime
       if (m.semester && semesterInput) semesterInput.value = m.semester
-if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYear
+      if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYear
 
       const savedJobs = state.jobs || []
       const existing = Array.from(document.querySelectorAll(".print-job"))
@@ -1053,8 +1052,6 @@ function setSemesterAndAcademicYear(date = new Date()) {
 
   if (semesterInput) semesterInput.value = semesterLabel
   if (academicYearInput) academicYearInput.value = ayText
-
-  saveFormState()
 }
 
 function populateAcademicYearSelect(preferredValue) {
@@ -1125,10 +1122,10 @@ function populateAcademicYearSelect(preferredValue) {
   }
 
   //Autofill Data
-  loadUserData()
   setSemesterAndAcademicYear()
   populateAcademicYearSelect()
-
+  loadUserData()
+  
   if (addPrintJobBtn) {
     addPrintJobBtn.addEventListener("click", () => {
       addPrintJobProgrammatic()
