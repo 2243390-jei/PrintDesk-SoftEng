@@ -32,13 +32,32 @@ const updateRequest = async (req, res) => {
       return res.status(400).json({ error: 'Only pending requests can be revised. This request is no longer editable.', currentStatus: currentRequest.status })
     }
 
-    const allowedFields = ['status', 'paperSize', 'paperType', 'paperSide', 'copies', 'pickupDateTime']
+    const allowedFields = ['status', 'pickupDateTime', 'semester', 'academicYear']
     const updates = {}
     for (const field of allowedFields) if (req.body[field] !== undefined) updates[field] = req.body[field]
 
     if (updates.status) {
       const validStatuses = ['Pending', 'Accepted', 'Completed', 'Rejected']
       if (!validStatuses.includes(updates.status)) return res.status(400).json({ error: 'Invalid status', validStatuses })
+    }
+
+    if (updates.semester) {
+      const allowedSemesters = ['1st Semester', '2nd Semester', 'Short Term']
+      if (!allowedSemesters.includes(updates.semester)) {
+        return res.status(400).json({ error: 'Invalid semester', allowedSemesters })
+      }
+    }
+
+    if (updates.academicYear) {
+      const ay = String(updates.academicYear).trim()
+      const matchYYYY = ay.match(/^(\d{4}-\d{4})$/)
+      const matchAY = ay.match(/^AY\s?(\d{4}-\d{4})$/i)
+      if (!matchYYYY && !matchAY) {
+        return res.status(400).json({ error: 'Invalid academicYear format. Use "AY YYYY-YYYY" or "YYYY-YYYY".' })
+      }
+      // normalize to "AY YYYY-YYYY"
+      const range = matchYYYY ? matchYYYY[1] : matchAY[1]
+      updates.academicYear = `AY ${range}`
     }
 
     if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No valid fields to update' })
@@ -53,9 +72,47 @@ const updateRequest = async (req, res) => {
 
 const deleteRequest = async (req, res) => {
   try {
-    const deleted = await PrintRequest.findByIdAndDelete(req.params.id)
-    if (!deleted) return res.status(404).json({ error: 'Request not found' })
-    res.json({ message: 'Request deleted successfully' })
+    const request = await PrintRequest.findById(req.params.id)
+    if (!request) return res.status(404).json({ error: 'Request not found' })
+
+    const totalTokens = Number(request.totalTokens || 0)
+    const userId = request.userId
+
+    
+    let refunded = false
+    let refundedAmount = 0
+    let newBalance = null
+
+    if (totalTokens > 0 && userId) {
+      try {
+        const user = await User.findById(userId)
+        if (user) {
+          // Only refund if the request is still pending 
+          if ((request.status || '').toLowerCase() === 'pending') {
+            user.tokenBalance = (Number(user.tokenBalance || 0) + totalTokens)
+            await user.save()
+            refunded = true
+            refundedAmount = totalTokens
+            newBalance = user.tokenBalance
+          }
+        } else {
+          // user not found 
+          console.warn(`User for request ${req.params.id} not found; skipping refund.`)
+        }
+      } catch (userErr) {
+        console.error('Error while refunding tokens to user:', userErr)
+        // proceed with deletion but include refund error in response
+      }
+    }
+
+    // Delete the request after attempting refund
+    await PrintRequest.findByIdAndDelete(req.params.id)
+
+    const resp = { message: 'Request deleted successfully', refunded, refundedAmount }
+    if (refunded) resp.newBalance = newBalance
+    else if (totalTokens > 0) resp.note = 'No refund performed (request not pending or user missing).'
+
+    res.json(resp)
   } catch (err) {
     console.error('Error deleting request:', err)
     res.status(500).json({ error: 'Failed to delete request', details: err.message })
@@ -113,12 +170,49 @@ const submitRequest = async (req, res) => {
     const email = req.body.email || req.body.user_email
     if (!email) return res.status(400).json({ error: 'Email is required' })
 
+    let semester = (req.body.semester || req.body.semesterSelect || req.body.semesterInput || '').trim()
+    let academicYearRaw = (req.body.academic_year || req.body.academicYear || req.body.academicYearInput || '').trim()
+
+    const allowedSemesters = ['1st Semester', '2nd Semester', 'Short Term']
+    if (semester) {
+      if (!allowedSemesters.includes(semester)) {
+        return res.status(400).json({ error: 'Invalid semester. Allowed: 1st Semester, 2nd Semester, Short Term' })
+      }
+    } else {
+      semester = undefined
+    }
+
+    // normalize academic year if provided
+    let academicYear = undefined
+    if (academicYearRaw) {
+      const matchYYYY = academicYearRaw.match(/^(\d{4}-\d{4})$/)
+      const matchAY = academicYearRaw.match(/^AY\s?(\d{4}-\d{4})$/i)
+      if (matchYYYY) academicYear = `AY ${matchYYYY[1]}`
+      else if (matchAY) academicYear = `AY ${matchAY[1]}`
+      else {
+        return res.status(400).json({ error: 'Invalid academicYear format. Use "AY YYYY-YYYY" or "YYYY-YYYY".' })
+      }
+    }
+
     const user = await User.findOne({ email })
     if (!user) return res.status(404).json({ error: 'User not found' })
 
     if (user.tokenBalance < totalTokensRequest) return res.status(400).json({ error: 'Insufficient tokens', currentBalance: user.tokenBalance, required: totalTokensRequest })
 
-    const newRequest = new PrintRequest({ fullName, courseYear, email, userId: user._id, pickupDateTime: req.body.pickup_datetime || req.body.pickupDateTime || '', documents, totalTokens: totalTokensRequest, status: 'Pending' })
+    const newRequestData = {
+      fullName,
+      courseYear,
+      email,
+      userId: user._id,
+      pickupDateTime: req.body.pickup_datetime || req.body.pickupDateTime || '',
+      documents,
+      totalTokens: totalTokensRequest,
+      status: 'Pending',
+    }
+    if (semester) newRequestData.semester = semester
+    if (academicYear) newRequestData.academicYear = academicYear
+
+    const newRequest = new PrintRequest(newRequestData)
     await newRequest.save()
 
     user.tokenBalance -= totalTokensRequest

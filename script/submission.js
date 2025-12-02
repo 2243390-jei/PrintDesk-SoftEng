@@ -18,6 +18,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const successHomeBtn = document.getElementById("successHomeBtn")
   const successDetails = document.getElementById("successDetails")
   const successNewSubmissionBtn = document.getElementById("successNewSubmissionBtn")
+  const semesterInput = document.getElementById("semesterInput")
+const academicYearInput = document.getElementById("academicYearInput")
+
 
   /* =========================
      State + constants
@@ -31,31 +34,83 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // File type mappings for better icons and handling
   const FILE_TYPES = {
-    pdf: {
-      icon: '📄',
-      label: 'PDF Document',
-      preview: 'embed'
-    },
-    image: {
-      icon: '🖼️',
-      label: 'Image',
-      preview: 'image'
-    },
-    word: {
-      icon: '📝',
-      label: 'Word Document',
-      preview: 'icon'
-    },
-    text: {
-      icon: '📄',
-      label: 'Text File',
-      preview: 'text'
-    },
-    default: {
-      icon: '📎',
-      label: 'File',
-      preview: 'icon'
+    pdf: { icon: '📄', label: 'PDF Document', preview: 'embed' },
+    image: { icon: '🖼️', label: 'Image', preview: 'image' },
+    word: { icon: '📝', label: 'Word Document', preview: 'icon' },
+    text: { icon: '📄', label: 'Text File', preview: 'text' },
+    default: { icon: '📎', label: 'File', preview: 'icon' }
+  }
+
+  // Allowed types (frontend convenience — backend must still enforce)
+  const ALLOWED_MIMES = [
+    'application/pdf',
+    'image/png',
+    'image/jpeg',
+    'text/plain',
+    // Word MIME types (may vary by platform)
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ]
+  const ALLOWED_EXTS = ['.pdf', '.png', '.jpg', '.jpeg', '.txt', '.doc', '.docx']
+
+  /* =========================
+     Error Modal (dynamic)
+     ========================= */
+  function ensureErrorModalExists() {
+    if (document.getElementById('errorModal')) return
+    const html = `
+      <div id="errorModal" class="modal" style="display:none; z-index: 9999;">
+        <div class="modal-content" style="max-width:520px; margin: 80px auto; padding: 20px; position: relative;">
+          <span class="close-error-modal" style="position:absolute; right:12px; top:8px; cursor:pointer; font-size:20px;">&times;</span>
+          <h3 style="margin-top:0;">Invalid File</h3>
+          <div id="errorModalMessage" style="color:#b00020; margin: 12px 0;"></div>
+          <div style="text-align:right; margin-top:16px;">
+            <button id="errorModalOkBtn" class="reset-btn" style="padding:8px 14px;">OK</button>
+          </div>
+        </div>
+      </div>
+    `
+    document.body.insertAdjacentHTML('beforeend', html)
+    const modal = document.getElementById('errorModal')
+    const okBtn = document.getElementById('errorModalOkBtn')
+    const closeX = modal.querySelector('.close-error-modal')
+
+    function hideErrorModal() {
+      modal.style.display = 'none'
+      document.body.classList.remove('modal-open')
     }
+
+    okBtn.addEventListener('click', hideErrorModal)
+    closeX.addEventListener('click', hideErrorModal)
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) hideErrorModal()
+    })
+  }
+
+  function showErrorModal(message) {
+    ensureErrorModalExists()
+    const modal = document.getElementById('errorModal')
+    const msg = document.getElementById('errorModalMessage')
+    msg.textContent = message
+    modal.style.display = 'block'
+    document.body.classList.add('modal-open')
+  }
+
+  /* =========================
+     Helpers: file validation
+     ========================= */
+  function getExtension(name) {
+    const idx = name.lastIndexOf('.')
+    return idx >= 0 ? name.substring(idx).toLowerCase() : ''
+  }
+
+  function isValidFile(file) {
+    if (!file) return false
+    const ext = getExtension(file.name)
+    // check mime OR extension (some files have empty/incorrect mime)
+    if (file.type && ALLOWED_MIMES.includes(file.type)) return true
+    if (ALLOWED_EXTS.includes(ext)) return true
+    return false
   }
 
   /* =========================
@@ -64,6 +119,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function closeAllModals() {
     confirmationModal.style.display = "none"
     filePreviewModal.style.display = "none"
+    const errorModal = document.getElementById('errorModal')
+    if (errorModal) errorModal.style.display = 'none'
     document.body.classList.remove("modal-open")
   }
 
@@ -103,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
   })
 
   /* =========================
-     Form State Management
+     Form State Management 
      ========================= */
   function collectFormState() {
     const state = {
@@ -113,6 +170,9 @@ document.addEventListener("DOMContentLoaded", () => {
         course: document.getElementById("courseInput")?.value || "",
         year: document.getElementById("yearSelect")?.value || "",
         pickupDateTime: document.getElementById("pickupDateTime")?.value || "",
+        pickupDateTime: document.getElementById("pickupDateTime")?.value || "",
+semester: document.getElementById("semesterInput")?.value || "",
+academicYear: document.getElementById("academicYearInput")?.value || "",
       },
       jobs: []
     }
@@ -147,11 +207,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function resetJobsAfterSubmit() {    
+  function resetJobsAfterSubmit() {
     const currentName = document.getElementById("fullNameInput")?.value || ""
     const currentEmail = document.getElementById("emailInput")?.value || ""
-    const currentCourse = document.getElementById("courseInput")?.value || "" 
-    const currentYear = document.getElementById("yearSelect")?.value || "" 
+    const currentCourse = document.getElementById("courseInput")?.value || ""
+    const currentYear = document.getElementById("yearSelect")?.value || ""
 
     const allJobs = Array.from(document.querySelectorAll(".print-job"))
     allJobs.slice(1).forEach(j => j.remove())
@@ -206,12 +266,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const fullNameInput = document.getElementById("fullNameInput")
     const emailInput = document.getElementById("emailInput")
-    const courseInput = document.getElementById("courseInput") 
-    const yearSelect = document.getElementById("yearSelect") 
-    if (fullNameInput) { fullNameInput.value = currentName; fullNameInput.readOnly = true }
+    const courseInput = document.getElementById("courseInput")
+    const yearSelect = document.getElementById("yearSelect")
+    if (fullNameInput) { fullNameInput.value = currentName; }
     if (emailInput) { emailInput.value = currentEmail; emailInput.readOnly = true }
     if (yearSelect) { yearSelect.value = currentYear }
     if (courseInput) { courseInput.value = currentCourse }
+    setSemesterAndAcademicYear()
   }
 
   function restoreFormState() {
@@ -226,6 +287,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (m.course) document.getElementById("courseInput").value = m.course
       if (m.year) document.getElementById("yearSelect").value = m.year
       if (m.pickupDateTime) document.getElementById("pickupDateTime").value = m.pickupDateTime
+      if (m.semester && semesterInput) semesterInput.value = m.semester
+if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYear
 
       const savedJobs = state.jobs || []
       const existing = Array.from(document.querySelectorAll(".print-job"))
@@ -424,7 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let isImagePrint = false
     let tokensPerPage = 0
 
-    if (file && file.type.startsWith("image/")) isImagePrint = true
+    if (file && file.type && file.type.startsWith("image/")) isImagePrint = true
 
     if (paperType === "Black & White") tokensPerPage = isImagePrint ? 10 : 1
     else if (paperType === "Colored") tokensPerPage = isImagePrint ? 15 : 10
@@ -487,7 +550,7 @@ document.addEventListener("DOMContentLoaded", () => {
             remainingDisplay.style.textAlign = "right"
             form.appendChild(remainingDisplay)
           }
-          
+
           if (remainingTokens > 0) {
             remainingDisplay.style.background = "#f0fff0"
             remainingDisplay.style.color = "#2e7d32"
@@ -502,13 +565,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
-     IMPROVED FILE HANDLING SYSTEM
+     IMPROVED FILE HANDLING SYSTEM (with validation)
      ========================= */
 
   // Get file type information
   function getFileTypeInfo(file) {
     if (!file) return FILE_TYPES.default
-    
+
     if (file.type === 'application/pdf') {
       return FILE_TYPES.pdf
     } else if (file.type.startsWith('image/')) {
@@ -537,10 +600,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const jobElement = dropZone.closest(".print-job")
     const filePreview = dropZone.closest(".form-group").querySelector(".file-preview")
 
+    // Handle selection / validation / preview
     const handleFileChange = (event) => {
       const input = event.target
       if (input.files && input.files.length > 0) {
         const file = input.files[0]
+
+        // VALIDATION: show error modal if invalid
+        if (!isValidFile(file)) {
+          showErrorModal("That file type is not supported. Allowed: PDF, JPG, PNG, DOC, DOCX, TXT.")
+          input.value = "" // clear invalid
+          // reset preview & page count
+          if (filePreview) { filePreview.style.display = "none"; filePreview.innerHTML = "" }
+          if (pageCountSpan) pageCountSpan.textContent = "0"
+          calculateTokens(jobElement)
+          saveFormState()
+          return
+        }
+
         const formattedName = formatFilename(file.name)
         showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, input.name, jobElement)
         countPages(file, pageCountSpan, jobElement)
@@ -549,6 +626,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const newFileInput = fileInput.cloneNode(true)
+    // ensure accept attribute preserved 
+    newFileInput.accept = fileInput.accept || ".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
     fileInput.replaceWith(newFileInput)
     newFileInput.addEventListener("change", handleFileChange)
 
@@ -564,7 +643,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dropZone.style.borderColor = "#3d2ee7"
       dropZone.style.backgroundColor = "#f0f0ff"
     })
-    
+
     ;["dragleave", "dragend"].forEach((type) => {
       dropZone.addEventListener(type, () => {
         dropZone.classList.remove("drop-zone--active")
@@ -576,27 +655,42 @@ document.addEventListener("DOMContentLoaded", () => {
     dropZone.addEventListener("drop", (e) => {
       e.preventDefault()
       dropZone.classList.remove("drop-zone--active")
-      
+
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0]
+
+        // VALIDATION: show error modal if invalid
+        if (!isValidFile(file)) {
+          showErrorModal("That file type is not supported. Allowed: PDF, JPG, PNG, DOC, DOCX, TXT.")
+          // don't attach file
+          return
+        }
+
         const formattedName = formatFilename(file.name)
-        
+
         const dt = new DataTransfer()
         dt.items.add(file)
         newFileInput.files = dt.files
-        
+
         showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, newFileInput.name, jobElement)
         countPages(file, pageCountSpan, jobElement)
-        
+
         newFileInput.dispatchEvent(new Event('change', { bubbles: true }))
       }
     })
 
+    // If there's an existing file on load, validate & show preview
     if (newFileInput.files && newFileInput.files.length > 0) {
       const file = newFileInput.files[0]
-      const formattedName = formatFilename(file.name)
-      showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, newFileInput.name, jobElement)
-      countPages(file, pageCountSpan, jobElement)
+      if (!isValidFile(file)) {
+        newFileInput.value = ""
+        if (filePreview) { filePreview.style.display = "none"; filePreview.innerHTML = "" }
+        if (pageCountSpan) pageCountSpan.textContent = "0"
+      } else {
+        const formattedName = formatFilename(file.name)
+        showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, newFileInput.name, jobElement)
+        countPages(file, pageCountSpan, jobElement)
+      }
     }
   }
 
@@ -616,16 +710,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const copies = Number.parseInt(jobElement.querySelector(`input[name^="copies_"]`).value) || 1
       const paperType = jobElement.querySelector(`select[name^="paper_type_"]`).value
       const pageCount = Number.parseInt(pageCountSpan.textContent) || 0
-      
+
       let tokensPerPage = 0
-      const isImagePrint = file && file.type.startsWith("image/")
-      
+      const isImagePrint = file && file.type && file.type.startsWith("image/")
+
       if (paperType === "Black & White") tokensPerPage = isImagePrint ? 10 : 1
       else if (paperType === "Colored") tokensPerPage = isImagePrint ? 15 : 10
 
       const totalTokens = tokensPerPage * pageCount * copies
       const fileTypeInfo = getFileTypeInfo(file)
-      
+
       const previewHTML = `
         <div class="file-preview-card" style="border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px; background: #fff; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
           <div class="file-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
@@ -652,21 +746,21 @@ document.addEventListener("DOMContentLoaded", () => {
               </button>
             </div>
           </div>
-          
+
           <div style="background: #e8f4ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
             <strong style="color: #1a73e8; font-size: 14px;">🪙 Total Tokens for this document: ${totalTokens}</strong>
           </div>
-          
+
           <div class="file-preview-content" style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 16px; text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center;">
             ${generateFilePreviewContent(file)}
           </div>
         </div>
       `
       preview.innerHTML = previewHTML
-      
+
       const replaceBtn = preview.querySelector(".replace-btn")
       const removeBtn = preview.querySelector(".remove-btn")
-      
+
       replaceBtn.onclick = () => replaceFile(preview, jobElement)
       removeBtn.onclick = () => removeFile(preview, pageCountSpan, inputName, jobElement)
     }
@@ -678,7 +772,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const fileTypeInfo = getFileTypeInfo(file)
-    
+
     switch (fileTypeInfo.preview) {
       case 'image':
         const imageUrl = URL.createObjectURL(file)
@@ -688,7 +782,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <p style="margin: 12px 0 0 0; color: #666; font-size: 12px;">Image Preview - ${file.name}</p>
           </div>
         `
-        
+
       case 'embed':
         const pdfUrl = URL.createObjectURL(file)
         return `
@@ -697,7 +791,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <p style="margin: 12px 0 0 0; color: #666; font-size: 12px;">PDF Preview - ${file.name}</p>
           </div>
         `
-        
+
       case 'text':
         return `
           <div style="text-align: center; padding: 20px;">
@@ -706,7 +800,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <p style="margin: 0; color: #666; font-size: 14px;">Text file - Content will be processed for printing</p>
           </div>
         `
-        
+
       default:
         return `
           <div style="text-align: center; padding: 20px;">
@@ -747,10 +841,9 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Error counting PDF pages:", err)
         pageCount = 1
       }
-    } else if (file.type.startsWith("image/")) {
+    } else if (file.type && file.type.startsWith("image/")) {
       pageCount = 1
     } else if (file.type.includes('word') || file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
-      // For Word documents, we'll estimate 1 page per 500 words (rough estimate)
       try {
         const text = await readFileAsText(file)
         const wordCount = text.split(/\s+/).length
@@ -759,8 +852,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Error estimating Word document pages:", err)
         pageCount = 1
       }
-    } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
-      // For text files, estimate 1 page per 500 words
+    } else if (file.type && file.type.startsWith('text/') || file.name.endsWith('.txt')) {
       try {
         const text = await readFileAsText(file)
         const wordCount = text.split(/\s+/).length
@@ -791,14 +883,31 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
-
-
   /* =========================
-     Form Submission
+     Form Submission (validates file types before sending)
      ========================= */
   confirmSubmissionBtn.addEventListener("click", async () => {
+    // close confirmation modal
     confirmationModal.style.display = "none"
     document.body.classList.remove("modal-open")
+
+    // final validation: ensure all files are present and allowed
+    const invalidFiles = []
+    document.querySelectorAll(".print-job").forEach((job, i) => {
+      const jobNumber = i + 1
+      const fileInput = job.querySelector(".drop-zone-input")
+      const file = fileInput?.files?.[0]
+      if (!file) {
+        invalidFiles.push(`Print Job #${jobNumber}: no file attached`)
+      } else if (!isValidFile(file)) {
+        invalidFiles.push(`Print Job #${jobNumber}: unsupported file type (${file.name})`)
+      }
+    })
+
+    if (invalidFiles.length > 0) {
+      showErrorModal("Please fix the following file issues:\n\n" + invalidFiles.join("\n"))
+      return
+    }
 
     const sentMeta = {
       fullName: document.getElementById("fullNameInput").value,
@@ -816,6 +925,8 @@ document.addEventListener("DOMContentLoaded", () => {
     formData.append("year", sentMeta.year)
     formData.append("courseYear", sentMeta.courseYear)
     formData.append("pickupDateTime", sentMeta.pickupDateTime || "")
+    formData.append("semester", semesterInput?.value || "")
+formData.append("academicYear", academicYearInput?.value || "")
 
     const printJobsData = []
     document.querySelectorAll(".print-job").forEach((job, i) => {
@@ -828,7 +939,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const notes = job.querySelector(`textarea[name^="notes_"]`)?.value || ""
       const fileInput = job.querySelector(".drop-zone-input")
       const originalFile = fileInput?.files?.[0] || null
-      const isImagePrint = originalFile && originalFile.type.startsWith("image/")
+      const isImagePrint = originalFile && originalFile.type && originalFile.type.startsWith("image/")
 
       let tokensPerPage = 0
       if (paperType === "Black & White") tokensPerPage = isImagePrint ? 10 : 1
@@ -876,7 +987,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <p><strong>Remaining Tokens:</strong> ${result.remainingTokens ?? "-"}</p>
         <p><strong>Status:</strong> ${result.status || "Submitted"}</p>
       `
-      
+
       // Show the success modal
       successModal.style.display = "block"
       document.body.classList.add("modal-open")
@@ -887,7 +998,7 @@ document.addEventListener("DOMContentLoaded", () => {
       resetJobsAfterSubmit()
 
     } catch (err) {
-      alert("⚠️ Error submitting form: " + err.message)
+      showErrorModal("⚠️ Error submitting form: " + err.message)
       console.error(err)
     }
   })
@@ -912,6 +1023,73 @@ document.addEventListener("DOMContentLoaded", () => {
     pickupDateTime.addEventListener('change', validatePickupTime)
   }
 
+  function getSemesterAndAcademicYear(date = new Date()) {
+  const month = date.getMonth() + 1
+  const year = date.getFullYear()
+
+  let semesterLabel, ayStart, ayEnd
+
+  if (month >= 8 && month <= 12) {
+    semesterLabel = "1st Semester"
+    ayStart = year
+    ayEnd = year + 1
+  } else if (month >= 1 && month <= 5) {
+    semesterLabel = "2nd Semester"
+    ayStart = year - 1
+    ayEnd = year
+  } else {
+    // June - July
+    semesterLabel = "Short Term"
+    ayStart = year - 1
+    ayEnd = year
+  }
+
+  const ayText = `AY ${ayStart}-${ayEnd}`
+  return { semesterLabel, ayText, ayStart, ayEnd }
+}
+
+function setSemesterAndAcademicYear(date = new Date()) {
+  const { semesterLabel, ayText } = getSemesterAndAcademicYear(date)
+
+  if (semesterInput) semesterInput.value = semesterLabel
+  if (academicYearInput) academicYearInput.value = ayText
+
+  saveFormState()
+}
+
+function populateAcademicYearSelect(preferredValue) {
+  const sel = document.getElementById("academicYearInput")
+  if (!sel) return
+
+  // determine AY start for "current" academic year
+  const now = new Date()
+  const month = now.getMonth() + 1
+  const currentYear = now.getFullYear()
+  const currentAyStart = month >= 8 ? currentYear : currentYear - 1
+
+  // previous, current, next
+  const starts = [currentAyStart - 1, currentAyStart, currentAyStart + 1]
+
+  // build options
+  starts.forEach((s) => {
+    const value = `AY ${s}-${s + 1}`
+    const opt = document.createElement('option')
+    opt.value = value
+    opt.textContent = value
+    sel.appendChild(opt)
+  })
+
+  // set preferred or default to current AY
+  if (preferredValue) sel.value = preferredValue
+  else sel.value = `AY ${currentAyStart}-${currentAyStart + 1}`
+
+  // save when changed
+  sel.addEventListener('change', saveFormState)
+}
+
+
+
+
   function validatePickupTime() {
     const selectedDateTime = new Date(pickupDateTime.value)
     const hours = selectedDateTime.getHours()
@@ -930,12 +1108,11 @@ document.addEventListener("DOMContentLoaded", () => {
         .then((user) => {
           const fullNameInput = document.getElementById("fullNameInput")
           const emailInput = document.getElementById("emailInput")
-          
+
           fullNameInput.value = user.fullName || ""
           emailInput.value = user.email || ""
-          fullNameInput.readOnly = true
           emailInput.readOnly = true
-          
+
           if (user.courseYear) {
             const [course, year] = user.courseYear.split('-')
             if (course) document.getElementById("courseInput").value = course
@@ -947,7 +1124,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  //Autofill Data
   loadUserData()
+  setSemesterAndAcademicYear()
+  populateAcademicYearSelect()
 
   if (addPrintJobBtn) {
     addPrintJobBtn.addEventListener("click", () => {
@@ -994,15 +1174,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const currentEmail = document.getElementById("emailInput").value
       const currentCourse = document.getElementById("courseInput").value
       const currentYear = document.getElementById("yearSelect").value
-      
+
       document.getElementById("pickupDateTime").value = ""
       confirmCheckbox.checked = false
-      
+
       const allJobs = document.querySelectorAll(".print-job")
       allJobs.forEach((job, index) => {
         if (index > 0) job.remove()
       })
-      
+
       const firstJob = document.querySelector(".print-job")
       if (firstJob) {
         try {
@@ -1021,7 +1201,7 @@ document.addEventListener("DOMContentLoaded", () => {
           firstJob.querySelector(".page-count span").textContent = "0"
         } catch (e) { /* ignore */ }
       }
-      
+
       jobCount = 1
       const tokenDisplay = document.querySelector(".token-cost")
       if (tokenDisplay) tokenDisplay.remove()
@@ -1029,12 +1209,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (totalDisplay) totalDisplay.remove()
       const remainingDisplay = document.getElementById("remainingTokens")
       if (remainingDisplay) remainingDisplay.remove()
-      
+
       document.getElementById("fullNameInput").value = currentName
       document.getElementById("emailInput").value = currentEmail
       document.getElementById("courseInput").value = currentCourse
       document.getElementById("yearSelect").value = currentYear
-      document.getElementById("fullNameInput").readOnly = true
       document.getElementById("emailInput").readOnly = true
 
       saveFormState()
@@ -1068,6 +1247,11 @@ document.addEventListener("DOMContentLoaded", () => {
         formIsValid = false
         errorMessage += `Please upload a file for Print Job #${jobNumber}\n`
       } else {
+        const file = fileInput.files[0]
+        if (!isValidFile(file)) {
+          formIsValid = false
+          errorMessage += `Unsupported file type for Print Job #${jobNumber}: ${file.name}\n`
+        }
         const pageCountSpan = job.querySelector(".page-count span")
         const pageCount = Number.parseInt(pageCountSpan.textContent) || 0
         if (pageCount === 0) {
@@ -1103,7 +1287,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (!formIsValid) {
-      alert("Please fix the following errors:\n\n" + errorMessage)
+      showErrorModal("Please fix the following errors:\n\n" + errorMessage)
       return
     }
 

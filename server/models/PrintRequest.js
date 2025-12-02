@@ -22,6 +22,12 @@ const printRequestSchema = new mongoose.Schema({
   courseYear: String,
   email: String,
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
+  semester: {
+    type: String,
+    enum: ['1st Semester', '2nd Semester', 'Short Term'],
+  },
+  academicYear: String,
+
   pickupDateTime: String,
   documents: [documentSchema],
   totalTokens: Number,
