@@ -1,96 +1,8 @@
 // =========================
-// 📄 main.js — Real-time user data + session persistence + Logout functionality
+// 📄 login.js — Real-time user data + session persistence
 // =========================
 
 let currentUserEmail = sessionStorage.getItem("userEmail") || null;
-
-// --- Modal Utility Functions ---
-function openModal(modal) {
-  if (!modal) return;
-  modal.style.display = 'flex';
-  modal.classList.add('open');
-  modal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('modal-open');
-}
-
-function closeModal(modal) {
-  if (!modal) return;
-  modal.style.display = 'none';
-  modal.classList.remove('open');
-  modal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('modal-open');
-}
-
-// --- Initialize Logout Functionality ---
-function initializeLogout() {
-  // Get elements
-  const logoutBtn = document.getElementById('profileLogoutBtn');
-  const logoutModal = document.getElementById('logoutModal');
-  const cancelLogout = document.getElementById('cancelLogout');
-  const confirmLogout = document.getElementById('confirmLogout');
-
-  if (!logoutBtn || !logoutModal || !cancelLogout || !confirmLogout) {
-    console.warn('Logout elements not found');
-    return;
-  }
-
-  // Open logout modal when clicking logout in profile modal
-  logoutBtn.addEventListener('click', function (e) {
-    e.preventDefault();
-    closeModal(document.getElementById('profileModal'));
-    setTimeout(() => {
-      openModal(logoutModal);
-    }, 200);
-  });
-
-  // Cancel logout
-  cancelLogout.addEventListener('click', function () {
-    closeModal(logoutModal);
-  });
-
-  // Confirm logout
-  confirmLogout.addEventListener('click', function () {
-    // Perform logout actions
-    console.log('User logging out...');
-
-    // Clear all user session data
-    sessionStorage.removeItem('userEmail');
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userData');
-
-    // Clear current user email
-    currentUserEmail = null;
-
-    // Close modals
-    closeModal(logoutModal);
-    closeModal(document.getElementById('profileModal'));
-
-    // Redirect to login page
-    setTimeout(() => {
-      window.location.href = '../../index.html';
-    }, 300);
-  });
-
-  // Backdrop click to close modal
-  document.querySelectorAll('[data-close-modal]').forEach(el => {
-    el.addEventListener('click', (e) => {
-      const modal = e.target.closest('.modal');
-      if (modal) {
-        closeModal(modal);
-      }
-    });
-  });
-
-  // Escape key closes modal
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const openModals = document.querySelectorAll('.modal.open');
-      if (openModals.length > 0) {
-        openModals.forEach(modal => closeModal(modal));
-      }
-    }
-  });
-}
 
 // --- Handle manual login ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -130,8 +42,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Navbar profile + modal setup ---
   const navbarProfilePic = document.getElementById("nav-profile-pic");
-  const profileModal = document.getElementById("profileModal");
-  const closeProfileBtn = document.querySelector(".close-modal");
+  const modal = document.getElementById("profileModal");
+  const closeModal = document.querySelector(".close-modal");
 
   if (navbarProfilePic) {
     // Load user details if session exists
@@ -144,18 +56,19 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("⚠️ Please log in first.");
         return;
       }
-      openModal(profileModal);
+      modal.style.display = "block";
       await fetchAndDisplayUser(currentUserEmail);
     });
 
-    if (closeProfileBtn) {
-      closeProfileBtn.addEventListener("click", () => {
-        closeModal(profileModal);
+    if (closeModal) {
+      closeModal.addEventListener("click", () => {
+        modal.style.display = "none";
       });
     }
 
-    // Initialize logout functionality
-    initializeLogout();
+    window.addEventListener("click", (event) => {
+      if (event.target === modal) modal.style.display = "none";
+    });
   }
 });
 
@@ -222,14 +135,14 @@ function updateTokenProgress(currentTokens = 0) {
   const notificationsList = document.getElementById("notificationsList");
   if (notificationsList) {
     notificationsList.innerHTML = `
-            <div class="notification-item">
-                <div class="notification-content">
-                    <div class="notification-title">Token Update</div>
-                    <div class="notification-message">You currently have ${currentTokens} tokens.</div>
-                    <div class="notification-time">Just now</div>
-                </div>
-            </div>
-        `;
+      <div class="notification-item">
+        <div class="notification-content">
+          <div class="notification-title">Token Update</div>
+          <div class="notification-message">You currently have ${currentTokens} tokens.</div>
+          <div class="notification-time">Just now</div>
+        </div>
+      </div>
+    `;
   }
 }
 

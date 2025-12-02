@@ -129,6 +129,7 @@ const academicYearInput = document.getElementById("academicYearInput")
     document.body.classList.remove("modal-open")
   }
 
+  // Modal close buttons
   const closeModalButtons = document.querySelectorAll(".close-modal")
   closeModalButtons.forEach(button => {
     button.addEventListener("click", (e) => {
@@ -207,11 +208,8 @@ academicYear: document.getElementById("academicYearInput")?.value || "",
   }
 
   function resetJobsAfterSubmit() {
-  function resetJobsAfterSubmit() {
     const currentName = document.getElementById("fullNameInput")?.value || ""
     const currentEmail = document.getElementById("emailInput")?.value || ""
-    const currentCourse = document.getElementById("courseInput")?.value || ""
-    const currentYear = document.getElementById("yearSelect")?.value || ""
     const currentCourse = document.getElementById("courseInput")?.value || ""
     const currentYear = document.getElementById("yearSelect")?.value || ""
 
@@ -305,8 +303,8 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
           }
         } else {
           addPrintJobProgrammatic()
-          const newJob = printJobs.querySelector(`.print-job[data-job-id="${idx + 1}"]`)
-          if (newJob) populateJobFields(newJob, j, idx + 1)
+          const newJob = printJobs.querySelector(`.print-job[data-job-id="${idx+1}"]`)
+          if (newJob) populateJobFields(newJob, j, idx+1)
         }
       })
 
@@ -553,7 +551,6 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
             form.appendChild(remainingDisplay)
           }
 
-
           if (remainingTokens > 0) {
             remainingDisplay.style.background = "#f0fff0"
             remainingDisplay.style.color = "#2e7d32"
@@ -570,9 +567,10 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
   /* =========================
      IMPROVED FILE HANDLING SYSTEM (with validation)
      ========================= */
+
+  // Get file type information
   function getFileTypeInfo(file) {
     if (!file) return FILE_TYPES.default
-
 
     if (file.type === 'application/pdf') {
       return FILE_TYPES.pdf
@@ -587,6 +585,7 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
     }
   }
 
+  // Format file size
   function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes'
     const k = 1024
@@ -657,7 +656,6 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
       e.preventDefault()
       dropZone.classList.remove("drop-zone--active")
 
-
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         const file = e.dataTransfer.files[0]
 
@@ -670,15 +668,12 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
 
         const formattedName = formatFilename(file.name)
 
-
         const dt = new DataTransfer()
         dt.items.add(file)
         newFileInput.files = dt.files
 
-
         showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, newFileInput.name, jobElement)
         countPages(file, pageCountSpan, jobElement)
-
 
         newFileInput.dispatchEvent(new Event('change', { bubbles: true }))
       }
@@ -716,7 +711,6 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
       const paperType = jobElement.querySelector(`select[name^="paper_type_"]`).value
       const pageCount = Number.parseInt(pageCountSpan.textContent) || 0
 
-
       let tokensPerPage = 0
       const isImagePrint = file && file.type && file.type.startsWith("image/")
 
@@ -725,7 +719,6 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
 
       const totalTokens = tokensPerPage * pageCount * copies
       const fileTypeInfo = getFileTypeInfo(file)
-
 
       const previewHTML = `
         <div class="file-preview-card" style="border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px; background: #fff; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -746,10 +739,10 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
             </div>
             <div style="display: flex; gap: 8px;">
               <button type="button" class="file-action-btn replace-btn" style="padding: 6px 12px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
-                <span>Replace</span>
+                <span>        <img src="../images/student_img/submission/replace.png" alt=""> </span> Replace
               </button>
               <button type="button" class="file-action-btn remove-btn" style="padding: 6px 12px; background: #ff4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
-                <span>Remove</span>
+                <span> <img src="../images/student_img/submission/trash.png" alt=""></span> Remove
               </button>
             </div>
           </div>
@@ -765,10 +758,8 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
       `
       preview.innerHTML = previewHTML
 
-
       const replaceBtn = preview.querySelector(".replace-btn")
       const removeBtn = preview.querySelector(".remove-btn")
-
 
       replaceBtn.onclick = () => replaceFile(preview, jobElement)
       removeBtn.onclick = () => removeFile(preview, pageCountSpan, inputName, jobElement)
@@ -782,7 +773,6 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
 
     const fileTypeInfo = getFileTypeInfo(file)
 
-
     switch (fileTypeInfo.preview) {
       case 'image':
         const imageUrl = URL.createObjectURL(file)
@@ -793,7 +783,6 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
           </div>
         `
 
-
       case 'embed':
         const pdfUrl = URL.createObjectURL(file)
         return `
@@ -803,7 +792,6 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
           </div>
         `
 
-
       case 'text':
         return `
           <div style="text-align: center; padding: 20px;">
@@ -812,7 +800,6 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
             <p style="margin: 0; color: #666; font-size: 14px;">Text file - Content will be processed for printing</p>
           </div>
         `
-
 
       default:
         return `
@@ -886,6 +873,7 @@ if (m.academicYear && academicYearInput) academicYearInput.value = m.academicYea
     saveFormState()
   }
 
+  // Helper function to read file as text
   function readFileAsText(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -1004,6 +992,7 @@ formData.append("academicYear", academicYearInput?.value || "")
       successModal.style.display = "block"
       document.body.classList.add("modal-open")
 
+      // Save success details and reset form
       storeSuccess(result, sentMeta)
       localStorage.removeItem(FORM_STATE_KEY)
       resetJobsAfterSubmit()
@@ -1120,11 +1109,9 @@ function populateAcademicYearSelect(preferredValue) {
           const fullNameInput = document.getElementById("fullNameInput")
           const emailInput = document.getElementById("emailInput")
 
-
           fullNameInput.value = user.fullName || ""
           emailInput.value = user.email || ""
           emailInput.readOnly = true
-
 
           if (user.courseYear) {
             const [course, year] = user.courseYear.split('-')
@@ -1188,16 +1175,13 @@ function populateAcademicYearSelect(preferredValue) {
       const currentCourse = document.getElementById("courseInput").value
       const currentYear = document.getElementById("yearSelect").value
 
-
       document.getElementById("pickupDateTime").value = ""
       confirmCheckbox.checked = false
-
 
       const allJobs = document.querySelectorAll(".print-job")
       allJobs.forEach((job, index) => {
         if (index > 0) job.remove()
       })
-
 
       const firstJob = document.querySelector(".print-job")
       if (firstJob) {
@@ -1218,7 +1202,6 @@ function populateAcademicYearSelect(preferredValue) {
         } catch (e) { /* ignore */ }
       }
 
-
       jobCount = 1
       const tokenDisplay = document.querySelector(".token-cost")
       if (tokenDisplay) tokenDisplay.remove()
@@ -1226,7 +1209,6 @@ function populateAcademicYearSelect(preferredValue) {
       if (totalDisplay) totalDisplay.remove()
       const remainingDisplay = document.getElementById("remainingTokens")
       if (remainingDisplay) remainingDisplay.remove()
-
 
       document.getElementById("fullNameInput").value = currentName
       document.getElementById("emailInput").value = currentEmail
@@ -1314,6 +1296,7 @@ function populateAcademicYearSelect(preferredValue) {
   })
 
   restoreFormState()
+  showStoredSuccessIfAny()
 
   form.querySelectorAll("input, textarea, select").forEach(el => {
     el.addEventListener("change", saveFormState)
