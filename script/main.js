@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- Navbar profile + modal setup ---
   const navbarProfilePic = document.getElementById("nav-profile-pic");
   const modal = document.getElementById("profileModal");
-  const closeModal = document.querySelector(".close-modal");
+  const closeModal = document.querySelector(".profile-modal-close");
 
   if (navbarProfilePic) {
     // Load user details if session exists
@@ -110,7 +110,7 @@ function updateProfileModal(name, email, tokens, role, picture) {
   const studentName = document.getElementById("studentName");
   const studentId = document.getElementById("studentId");
   const tokenCount = document.getElementById("tokenCount");
-  const profilePic = document.getElementById("profileModalPic");
+  const profilePic = document.querySelector(".profile-modal-pic");
 
   if (studentName) studentName.textContent = name || "Unknown User";
   if (studentId) studentId.textContent = email || "N/A";
