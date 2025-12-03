@@ -229,9 +229,8 @@ body {
 /* pills & actions */
 .pill{ padding:6px 10px; border-radius:999px; font-size:13px; display:inline-block; font-weight:600; }
 .pill.completed{ background:#e8f6ea; color:#1f7a2f; }
-.pill.accepted{ background:#e8f6ea; color:#1f7a2f; }
 .pill.rejected{ background:#f8d7da; color:#721c24; }
-.pill.pending{ background:#fff3cd; color:#856404; }
+.pill.canceled{ background:#f8d7da; color:#850404; }
 
 .action-btn { 
   padding: 6px 12px;
