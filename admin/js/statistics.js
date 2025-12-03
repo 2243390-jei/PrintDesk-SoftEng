@@ -841,11 +841,27 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch(REQUESTS_ENDPOINT);
       if (!res.ok) return;
       const data = await res.json();
-      const pending = Array.isArray(data) ? data.filter(r => String(r.status).toLowerCase() === 'pending').length : 0;
+      
+      // Get today's date at midnight
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Count only pending requests scheduled for today or later
+      const todayAndFuturePending = Array.isArray(data) 
+        ? data.filter(r => {
+            if (String(r.status).toLowerCase() !== 'pending') return false;
+            
+            const requestDate = new Date(r.createdAt);
+            requestDate.setHours(0, 0, 0, 0);
+            
+            return requestDate >= today;
+          }).length 
+        : 0;
+      
       const sidebarCount = document.getElementById('sidebarQueueCount');
       if (sidebarCount) {
-        sidebarCount.textContent = pending;
-        sidebarCount.classList.toggle('has-count', pending > 0);
+        sidebarCount.textContent = todayAndFuturePending;
+        sidebarCount.classList.toggle('has-count', todayAndFuturePending > 0);
       }
     } catch (err) {
       console.warn('fetchQueueCount err', err);

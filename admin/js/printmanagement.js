@@ -287,17 +287,26 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const data = await response.json();
 
-      // Count pending requests
-      const pendingCount = data.filter(request => request.status === "Pending").length;
+      // Get today's date at midnight
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Count only pending requests scheduled for today or later
+      const todayAndFuturePending = Array.isArray(data)
+        ? data.filter(r => {
+            if (String(r.status).toLowerCase() !== 'pending') return false;
+
+            const requestDate = new Date(r.createdAt);
+            requestDate.setHours(0, 0, 0, 0);
+
+            return requestDate >= today;
+          }).length
+        : 0;
 
       // Update sidebar queue count
       if (sidebarQueueCount) {
-        sidebarQueueCount.textContent = pendingCount;
-        if (pendingCount === 0) {
-          sidebarQueueCount.style.display = 'none';
-        } else {
-          sidebarQueueCount.style.display = 'flex';
-        }
+        sidebarQueueCount.textContent = todayAndFuturePending;
+        sidebarQueueCount.classList.toggle('has-count', todayAndFuturePending > 0);
       }
     } catch (error) {
       console.error("Error updating queue count:", error);
