@@ -7,10 +7,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const recentActivityList = document.getElementById("recentActivityList");
   const totalUsers = document.getElementById("totalUsers");
   const totalPrints = document.getElementById("totalPrints");
-  const totalLeads = document.getElementById("totalLeads");
   const usersChange = document.getElementById("usersChange");
   const printsChange = document.getElementById("printsChange");
-  const leadsChange = document.getElementById("leadsChange");
   const statsContent = document.getElementById("statsContent");
 
   // filters UI
@@ -371,13 +369,11 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (totalUsers) totalUsers.textContent = String(uniqueUsers.size || 0);
     if (totalPrints) totalPrints.textContent = String(requests.reduce((s, r) => s + ((r.documents || []).reduce((a,d)=>(a + (d.pageCount||0)*(d.numberOfCopies||1)),0)), 0) || 0);
-    if (totalLeads) totalLeads.textContent = String(accepted || 0);
-
+ 
     // simple percent changes placeholders
     if (usersChange) usersChange.textContent = '';
     if (printsChange) printsChange.textContent = '';
-    if (leadsChange) leadsChange.textContent = '';
-
+ 
     // ensure analyticsData has values
     if (!analyticsData.daily) analyticsData = createEmptyAnalyticsData();
   }
