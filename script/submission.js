@@ -130,10 +130,10 @@ const academicYearInput = document.getElementById("academicYearInput")
   }
 
   // Modal close buttons
-  const closeModalButtons = document.querySelectorAll(".close-modal")
+  const closeModalButtons = document.querySelectorAll(".close-modal, .profile-modal-close")
   closeModalButtons.forEach(button => {
     button.addEventListener("click", (e) => {
-      const modal = e.target.closest('.modal')
+      const modal = e.target.closest('.modal, .profile-modal')
       if (modal && modal.id !== 'successModal') {
         closeAllModals()
       }
@@ -744,10 +744,6 @@ academicYear: document.getElementById("academicYearInput")?.value || "",
                 <span> <img src="../images/student_img/submission/trash.png" alt=""></span> Remove
               </button>
             </div>
-          </div>
-
-          <div style="background: #e8f4ff; padding: 12px; border-radius: 8px; margin-bottom: 16px; text-align: center;">
-            <strong style="color: #1a73e8; font-size: 14px;">🪙 Total Tokens for this document: ${totalTokens}</strong>
           </div>
 
           <div class="file-preview-content" style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 16px; text-align: center; min-height: 200px; display: flex; align-items: center; justify-content: center;">
