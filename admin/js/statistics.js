@@ -495,67 +495,98 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const daily = document.getElementById('dailyChart');
     const trends = document.getElementById('trendsChart');
-    if (daily) drawLineChart(daily, analyticsData.daily);
-    if (trends) drawBarChart(trends, analyticsData.trends);
+    if (daily) animateLineChart(daily, analyticsData.daily);
+    if (trends) animateBarChart(trends, analyticsData.trends);
   }
 
-  function drawLineChart(canvas, chartData) {
+  function animateLineChart(canvas, chartData) {
     const ctx = canvas.getContext('2d');
     const padding = 30;
     const w = canvas.clientWidth;
     const h = parseFloat(getComputedStyle(canvas).height);
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
     const labels = chartData.labels || ['No Data'];
     const series = chartData.series || [];
     const max = Math.max(1, ...series.flatMap(s => s.data || [0]));
     const xStep = (w - padding*2) / Math.max(1, labels.length - 1);
     const yScale = (h - padding*2) / max;
 
-    // grid
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-    for (let i=0;i<=4;i++){
-      const y = padding + (h - padding*2) * (i/4);
-      ctx.beginPath(); ctx.moveTo(padding,y); ctx.lineTo(w-padding,y); ctx.stroke();
+    let animationProgress = 0;
+    const animationDuration = 800; // ms
+    const startTime = Date.now();
+
+    function drawFrame() {
+      const elapsed = Date.now() - startTime;
+      animationProgress = Math.min(1, elapsed / animationDuration);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // grid
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+      for (let i = 0; i <= 4; i++) {
+        const y = padding + (h - padding*2) * (i/4);
+        ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(w - padding, y); ctx.stroke();
+      }
+
+      // Animate series
+      series.forEach(seriesItem => {
+        const data = seriesItem.data || [];
+        
+        // Animate line with gradient effect
+        ctx.beginPath();
+        ctx.strokeStyle = seriesItem.color || '#4A90E2';
+        ctx.lineWidth = 2;
+        
+        data.forEach((val, i) => {
+          // Only draw points up to the current animation progress
+          const animationIndex = animationProgress * (data.length - 1);
+          if (i <= animationIndex) {
+            const x = padding + i * xStep;
+            const y = h - padding - (val * yScale);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+
+        // Animate points
+        ctx.fillStyle = seriesItem.color || '#4A90E2';
+        data.forEach((val, i) => {
+          const animationIndex = animationProgress * (data.length - 1);
+          if (i <= animationIndex) {
+            const x = padding + i * xStep;
+            const y = h - padding - (val * yScale);
+            
+            // Pulse effect on points
+            const pointRadius = 3 + Math.sin(animationProgress * Math.PI * 2) * 0.5;
+            ctx.beginPath();
+            ctx.arc(x, y, pointRadius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+      });
+
+      // x labels (always show)
+      ctx.fillStyle = '#333';
+      ctx.font = '12px system-ui, Arial';
+      ctx.textAlign = 'center';
+      labels.forEach((lbl, i) => {
+        const x = padding + i * xStep;
+        ctx.fillText(lbl, x, h - 6);
+      });
+
+      if (animationProgress < 1) {
+        requestAnimationFrame(drawFrame);
+      }
     }
 
-    // series
-    series.forEach(seriesItem => {
-      ctx.beginPath();
-      ctx.strokeStyle = seriesItem.color || '#4A90E2';
-      ctx.lineWidth = 2;
-      (seriesItem.data || []).forEach((val, i) => {
-        const x = padding + i * xStep;
-        const y = h - padding - (val * yScale);
-        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      });
-      ctx.stroke();
-      // points
-      ctx.fillStyle = seriesItem.color || '#4A90E2';
-      (seriesItem.data || []).forEach((val,i)=>{
-        const x = padding + i * xStep;
-        const y = h - padding - (val * yScale);
-        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
-      });
-    });
-
-    // x labels
-    ctx.fillStyle = '#333';
-    ctx.font = '12px system-ui, Arial';
-    ctx.textAlign = 'center';
-    labels.forEach((lbl,i)=>{
-      const x = padding + i * xStep;
-      ctx.fillText(lbl, x, h-6);
-    });
+    drawFrame();
   }
 
-  function drawBarChart(canvas, chartData) {
+  function animateBarChart(canvas, chartData) {
     const ctx = canvas.getContext('2d');
     const padding = 30;
     const w = canvas.clientWidth;
     const h = parseFloat(getComputedStyle(canvas).height);
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
     const labels = chartData.labels || ['No Data'];
     const data = chartData.data || [0];
     const colors = chartData.colors || ['#999'];
@@ -565,25 +596,75 @@ document.addEventListener("DOMContentLoaded", () => {
     const gap = slot - barW;
     const yScale = (h - padding*2) / max;
 
-    // grid
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-    for (let i=0;i<=4;i++){
-      const y = padding + (h - padding*2) * (i/4);
-      ctx.beginPath(); ctx.moveTo(padding,y); ctx.lineTo(w-padding,y); ctx.stroke();
-    }
+    let animationProgress = 0;
+    const animationDuration = 800; // ms
+    const startTime = Date.now();
 
-    data.forEach((val,i)=>{
-      const x = padding + i * slot + gap/2;
-      const barH = val * yScale;
-      const y = h - padding - barH;
-      ctx.fillStyle = colors[i] || '#999';
-      ctx.fillRect(x,y,barW,barH);
+    function drawFrame() {
+      const elapsed = Date.now() - startTime;
+      animationProgress = Math.min(1, elapsed / animationDuration);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // grid
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+      for (let i = 0; i <= 4; i++) {
+        const y = padding + (h - padding*2) * (i/4);
+        ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(w - padding, y); ctx.stroke();
+      }
+
+      // Animate bars with staggered effect
+      data.forEach((val, i) => {
+        const x = padding + i * slot + gap/2;
+        const barH = val * yScale;
+        
+        // Stagger animation: each bar starts slightly after the previous
+        const staggerDelay = (i / data.length) * 0.3; // 30% of total animation is stagger
+        const barAnimProgress = Math.max(0, Math.min(1, (animationProgress - staggerDelay) / (1 - staggerDelay)));
+        
+        // Ease-out animation (bars grow upward)
+        const easeProgress = 1 - Math.pow(1 - barAnimProgress, 3); // cubic ease-out
+        const animatedBarH = barH * easeProgress;
+        
+        const y = h - padding - animatedBarH;
+        ctx.fillStyle = colors[i] || '#999';
+        ctx.fillRect(x, y, barW, animatedBarH);
+
+        // Show value when bar is mostly visible
+        if (barAnimProgress > 0.5) {
+          ctx.fillStyle = '#333';
+          ctx.font = '12px system-ui, Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(String(val), x + barW/2, y - 6);
+        }
+      });
+
+      // x labels (always show)
       ctx.fillStyle = '#333';
       ctx.font = '12px system-ui, Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(labels[i], x+barW/2, h-8);
-      ctx.fillText(String(val), x+barW/2, y-6);
-    });
+      labels.forEach((lbl, i) => {
+        const x = padding + i * slot + gap/2;
+        ctx.fillText(lbl, x + barW/2, h - 8);
+      });
+
+      if (animationProgress < 1) {
+        requestAnimationFrame(drawFrame);
+      }
+    }
+
+    drawFrame();
+  }
+
+  // Keep old draw functions for reference (optional - can remove if not needed)
+  function drawLineChart(canvas, chartData) {
+    // This is now replaced by animateLineChart
+    animateLineChart(canvas, chartData);
+  }
+
+  function drawBarChart(canvas, chartData) {
+    // This is now replaced by animateBarChart
+    animateBarChart(canvas, chartData);
   }
 
   // Hover helpers
