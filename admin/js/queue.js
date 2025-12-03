@@ -41,13 +41,12 @@ document.addEventListener("DOMContentLoaded", () => {
   let queueData = []; // Will be populated from backend
   let filtered = [];
   let activeFilters = {
-    pickupTime: null,
-    queueTime: null,
+    // removed pickupTime & queueTime per request
     dateFrom: null,
     dateTo: null
   };
   let currentRequestId = null;
-
+  
   // API endpoints
   const API_BASE = "http://localhost:3000";
   const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
@@ -381,7 +380,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // Filters (search + pickupTime/queueTime/date)
+  // Filters (search + date)
   // -------------------------
   function applyFiltersToList(list) {
     // Always read the current search input from the DOM (handles cloned/replaced input)
@@ -396,19 +395,7 @@ document.addEventListener("DOMContentLoaded", () => {
         (item.date && item.date.toLowerCase().includes(q)) ||
         (item.queueNumber && item.queueNumber.toString().includes(q));
 
-      // pickup time filter
-      let matchesPickupTime = true;
-      if (activeFilters.pickupTime && item.pickupTime) {
-        matchesPickupTime = item.pickupTime.toLowerCase().includes(activeFilters.pickupTime.toLowerCase());
-      }
-
-      // queue time filter
-      let matchesQueueTime = true;
-      if (activeFilters.queueTime && item.queueTime) {
-        matchesQueueTime = item.queueTime.toLowerCase().includes(activeFilters.queueTime.toLowerCase());
-      }
-
-      // date range - unchanged
+      // date range only (pickupTime & queueTime filters removed)
       let matchesDate = true;
       if (activeFilters.dateFrom || activeFilters.dateTo) {
         const recordDateParts = item.date ? item.date.split('/') : [];
@@ -457,7 +444,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      return matchesSearch && matchesPickupTime && matchesQueueTime && matchesDate;
+      return matchesSearch && matchesDate;
     });
   }
 
@@ -563,12 +550,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const action = btn.dataset.action;
         if (action === "open-filter") {
           const f = btn.dataset.filter;
+          // only 'date' is available now; openFilterPanel will handle it
           openFilterPanel(f);
         } else if (action === "clear") { 
-          // Clear all active filters
+          // Clear all active filters (only date filters exist now)
           activeFilters = {
-            pickupTime: null,
-            queueTime: null,
             dateFrom: null,
             dateTo: null
           };
@@ -582,117 +568,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // Filter panel rendering
+  // Filter panel rendering (date only)
   // -------------------------
   function openFilterPanel(type) {
     if (!filterPanel) return;
     filterPanel.innerHTML = "";
     filterPanel.classList.remove("visually-hidden");
     filterPanel.setAttribute("aria-hidden", "false");
-
-    if (type === "pickupTime") {
-      const label = document.createElement("div");
-      label.textContent = "Pickup Time";
-      label.style.fontWeight = "700";
-      label.style.marginBottom = "8px";
-
-      const timeSelect = document.createElement("select");
-      timeSelect.style.width = "100%";
-      timeSelect.style.padding = "8px";
-      timeSelect.style.borderRadius = "4px";
-      timeSelect.style.border = "1px solid #ddd";
-
-      const defaultOption = document.createElement("option");
-      defaultOption.value = "";
-      defaultOption.textContent = "All pickup times";
-      timeSelect.appendChild(defaultOption);
-
-      // Add time options (you can customize these)
-      const timeOptions = ["Morning", "Afternoon"];
-      timeOptions.forEach(time => {
-        const option = document.createElement("option");
-        option.value = time;
-        option.textContent = time;
-        option.selected = activeFilters.pickupTime === time;
-        timeSelect.appendChild(option);
-      });
-
-      const apply = document.createElement("button");
-      apply.textContent = "Apply";
-      const clear = document.createElement("button");
-      clear.textContent = "Clear";
-
-      apply.addEventListener("click", () => {
-        activeFilters.pickupTime = timeSelect.value || null;
-        currentPage = 1;
-        renderView(queueData);
-        hideFilterPanel();
-      });
-
-      clear.addEventListener("click", () => {
-        activeFilters.pickupTime = null;
-        currentPage = 1;
-        renderView(queueData);
-        hideFilterPanel();
-      });
-
-      filterPanel.appendChild(label);
-      filterPanel.appendChild(timeSelect);
-      filterPanel.appendChild(apply);
-      filterPanel.appendChild(clear);
-    }
-
-    if (type === "queueTime") {
-      const label = document.createElement("div");
-      label.textContent = "Queue Time";
-      label.style.fontWeight = "700";
-      label.style.marginBottom = "8px";
-
-      const timeSelect = document.createElement("select");
-      timeSelect.style.width = "100%";
-      timeSelect.style.padding = "8px";
-      timeSelect.style.borderRadius = "4px";
-      timeSelect.style.border = "1px solid #ddd";
-
-      const defaultOption = document.createElement("option");
-      defaultOption.value = "";
-      defaultOption.textContent = "All queue times";
-      timeSelect.appendChild(defaultOption);
-
-      // Add time options
-      const timeOptions = ["Morning", "Afternoon"];
-      timeOptions.forEach(time => {
-        const option = document.createElement("option");
-        option.value = time;
-        option.textContent = time;
-        option.selected = activeFilters.queueTime === time;
-        timeSelect.appendChild(option);
-      });
-
-      const apply = document.createElement("button");
-      apply.textContent = "Apply";
-      const clear = document.createElement("button");
-      clear.textContent = "Clear";
-
-      apply.addEventListener("click", () => {
-        activeFilters.queueTime = timeSelect.value || null;
-        currentPage = 1;
-        renderView(queueData);
-        hideFilterPanel();
-      });
-
-      clear.addEventListener("click", () => {
-        activeFilters.queueTime = null;
-        currentPage = 1;
-        renderView(queueData);
-        hideFilterPanel();
-      });
-
-      filterPanel.appendChild(label);
-      filterPanel.appendChild(timeSelect);
-      filterPanel.appendChild(apply);
-      filterPanel.appendChild(clear);
-    }
 
     if (type === "date") {
       const label = document.createElement("div");
