@@ -820,6 +820,12 @@ body.submission-body {
   outline: none;
 }
 
+input[readonly] {
+  color: #646464 !important; 
+    color: #555;
+    cursor: not-allowed;
+}
+
 /* ----- Section Title ----- */
 .form-section-title {
   font-family: "Bebas Neue", sans-serif;

@@ -51,15 +51,29 @@
             <form id="printRequestForm" method="POST" enctype="multipart/form-data">
                 <div class="form-group">
                     <label>Full Name:</label>
-                    <input type="text" name="full_name" id="fullNameInput" placeholder="Auto-filled from login"
-                        required />
+                    <input type="text" name="full_name" id="fullNameInput" placeholder="Auto-filled from login" required readonly/>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Course:</label>
-                        <input type="text" name="course" id="courseInput" placeholder="e.g., BSIT" required />
-                    </div>
+    <label>Course:</label>
+    <input list="courseList" name="course" id="courseInput" placeholder="Select or type course..." required />
+
+    <datalist id="courseList">
+        <option value="BSA">Bachelor of Science in Accountancy</option>
+        <option value="BSMA">Bachelor of Science in Management Accounting</option>
+        <option value="BSBA">Bachelor of Science in Business Administration</option>
+        <option value="BSBA-FM (BA)">BSBA Major in Financial Management (BA)</option>
+        <option value="BSBA-MM (BA)">BSBA Major in Marketing Management (BA)</option>
+        <option value="BSEntrep (BA)">Bachelor of Science in Entrepreneurship (BA)</option>
+        <option value="BSTM">Bachelor of Science in Tourism Management</option>
+        <option value="BSHM">Bachelor of Science in Hospitality Management</option>
+        <option value="BSCS">Bachelor of Science in Computer Science</option>
+        <option value="BSIT">Bachelor of Science in Information Technology</option>
+        <option value="BMA">Bachelor of Multimedia Arts</option>
+    </datalist>
+</div>
+
 
                     <div class="form-group">
                         <label>Year:</label>
