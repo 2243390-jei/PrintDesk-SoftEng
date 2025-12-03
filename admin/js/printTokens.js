@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   // State
   // -------------------------
-  let users = []; // Will be populated from backend
+  let users = [];
   let filteredUsers = [];
   let currentScheduledReset = null;
 
@@ -34,8 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
   const RESET_TOKENS_ENDPOINT = `${API_BASE}/reset-tokens`;
   const RESET_TOKENS_CANCEL_ENDPOINT = `${API_BASE}/cancel-reset`;
+  const RESET_TOKENS_EXECUTE_ENDPOINT = `${API_BASE}/reset-tokens/execute`;
 
-  // set footer year if element exists
+  // Set footer year if element exists
   if (curYear) curYear.textContent = new Date().getFullYear();
 
   // -------------------------
@@ -49,6 +50,16 @@ document.addEventListener("DOMContentLoaded", () => {
       month: 'long', 
       day: 'numeric' 
     });
+  }
+
+  // Check if a date is today
+  function isToday(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    
+    return date.getFullYear() === today.getFullYear() &&
+           date.getMonth() === today.getMonth() &&
+           date.getDate() === today.getDate();
   }
 
   function openModal(modal) {
@@ -200,6 +211,31 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function executeTokenReset() {
+    try {
+      console.log("Executing token reset immediately");
+      
+      const response = await fetch(RESET_TOKENS_EXECUTE_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log("Token reset executed successfully:", result);
+      return result;
+      
+    } catch (error) {
+      console.error("Error executing token reset:", error);
+      throw error;
+    }
+  }
+
   async function getScheduledReset() {
     try {
       const response = await fetch(`${RESET_TOKENS_ENDPOINT}/scheduled`);
@@ -226,8 +262,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function initializeTokenReset() {
     if (!resetBtn || !resetDate || !cancelResetBtn || !rescheduleResetBtn || !resetStatus) return;
 
-    // Load current scheduled reset
-    loadScheduledReset();
+    // Set minimum date to tomorrow for scheduling
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    resetDate.min = tomorrow.toISOString().split('T')[0];
 
     // Schedule new reset
     resetBtn.addEventListener("click", async () => {
@@ -241,6 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const selectedDate = new Date(dateValue);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      selectedDate.setHours(0, 0, 0, 0);
       
       if (selectedDate <= today) {
         alert("Please select a future date for the token reset.");
@@ -255,7 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateResetUI(true, dateValue);
         alert(`Tokens will reset to 500 on ${formatDateForDisplay(dateValue)}`);
 
-        // Save to localStorage for frontend checking (backup)
+        // Save to localStorage as backup
         localStorage.setItem("tokenResetDate", dateValue);
         localStorage.setItem("tokenResetId", result.resetId);
         
@@ -305,6 +344,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const selectedDate = new Date(dateValue);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      selectedDate.setHours(0, 0, 0, 0);
       
       if (selectedDate <= today) {
         alert("Please select a future date for the token reset.");
@@ -334,8 +374,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Check daily if today's date matches the scheduled reset
-    checkScheduledTokenReset();
+    // Check if today is reset day
+    checkAndExecuteScheduledReset();
   }
 
   async function loadScheduledReset() {
@@ -348,6 +388,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // Update localStorage
         localStorage.setItem("tokenResetDate", scheduledReset.resetDate);
         localStorage.setItem("tokenResetId", scheduledReset._id);
+        
+        // Check if this reset should happen today
+        if (isToday(scheduledReset.resetDate)) {
+          await handleTodayReset(scheduledReset);
+        }
       } else {
         // Check localStorage as backup
         const savedDate = localStorage.getItem("tokenResetDate");
@@ -359,6 +404,11 @@ document.addEventListener("DOMContentLoaded", () => {
             resetDate: savedDate
           };
           updateResetUI(true, savedDate);
+          
+          // Check if this reset should happen today
+          if (isToday(savedDate)) {
+            await handleTodayReset(currentScheduledReset);
+          }
         } else {
           updateResetUI(false);
         }
@@ -375,9 +425,56 @@ document.addEventListener("DOMContentLoaded", () => {
           resetDate: savedDate
         };
         updateResetUI(true, savedDate);
+        
+        // Check if this reset should happen today
+        if (isToday(savedDate)) {
+          await handleTodayReset(currentScheduledReset);
+        }
       } else {
         updateResetUI(false);
       }
+    }
+  }
+
+  async function handleTodayReset(scheduledReset) {
+    console.log("Today is the scheduled reset day!");
+    
+    const userConfirmed = confirm(
+      "Today is the scheduled token reset day. Do you want to reset all user tokens to 500 now?\n\n" +
+      "Click OK to reset now, or Cancel to skip (you can reset manually later)."
+    );
+    
+    if (userConfirmed) {
+      try {
+        const result = await executeTokenReset();
+        alert(result.message || "All user tokens have been reset to 500.");
+        
+        // Clear the schedule
+        await cancelTokenReset();
+        currentScheduledReset = null;
+        updateResetUI(false);
+        
+        // Clear localStorage
+        localStorage.removeItem("tokenResetDate");
+        localStorage.removeItem("tokenResetId");
+        
+        // Refresh user data
+        await refreshUserData();
+        
+      } catch (error) {
+        console.error("Error executing today's reset:", error);
+        alert("Failed to execute token reset. Please try manually.");
+      }
+    } else {
+      console.log("User postponed the scheduled reset.");
+    }
+  }
+
+  async function checkAndExecuteScheduledReset() {
+    if (!currentScheduledReset) return;
+    
+    if (isToday(currentScheduledReset.resetDate)) {
+      await handleTodayReset(currentScheduledReset);
     }
   }
 
@@ -395,7 +492,10 @@ document.addEventListener("DOMContentLoaded", () => {
         resetStatus.textContent = `Token reset scheduled for ${formatDateForDisplay(resetDateValue)}`;
         resetStatus.style.color = "#28a745";
         resetStatus.style.fontWeight = "600";
-        resetStatus.style.marginTop = "10px";
+        resetStatus.style.padding = "10px";
+        resetStatus.style.borderRadius = "6px";
+        resetStatus.style.background = "#e8f5e8";
+        resetStatus.style.border = "1px solid #28a745";
       }
     } else {
       // No reset scheduled
@@ -410,25 +510,11 @@ document.addEventListener("DOMContentLoaded", () => {
         resetStatus.textContent = "No token reset scheduled";
         resetStatus.style.color = "#6c757d";
         resetStatus.style.fontWeight = "400";
-        resetStatus.style.marginTop = "10px";
+        resetStatus.style.padding = "10px";
+        resetStatus.style.borderRadius = "6px";
+        resetStatus.style.background = "#f8f9fa";
+        resetStatus.style.border = "1px solid #dee2e6";
       }
-    }
-  }
-
-  function checkScheduledTokenReset() {
-    const savedDate = localStorage.getItem("tokenResetDate");
-    if (savedDate && new Date(savedDate).toDateString() === new Date().toDateString()) {
-      // Reset would happen here via backend cron job
-      console.log("Token reset scheduled for today - should be handled by backend cron job");
-      
-      // Clear the scheduled date after today
-      localStorage.removeItem("tokenResetDate");
-      localStorage.removeItem("tokenResetId");
-      currentScheduledReset = null;
-      updateResetUI(false);
-      
-      // Refresh data to show updated tokens
-      refreshUserData();
     }
   }
 
@@ -547,7 +633,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (confirmLogout) {
       confirmLogout.addEventListener('click', function() {
         // Perform logout actions here
-        // For now, just redirect to login page
         window.location.href = '/index.html';
       });
     }
@@ -591,7 +676,11 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
       }
       
-      // Fetch data from backend
+      // FIRST: Load scheduled reset BEFORE fetching users
+      console.log("Loading scheduled reset...");
+      await loadScheduledReset();
+      
+      // SECOND: Fetch users (tokens might be updated by reset)
       console.log("Fetching data from API...");
       users = await fetchUsersWithTokens();
       filteredUsers = [...users];
@@ -646,7 +735,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Start the application
   initialize();
 
-  // Expose some helpers to console for quick testing
+  // Expose helpers to console for debugging
   window.__tokensDemo = {
     users: () => users,
     refreshData: async () => {
@@ -655,7 +744,16 @@ document.addEventListener("DOMContentLoaded", () => {
       filteredUsers = [...users];
       renderUsersTable(users);
     },
-    getScheduledReset: () => currentScheduledReset
+    getScheduledReset: () => currentScheduledReset,
+    executeResetNow: async () => {
+      try {
+        const result = await executeTokenReset();
+        alert(result.message);
+        await refreshUserData();
+      } catch (error) {
+        alert("Error: " + error.message);
+      }
+    }
   };
   
   console.log("User tokens management loaded. Use window.__tokensDemo for debugging.");

@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // filters UI
   const semesterSelect = document.getElementById('semesterSelect');
   const termSelect = document.getElementById('termSelect');
+  const timeRangeSelect = document.getElementById('timeRangeSelect');
   const activeFilterLabel = document.getElementById('activeFilterLabel');
 
   // Charts state
@@ -23,6 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let lastFetchedRequests = [];     // raw requests for client-side filtering
   let currentSemester = 'All';
   let currentTerm = 'All';
+  let currentTimeRange = 'All';
   const API_BASE = "http://localhost:3000";
   const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
 
@@ -198,6 +200,28 @@ document.addEventListener("DOMContentLoaded", () => {
         return requestTerm === currentTerm;
       });
     }
+
+    // Filter by time range (This Week / This Month / All)
+    if (currentTimeRange && currentTimeRange !== 'All') {
+      const now = new Date();
+      now.setHours(23, 59, 59, 999);
+      let startDate = new Date();
+      
+      if (currentTimeRange === 'This Week') {
+        // Start of current week (Monday)
+        startDate.setDate(startDate.getDate() - startDate.getDay() + (startDate.getDay() === 0 ? -6 : 1));
+        startDate.setHours(0, 0, 0, 0);
+      } else if (currentTimeRange === 'This Month') {
+        // Start of current month
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        startDate.setHours(0, 0, 0, 0);
+      }
+      
+      out = out.filter(r => {
+        const reqDate = new Date(r.createdAt);
+        return reqDate >= startDate && reqDate <= now;
+      });
+    }
     
     return out;
   }
@@ -206,7 +230,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!activeFilterLabel) return;
     const sem = currentSemester || 'All';
     const term = currentTerm || 'All';
-    activeFilterLabel.textContent = `Showing: ${sem} / ${term}`;
+    const time = currentTimeRange || 'All';
+    activeFilterLabel.textContent = `Showing: ${sem} / ${term} / ${time}`;
   }
 
   // -------------------------
@@ -220,30 +245,74 @@ document.addEventListener("DOMContentLoaded", () => {
       .slice(0, 8);
     updateRecentActivity(recent);
 
-    // daily: last 7 days labels + totals (prints = totalPages across docs)
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      days.push(formatDayLabel(d));
+    // Determine chart period based on time range
+    let days = [];
+    let dayFullDates = []; // Store full dates for tooltip
+    const now = new Date();
+    let chartTitle = 'Overview';
+    
+    if (currentTimeRange === 'This Week') {
+      chartTitle = 'This Week Overview';
+      // Last 7 days (or current week)
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(formatDayLabelShort(d)); // short label (just day number)
+        dayFullDates.push(formatDayLabel(d)); // full label for tooltip
+      }
+    } else if (currentTimeRange === 'This Month') {
+      chartTitle = 'This Month Overview';
+      // Days in current month (1 to current day or end of month)
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      for (let i = 1; i <= daysInMonth; i++) {
+        const d = new Date(year, month, i);
+        days.push(String(i)); // just day number (1, 2, 3, ... 30/31)
+        dayFullDates.push(formatDayLabel(d)); // full date for tooltip
+      }
+    } else {
+      // All: use all semesters (show by month number)
+      chartTitle = 'Semester Overview';
+      // Show month labels (1-12)
+      for (let m = 1; m <= 12; m++) {
+        days.push(String(m)); // just month number
+        dayFullDates.push(`Month ${m}`); // label for tooltip
+      }
     }
+
     const dayTotals = days.map(() => 0);
     const dayUsers = days.map(() => 0);
     // map date->index
     const dayIndex = {};
-    days.forEach((lbl, i) => dayIndex[lbl] = i);
+    days.forEach((lbl, i) => dayIndex[i] = i);
 
     // trends: counts by status
     const statusCounts = {};
     requests.forEach(r => {
       const created = new Date(r.createdAt);
-      const lbl = formatDayLabel(created);
-      const idx = dayIndex[lbl];
-      const pages = (r.documents || []).reduce((s, doc) => s + (doc.pageCount || 0) * (doc.numberOfCopies || 1), 0);
-      if (idx !== undefined) dayTotals[idx] += pages;
-      // unique users per day (by email or name)
-      // simple approach: count requests as users
-      if (idx !== undefined) dayUsers[idx] += 1;
+      let idx = -1;
+
+      if (currentTimeRange === 'This Week') {
+        // Match by M/D
+        const createdLbl = formatDayLabel(created);
+        const matchIdx = dayFullDates.indexOf(createdLbl);
+        if (matchIdx >= 0) idx = matchIdx;
+      } else if (currentTimeRange === 'This Month') {
+        // Match by day of month
+        if (created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()) {
+          idx = created.getDate() - 1; // 0-indexed
+        }
+      } else {
+        // All: match by month
+        idx = created.getMonth(); // 0-indexed (0=Jan, 1=Feb, ..., 11=Dec)
+      }
+
+      if (idx >= 0 && idx < dayTotals.length) {
+        const pages = (r.documents || []).reduce((s, doc) => s + (doc.pageCount || 0) * (doc.numberOfCopies || 1), 0);
+        dayTotals[idx] += pages;
+        dayUsers[idx] += 1;
+      }
 
       const st = String(r.status || 'unknown');
       statusCounts[st] = (statusCounts[st] || 0) + 1;
@@ -251,10 +320,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     analyticsData.daily = {
       labels: days,
+      fullLabels: dayFullDates, // Store full labels for tooltip
       series: [
         { label: 'Users', data: dayUsers, color: '#4A90E2' },
         { label: 'Prints', data: dayTotals, color: '#10B981' }
-      ]
+      ],
+      title: chartTitle
     };
 
     analyticsData.trends = {
@@ -275,7 +346,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function formatDayLabel(date) {
     const d = new Date(date);
-    return `${d.getMonth()+1}/${d.getDate()}`; // short M/D label
+    return `${d.getMonth()+1}/${d.getDate()}`; // M/D label
+  }
+
+  function formatDayLabelShort(date) {
+    const d = new Date(date);
+    return String(d.getDate()); // just day number
   }
 
   // -------------------------
@@ -360,7 +436,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // daily
     const dailyCard = document.createElement('div');
     dailyCard.className = 'chart-card';
-    dailyCard.innerHTML = `<div class="chart-header"><h3>Daily Overview</h3></div>`;
+    const dailyTitle = document.createElement('div');
+    dailyTitle.className = 'chart-header';
+    dailyTitle.innerHTML = `<h3 id="dailyChartTitle">Overview</h3>`;
+    dailyCard.appendChild(dailyTitle);
     const dailyCanvas = document.createElement('canvas');
     dailyCanvas.id = 'dailyChart';
     dailyCard.appendChild(dailyCanvas);
@@ -407,69 +486,107 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateCharts() {
     if (!analyticsData.daily) analyticsData = createEmptyAnalyticsData();
     rescaleCanvases();
+    
+    // Update daily chart title
+    const dailyTitle = document.getElementById('dailyChartTitle');
+    if (dailyTitle && analyticsData.daily.title) {
+      dailyTitle.textContent = analyticsData.daily.title;
+    }
+    
     const daily = document.getElementById('dailyChart');
     const trends = document.getElementById('trendsChart');
-    if (daily) drawLineChart(daily, analyticsData.daily);
-    if (trends) drawBarChart(trends, analyticsData.trends);
+    if (daily) animateLineChart(daily, analyticsData.daily);
+    if (trends) animateBarChart(trends, analyticsData.trends);
   }
 
-  function drawLineChart(canvas, chartData) {
+  function animateLineChart(canvas, chartData) {
     const ctx = canvas.getContext('2d');
     const padding = 30;
     const w = canvas.clientWidth;
     const h = parseFloat(getComputedStyle(canvas).height);
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
     const labels = chartData.labels || ['No Data'];
     const series = chartData.series || [];
     const max = Math.max(1, ...series.flatMap(s => s.data || [0]));
     const xStep = (w - padding*2) / Math.max(1, labels.length - 1);
     const yScale = (h - padding*2) / max;
 
-    // grid
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-    for (let i=0;i<=4;i++){
-      const y = padding + (h - padding*2) * (i/4);
-      ctx.beginPath(); ctx.moveTo(padding,y); ctx.lineTo(w-padding,y); ctx.stroke();
+    let animationProgress = 0;
+    const animationDuration = 800; // ms
+    const startTime = Date.now();
+
+    function drawFrame() {
+      const elapsed = Date.now() - startTime;
+      animationProgress = Math.min(1, elapsed / animationDuration);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // grid
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+      for (let i = 0; i <= 4; i++) {
+        const y = padding + (h - padding*2) * (i/4);
+        ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(w - padding, y); ctx.stroke();
+      }
+
+      // Animate series
+      series.forEach(seriesItem => {
+        const data = seriesItem.data || [];
+        
+        // Animate line with gradient effect
+        ctx.beginPath();
+        ctx.strokeStyle = seriesItem.color || '#4A90E2';
+        ctx.lineWidth = 2;
+        
+        data.forEach((val, i) => {
+          // Only draw points up to the current animation progress
+          const animationIndex = animationProgress * (data.length - 1);
+          if (i <= animationIndex) {
+            const x = padding + i * xStep;
+            const y = h - padding - (val * yScale);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+
+        // Animate points
+        ctx.fillStyle = seriesItem.color || '#4A90E2';
+        data.forEach((val, i) => {
+          const animationIndex = animationProgress * (data.length - 1);
+          if (i <= animationIndex) {
+            const x = padding + i * xStep;
+            const y = h - padding - (val * yScale);
+            
+            // Pulse effect on points
+            const pointRadius = 3 + Math.sin(animationProgress * Math.PI * 2) * 0.5;
+            ctx.beginPath();
+            ctx.arc(x, y, pointRadius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+      });
+
+      // x labels (always show)
+      ctx.fillStyle = '#333';
+      ctx.font = '12px system-ui, Arial';
+      ctx.textAlign = 'center';
+      labels.forEach((lbl, i) => {
+        const x = padding + i * xStep;
+        ctx.fillText(lbl, x, h - 6);
+      });
+
+      if (animationProgress < 1) {
+        requestAnimationFrame(drawFrame);
+      }
     }
 
-    // series
-    series.forEach(seriesItem => {
-      ctx.beginPath();
-      ctx.strokeStyle = seriesItem.color || '#4A90E2';
-      ctx.lineWidth = 2;
-      (seriesItem.data || []).forEach((val, i) => {
-        const x = padding + i * xStep;
-        const y = h - padding - (val * yScale);
-        if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      });
-      ctx.stroke();
-      // points
-      ctx.fillStyle = seriesItem.color || '#4A90E2';
-      (seriesItem.data || []).forEach((val,i)=>{
-        const x = padding + i * xStep;
-        const y = h - padding - (val * yScale);
-        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
-      });
-    });
-
-    // x labels
-    ctx.fillStyle = '#333';
-    ctx.font = '12px system-ui, Arial';
-    ctx.textAlign = 'center';
-    labels.forEach((lbl,i)=>{
-      const x = padding + i * xStep;
-      ctx.fillText(lbl, x, h-6);
-    });
+    drawFrame();
   }
 
-  function drawBarChart(canvas, chartData) {
+  function animateBarChart(canvas, chartData) {
     const ctx = canvas.getContext('2d');
     const padding = 30;
     const w = canvas.clientWidth;
     const h = parseFloat(getComputedStyle(canvas).height);
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
     const labels = chartData.labels || ['No Data'];
     const data = chartData.data || [0];
     const colors = chartData.colors || ['#999'];
@@ -479,25 +596,75 @@ document.addEventListener("DOMContentLoaded", () => {
     const gap = slot - barW;
     const yScale = (h - padding*2) / max;
 
-    // grid
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-    for (let i=0;i<=4;i++){
-      const y = padding + (h - padding*2) * (i/4);
-      ctx.beginPath(); ctx.moveTo(padding,y); ctx.lineTo(w-padding,y); ctx.stroke();
-    }
+    let animationProgress = 0;
+    const animationDuration = 800; // ms
+    const startTime = Date.now();
 
-    data.forEach((val,i)=>{
-      const x = padding + i * slot + gap/2;
-      const barH = val * yScale;
-      const y = h - padding - barH;
-      ctx.fillStyle = colors[i] || '#999';
-      ctx.fillRect(x,y,barW,barH);
+    function drawFrame() {
+      const elapsed = Date.now() - startTime;
+      animationProgress = Math.min(1, elapsed / animationDuration);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // grid
+      ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+      for (let i = 0; i <= 4; i++) {
+        const y = padding + (h - padding*2) * (i/4);
+        ctx.beginPath(); ctx.moveTo(padding, y); ctx.lineTo(w - padding, y); ctx.stroke();
+      }
+
+      // Animate bars with staggered effect
+      data.forEach((val, i) => {
+        const x = padding + i * slot + gap/2;
+        const barH = val * yScale;
+        
+        // Stagger animation: each bar starts slightly after the previous
+        const staggerDelay = (i / data.length) * 0.3; // 30% of total animation is stagger
+        const barAnimProgress = Math.max(0, Math.min(1, (animationProgress - staggerDelay) / (1 - staggerDelay)));
+        
+        // Ease-out animation (bars grow upward)
+        const easeProgress = 1 - Math.pow(1 - barAnimProgress, 3); // cubic ease-out
+        const animatedBarH = barH * easeProgress;
+        
+        const y = h - padding - animatedBarH;
+        ctx.fillStyle = colors[i] || '#999';
+        ctx.fillRect(x, y, barW, animatedBarH);
+
+        // Show value when bar is mostly visible
+        if (barAnimProgress > 0.5) {
+          ctx.fillStyle = '#333';
+          ctx.font = '12px system-ui, Arial';
+          ctx.textAlign = 'center';
+          ctx.fillText(String(val), x + barW/2, y - 6);
+        }
+      });
+
+      // x labels (always show)
       ctx.fillStyle = '#333';
       ctx.font = '12px system-ui, Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(labels[i], x+barW/2, h-8);
-      ctx.fillText(String(val), x+barW/2, y-6);
-    });
+      labels.forEach((lbl, i) => {
+        const x = padding + i * slot + gap/2;
+        ctx.fillText(lbl, x + barW/2, h - 8);
+      });
+
+      if (animationProgress < 1) {
+        requestAnimationFrame(drawFrame);
+      }
+    }
+
+    drawFrame();
+  }
+
+  // Keep old draw functions for reference (optional - can remove if not needed)
+  function drawLineChart(canvas, chartData) {
+    // This is now replaced by animateLineChart
+    animateLineChart(canvas, chartData);
+  }
+
+  function drawBarChart(canvas, chartData) {
+    // This is now replaced by animateBarChart
+    animateBarChart(canvas, chartData);
   }
 
   // Hover helpers
@@ -532,6 +699,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const h = parseFloat(getComputedStyle(canvas).height);
     const data = analyticsData.daily || createEmptyAnalyticsData().daily;
     const labels = data.labels || [];
+    const fullLabels = data.fullLabels || labels; // use full labels for display
     const xStep = (w - padding*2) / Math.max(1, labels.length - 1);
     let found = null;
     data.series.forEach(series => {
@@ -543,7 +711,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     });
-    if (found) return { show: true, html: `<div style="min-width:120px"><strong style="color:${found.color}">${found.label}</strong><div>${data.labels[found.index]} — <strong>${found.value}</strong></div></div>`};
+    if (found) {
+      const displayLabel = fullLabels[found.index] || labels[found.index] || '?';
+      return { show: true, html: `<div style="min-width:120px"><strong style="color:${found.color}">${found.label}</strong><div>${displayLabel} — <strong>${found.value}</strong></div></div>`};
+    }
     return { show: false };
   }
 
@@ -629,6 +800,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (termSelect) {
       termSelect.addEventListener('change', () => {
         currentTerm = termSelect.value || 'All';
+        updateFilterLabel();
+        const filtered = applyFilters(lastFetchedRequests);
+        processAnalyticsData(filtered);
+        updateCharts();
+      });
+    }
+    if (timeRangeSelect) {
+      timeRangeSelect.addEventListener('change', () => {
+        currentTimeRange = timeRangeSelect.value || 'All';
         updateFilterLabel();
         const filtered = applyFilters(lastFetchedRequests);
         processAnalyticsData(filtered);
