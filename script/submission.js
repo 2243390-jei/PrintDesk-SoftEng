@@ -1065,7 +1065,7 @@ function populateAcademicYearSelect(preferredValue) {
   const currentAyStart = month >= 8 ? currentYear : currentYear - 1
 
   // previous, current, next
-  const starts = [currentAyStart - 1, currentAyStart, currentAyStart + 1]
+  const starts = [ currentAyStart]
 
   // build options
   starts.forEach((s) => {
