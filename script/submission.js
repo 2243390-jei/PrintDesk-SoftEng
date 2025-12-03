@@ -389,6 +389,9 @@ document.addEventListener("DOMContentLoaded", () => {
         document.body.classList.add('modal-open')
       }
 console.log('showStoredSuccessIfAny called');
+console.log('Raw localStorage data:', raw);
+console.log('Found successDetails element:', !!detailsEl);
+console.log('Found successModal element:', !!modalEl);
       if (!detailsEl || !modalEl) {
         // If the elements aren't present yet (intermittent race), retry a few times
         let tries = 0
@@ -1001,28 +1004,6 @@ console.log('showStoredSuccessIfAny called');
       if (!res.ok) {
         const errorMsg = result.error || result.message || "Unknown server error"
         throw new Error(errorMsg)
-      }
-
-      // SUCCESS PATH - use runtime lookup to avoid stale references
-      try {
-        const detailsEl = document.getElementById('successDetails')
-        const modalEl = document.getElementById('successModal')
-        if (detailsEl && modalEl) {
-          detailsEl.innerHTML = `
-            <p><strong>Request ID:</strong> ${result.requestId || "-"}</p>
-            <p><strong>Full Name:</strong> ${sentMeta.fullName}</p>
-            <p><strong>Course Year:</strong> ${sentMeta.courseYear}</p>
-            <p><strong>Total Tokens Used:</strong> ${result.totalTokens ?? "-"}</p>
-            <p><strong>Remaining Tokens:</strong> ${result.remainingTokens ?? "-"}</p>
-            <p><strong>Status:</strong> ${result.status || "Submitted"}</p>
-          `
-          modalEl.style.display = 'block'
-          document.body.classList.add('modal-open')
-        } else {
-          console.warn('Success modal elements not found at success path; skipping immediate display')
-        }
-      } catch (err) {
-        console.error('Error while showing success modal:', err)
       }
 
       // Save success details and reset form
