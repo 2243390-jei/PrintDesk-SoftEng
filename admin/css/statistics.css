@@ -804,6 +804,23 @@ body{
   transform: translateY(-2px);
 }
 
+.time-range-select {
+  background: var(--card);
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #333;
+  min-width: 140px;
+  transition: box-shadow 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.time-range-select:focus {
+  outline: none;
+  border-color: rgba(239,68,68,0.9);
+  box-shadow: 0 6px 18px rgba(239,68,68,0.08);
+  transform: translateY(-2px);
+}
+
 /* active filter label visually clearer */
 .filter-label {
   font-size: 13px;

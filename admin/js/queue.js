@@ -41,7 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let queueData = []; // Will be populated from backend
   let filtered = [];
   let activeFilters = {
-    // removed pickupTime & queueTime per request
     dateFrom: null,
     dateTo: null
   };
@@ -74,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (status === "completed") return `<span class="pill completed">${text}</span>`;
     if (status === "accepted") return `<span class="pill accepted">${text}</span>`;
     if (status === "rejected") return `<span class="pill rejected">${text}</span>`;
+    if (status === "cancelled") return `<span class="pill cancelled">${text}</span>`;
     return `<span class="pill pending">${text}</span>`;
   }
 
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // -------------------------
-  // API Functions - FIXED VERSION
+  // API Functions - FIXED VERSION with Date Filtering & Auto-Cancellation
   // -------------------------
   async function fetchPrintRequests() {
     try {
@@ -121,17 +121,55 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
       console.log("Raw API data:", data);
 
+      // Get today's date at midnight (start of day)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      console.log("Today's date (for filtering):", today.toDateString());
+
       // Filter only pending requests for queue
       const pendingRequests = data.filter(request => request.status === "Pending");
-      console.log("Pending requests:", pendingRequests);
+      console.log("All pending requests:", pendingRequests.length);
+
+      // Separate requests by date and auto-cancel past ones
+      const validRequests = [];
+      const requestsToCancel = [];
+      
+      for (const request of pendingRequests) {
+        const requestDate = new Date(request.createdAt);
+        requestDate.setHours(0, 0, 0, 0); // Normalize to start of day
+        
+        // Compare dates (ignore time) - ONLY show today and future dates
+        if (requestDate < today) {
+          // Auto-cancel past requests
+          console.log(`Auto-cancelling past request: ${request._id} from ${requestDate.toDateString()}`);
+          requestsToCancel.push(request._id);
+        } else {
+          // Keep only today and future requests
+          console.log(`Keeping request: ${request._id} from ${requestDate.toDateString()}`);
+          validRequests.push(request);
+        }
+      }
+
+      // Batch cancel past requests
+      if (requestsToCancel.length > 0) {
+        console.log(`Cancelling ${requestsToCancel.length} past requests...`);
+        for (const requestId of requestsToCancel) {
+          try {
+            await updateRequestStatus(requestId, "Cancelled");
+            console.log(`✓ Request ${requestId} cancelled`);
+          } catch (error) {
+            console.error(`✗ Failed to cancel request ${requestId}:`, error);
+          }
+        }
+      }
+
+      console.log("Valid (today & future) requests:", validRequests.length);
 
       // Transform backend data to frontend format with queue numbers
       const transformedData = [];
       let queueNumber = 1;
 
-      pendingRequests.forEach((request) => {
-        console.log("Processing request:", request);
-        
+      validRequests.forEach((request) => {
         // Create separate queue items for each document
         if (request.documents && request.documents.length > 0) {
           request.documents.forEach((doc, docIndex) => {
@@ -160,8 +198,8 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             transformedData.push({
-              id: `${request._id}_${docIndex}`, // Unique ID for each document
-              requestId: request._id, // Original request ID
+              id: `${request._id}_${docIndex}`,
+              requestId: request._id,
               queueNumber: queueNumber++,
               name: request.fullName || "Unknown",
               course: request.courseYear || "Unknown",
@@ -195,7 +233,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 previewImage: previewImage,
                 previewType: previewType,
                 filePath: doc.filePath ? `${API_BASE}${doc.filePath}` : null,
-                // Include all documents for the modal view
                 allDocuments: request.documents || [],
                 email: request.email,
                 totalTokens: request.totalTokens
@@ -204,7 +241,6 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         } else {
           // Fallback for requests without documents
-          console.log("Request has no documents:", request);
           const createdDate = new Date(request.createdAt);
           const formattedDate = formatDate(request.createdAt);
           const queueTime = formatTime(request.createdAt);
@@ -258,26 +294,45 @@ document.addEventListener("DOMContentLoaded", () => {
       return transformedData;
     } catch (error) {
       console.error("Error fetching print requests:", error);
-      // Return empty array if API fails
       return [];
     }
   }
 
+  // -------------------------
+  // Update Request Status Function - FIXED VERSION
+  // -------------------------
   async function updateRequestStatus(requestId, newStatus) {
     try {
+      console.log(`Updating request ${requestId} to status: ${newStatus}`);
+      
       const response = await fetch(`${REQUESTS_ENDPOINT}/${requestId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ 
+          status: newStatus,
+          // Add timestamps and reasons for certain statuses
+          ...(newStatus === "Rejected" && { 
+            rejectionReason: "Rejected by admin",
+            rejectedAt: new Date().toISOString()
+          }),
+          ...(newStatus === "Cancelled" && { 
+            cancellationReason: "Auto-cancelled: Past submission date",
+            cancelledAt: new Date().toISOString()
+          })
+        })
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`HTTP error! status: ${response.status}, body: ${errorText}`);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log("Update response:", result);
+      return result;
     } catch (error) {
       console.error("Error updating request status:", error);
       throw error;
@@ -809,55 +864,81 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Handle reject action
+  // -------------------------
+  // Handle Reject Action - FIXED VERSION
+  // -------------------------
   async function handleReject(id) {
     const item = queueData.find(item => item.id === id);
 
     if (item) {
+      if (!confirm(`Are you sure you want to reject Queue #${item.queueNumber}?`)) {
+        return;
+      }
+
       try {
-        // Update status in backend for the entire request
-        await updateRequestStatus(item.requestId, "Rejected");
-
-        // Show confirmation message
-        alert(`Request Queue #${item.queueNumber} has been rejected.`);
-
-        // Close the modal
-        closeModal(detailsModal);
-
-        // Refresh the data to reflect changes
-        await initialize();
+        console.log(`Rejecting request: ${item.requestId}`);
+        
+        // Update status in backend for the entire request to "Rejected"
+        const updatedRequest = await updateRequestStatus(item.requestId, "Rejected");
+        
+        if (updatedRequest && updatedRequest.status === "Rejected") {
+          // Show confirmation message
+          alert(`✅ Request Queue #${item.queueNumber} has been rejected.`);
+          
+          // Close the modal
+          closeModal(detailsModal);
+          
+          // Refresh the data to reflect changes
+          await initialize();
+          
+          console.log(`✓ Request ${item.requestId} successfully rejected.`);
+        } else {
+          throw new Error("Failed to update status in database");
+        }
       } catch (error) {
-        alert("Failed to reject request. Please try again.");
+        alert("❌ Failed to reject request. Please try again.");
         console.error("Error rejecting request:", error);
       }
     }
   }
 
-  // Handle accept action
+  // -------------------------
+  // Handle Accept Action - FIXED VERSION
+  // -------------------------
   async function handleAccept(id) {
     const item = queueData.find(item => item.id === id);
 
     if (item) {
+      if (!confirm(`Are you sure you want to accept Queue #${item.queueNumber}?`)) {
+        return;
+      }
+
       try {
-        // Update status in backend for the entire request
-        await updateRequestStatus(item.requestId, "Accepted");
+        console.log(`Accepting request: ${item.requestId}`);
+        
+        // Update status in backend for the entire request to "Accepted"
+        const updatedRequest = await updateRequestStatus(item.requestId, "Accepted");
+        
+        if (updatedRequest && updatedRequest.status === "Accepted") {
+          // Store the request data in sessionStorage to pass to print management page
+          sessionStorage.setItem('selectedRequest', JSON.stringify(item));
 
-        // Store the request data in sessionStorage to pass to print management page
-        sessionStorage.setItem('selectedRequest', JSON.stringify(item));
+          // Show confirmation message
+          alert(`✅ Request Queue #${item.queueNumber} has been accepted and moved to print management.`);
 
-        // Show confirmation message
-        alert(`Request Queue #${item.queueNumber} has been accepted and moved to print management.`);
+          // Close modal
+          closeModal(detailsModal);
 
-        // Close modal
-        closeModal(detailsModal);
+          // Refresh the data to reflect changes
+          await initialize();
 
-        // Refresh the data to reflect changes
-        await initialize();
-
-        // Redirect to print management page
-        window.location.href = '../html/printmanagement.html';
+          // Redirect to print management page
+          window.location.href = '../html/printmanagement.html';
+        } else {
+          throw new Error("Failed to update status in database");
+        }
       } catch (error) {
-        alert("Failed to accept request. Please try again.");
+        alert("❌ Failed to accept request. Please try again.");
         console.error("Error accepting request:", error);
       }
     }
@@ -980,6 +1061,7 @@ document.addEventListener("DOMContentLoaded", () => {
     queueData,
     renderView,
     openDetailsForId,
-    fetchPrintRequests
+    fetchPrintRequests,
+    updateRequestStatus
   };
 });

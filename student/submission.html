@@ -70,7 +70,7 @@
         <option value="BSHM">Bachelor of Science in Hospitality Management</option>
         <option value="BSCS">Bachelor of Science in Computer Science</option>
         <option value="BSIT">Bachelor of Science in Information Technology</option>
-        <option value="BMA">Bachelor of Multimedia Arts</option>
+        <option value="BMMA">Bachelor of Multimedia Arts</option>
     </datalist>
 </div>
 
@@ -78,7 +78,6 @@
                     <div class="form-group">
                         <label>Year:</label>
                         <select name="year" id="yearSelect" required>
-                            <option value="">Select year</option>
                             <option value="1">1st Year</option>
                             <option value="2">2nd Year</option>
                             <option value="3">3rd Year</option>
@@ -194,8 +193,7 @@
                 <div class="form-group confirm-group">
                     <label>
                         <input type="checkbox" id="confirmCheckbox" required />
-                        I confirm that the information provided above is accurate and complete.
-                    </label>
+I confirm that the information provided is accurate and complete, and I agree to the Terms and Conditions and the Data Privacy Policy.                    </label>
                 </div>
 
                 <div class="form-buttons">
@@ -230,11 +228,11 @@
         </div>
     </div>
 
-    <div id="profileModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
+    <div id="profileModal" class="profile-modal">
+        <div class="profile-modal-content">
+            <span class="profile-modal-close">&times;</span>
             <div class="profile-header">
-                <img src="../images/student_img/profile.png" alt="Profile Picture" class="modal-profile-pic">
+                <img src="../images/student_img/profile.png" alt="Profile Picture" class="profile-modal-pic">
                 <div class="profile-info">
                     <h2 id="studentName">Student Name</h2>
                     <p id="studentId">Student ID</p>

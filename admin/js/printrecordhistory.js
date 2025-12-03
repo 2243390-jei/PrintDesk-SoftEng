@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const prevDocumentBtn = document.getElementById('prevDocument');
   const nextDocumentBtn = document.getElementById('nextDocument');
   const previewArea = document.querySelector('.preview-area');
-  const previewPlaceholder = document.getElementById('previewPlaceholder');
 
   const filterBtn = document.getElementById("filterBtn");
   const filterMenu = document.getElementById("filterMenu");
@@ -59,8 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentPage = 1;
   let printData = []; // Will be populated from database
   let filtered = [];
-  let view = "table";
-  let activeFilters = { course: null, printType: null, dateFrom: null, dateTo: null };
+  let activeFilters = { course: null, printType: null, dateFrom: null, dateTo: null, status: null };
 
   // Document navigation state
   let currentRequestId = null;
@@ -93,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function statusPill(status) {
     const statusLower = status.toLowerCase();
     if (statusLower === "completed") return `<span class="pill completed">${status}</span>`;
-    if (statusLower === "accepted") return `<span class="pill accepted">${status}</span>`;
+    if (statusLower === "canceled") return `<span class="pill canceled">${status}</span>`;
     if (statusLower === "rejected") return `<span class="pill rejected">${status}</span>`;
     return `<span class="pill pending">${status}</span>`;
   }
@@ -221,7 +219,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Filter only completed requests for history
       const filteredData = data.filter(request =>
-        request.status === "Completed"
+        request.status === "Completed" || request.status === "Canceled" || request.status === "Rejected"
       );
 
       // Sort by createdAt (newest first) for records
@@ -419,6 +417,7 @@ document.addEventListener("DOMContentLoaded", () => {
         r.printType.toLowerCase().includes(q);
       const matchesCourse = activeFilters.course ? r.course === activeFilters.course : true;
       const matchesPrintType = activeFilters.printType ? r.printType === activeFilters.printType : true;
+      const matchesStatus = activeFilters.status ? r.status === activeFilters.status : true;
 
       let matchesDate = true;
       if (activeFilters.dateFrom || activeFilters.dateTo) {
@@ -450,7 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      return matchesSearch && matchesCourse && matchesPrintType && matchesDate;
+      return matchesSearch && matchesCourse && matchesPrintType && matchesDate && matchesStatus;
     });
   }
 
@@ -512,7 +511,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (action === "open-filter") {
           openFilterPanel(btn.dataset.filter);
         } else if (action === "clear") {
-          activeFilters = { course: null, printType: null, dateFrom: null, dateTo: null };
+          activeFilters = { course: null, printType: null, dateFrom: null, dateTo: null, status: null };
           currentPage = 1; renderView(printData); hideFilterPanel();
         }
       });
@@ -557,6 +556,42 @@ document.addEventListener("DOMContentLoaded", () => {
       clear.className = "small";
       clear.addEventListener("click", () => {
         activeFilters.course = null;
+        currentPage = 1;
+        renderView(printData);
+        hideFilterPanel();
+      });
+      filterPanel.appendChild(clear);
+    }
+
+    if (type === "status") {
+      const label = document.createElement("div");
+      label.textContent = "Status";
+      label.style.fontWeight = "700";
+      label.style.color = "white";
+      label.style.marginBottom = "8px";
+
+      const statuses = Array.from(new Set(printData.map(r => r.status)));
+      filterPanel.appendChild(label);
+
+      statuses.forEach(c => {
+        const b = document.createElement("button");
+        b.textContent = c;
+        b.className = "small";
+        if (activeFilters.status === c) b.classList.add("active");
+        b.addEventListener("click", () => {
+          activeFilters.status = c;
+          currentPage = 1;
+          renderView(printData);
+          hideFilterPanel();
+        });
+        filterPanel.appendChild(b);
+      });
+
+      const clear = document.createElement("button");
+      clear.textContent = "Clear";
+      clear.className = "small";
+      clear.addEventListener("click", () => {
+        activeFilters.status = null;
         currentPage = 1;
         renderView(printData);
         hideFilterPanel();
