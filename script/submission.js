@@ -1,4 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
+  
   /* =========================
      DOM refs
      ========================= */
@@ -19,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const successDetails = document.getElementById("successDetails")
   const successNewSubmissionBtn = document.getElementById("successNewSubmissionBtn")
   const semesterInput = document.getElementById("semesterInput")
-const academicYearInput = document.getElementById("academicYearInput")
+  const academicYearInput = document.getElementById("academicYearInput")
 
 
   /* =========================
@@ -41,7 +42,7 @@ const academicYearInput = document.getElementById("academicYearInput")
     default: { icon: '📎', label: 'File', preview: 'icon' }
   }
 
-  // Allowed types (frontend convenience — backend must still enforce)
+  // Allowed types 
   const ALLOWED_MIMES = [
     'application/pdf',
     'image/png',
@@ -62,7 +63,7 @@ const academicYearInput = document.getElementById("academicYearInput")
       <div id="errorModal" class="modal" style="display:none; z-index: 9999;">
         <div class="modal-content" style="max-width:520px; margin: 80px auto; padding: 20px; position: relative;">
           <span class="close-error-modal" style="position:absolute; right:12px; top:8px; cursor:pointer; font-size:20px;">&times;</span>
-          <h3 style="margin-top:0;">Invalid File</h3>
+          <h3 style="margin-top:0;">Invalid File / Selection</h3>
           <div id="errorModalMessage" style="color:#b00020; margin: 12px 0;"></div>
           <div style="text-align:right; margin-top:16px;">
             <button id="errorModalOkBtn" class="reset-btn" style="padding:8px 14px;">OK</button>
@@ -117,15 +118,15 @@ const academicYearInput = document.getElementById("academicYearInput")
      Modal Functions
      ========================= */
   function closeAllModals() {
-    confirmationModal.style.display = "none"
-    filePreviewModal.style.display = "none"
+    if (confirmationModal) confirmationModal.style.display = "none"
+    if (filePreviewModal) filePreviewModal.style.display = "none"
     const errorModal = document.getElementById('errorModal')
     if (errorModal) errorModal.style.display = 'none'
     document.body.classList.remove("modal-open")
   }
 
   function closeSuccessModal() {
-    successModal.style.display = "none"
+    if (successModal) successModal.style.display = "none"
     document.body.classList.remove("modal-open")
   }
 
@@ -140,9 +141,9 @@ const academicYearInput = document.getElementById("academicYearInput")
     })
   })
 
-  cancelSubmissionBtn.addEventListener("click", closeAllModals)
+  if (cancelSubmissionBtn) cancelSubmissionBtn.addEventListener("click", closeAllModals)
 
-  successHomeBtn.addEventListener("click", () => {
+  if (successHomeBtn) successHomeBtn.addEventListener("click", () => {
     clearStoredSuccess()
     closeSuccessModal()
     location.href = "home.html"
@@ -154,7 +155,7 @@ const academicYearInput = document.getElementById("academicYearInput")
     }
   })
 
-  successNewSubmissionBtn.addEventListener("click", () => {
+  if (successNewSubmissionBtn) successNewSubmissionBtn.addEventListener("click", () => {
     clearStoredSuccess()
     closeSuccessModal()
   })
@@ -170,8 +171,8 @@ const academicYearInput = document.getElementById("academicYearInput")
         course: document.getElementById("courseInput")?.value || "",
         year: document.getElementById("yearSelect")?.value || "",
         pickupDateTime: document.getElementById("pickupDateTime")?.value || "",
-semester: document.getElementById("semesterInput")?.value || "",
-academicYear: document.getElementById("academicYearInput")?.value || "",
+        semester: document.getElementById("semesterInput")?.value || "",
+        academicYear: document.getElementById("academicYearInput")?.value || "",
       },
       jobs: []
     }
@@ -369,19 +370,48 @@ academicYear: document.getElementById("academicYearInput")?.value || "",
     if (!raw) return
     try {
       const s = JSON.parse(raw)
-      successDetails.innerHTML = `
-        <p><strong>Request ID:</strong> ${s.requestId || "-"}</p>
-        <p><strong>Full Name:</strong> ${s.fullName || "-"}</p>
-        <p><strong>Course Year:</strong> ${s.courseYear || "-"}</p>
-        <p><strong>Total Tokens Used:</strong> ${s.totalTokens ?? "-"}</p>
-        <p><strong>Remaining Tokens:</strong> ${s.remainingTokens ?? "-"}</p>
-        <p><strong>Status:</strong> ${s.status}</p>
-        <p style="font-size:12px;color:#666">Submitted at: ${new Date(s.time).toLocaleString()}</p>
-      `
-      successModal.style.display = "block"
-      document.body.classList.add("modal-open")
+
+      // Lookup DOM elements at runtime to avoid stale references
+      let detailsEl = document.getElementById('successDetails')
+      let modalEl = document.getElementById('successModal')
+
+      const populateAndShow = () => {
+        detailsEl.innerHTML = `
+          <p><strong>Request ID:</strong> ${s.requestId || "-"}</p>
+          <p><strong>Full Name:</strong> ${s.fullName || "-"}</p>
+          <p><strong>Course Year:</strong> ${s.courseYear || "-"}</p>
+          <p><strong>Total Tokens Used:</strong> ${s.totalTokens ?? "-"}</p>
+          <p><strong>Remaining Tokens:</strong> ${s.remainingTokens ?? "-"}</p>
+          <p><strong>Status:</strong> ${s.status}</p>
+          <p style="font-size:12px;color:#666">Submitted at: ${new Date(s.time).toLocaleString()}</p>
+        `
+        modalEl.style.display = 'block'
+        document.body.classList.add('modal-open')
+      }
+console.log('showStoredSuccessIfAny called');
+      if (!detailsEl || !modalEl) {
+        // If the elements aren't present yet (intermittent race), retry a few times
+        let tries = 0
+        const maxTries = 6
+        const retry = () => {
+          tries++
+          const d = document.getElementById('successDetails')
+          const m = document.getElementById('successModal')
+          if (d && m) {
+            detailsEl = d
+            modalEl = m
+            populateAndShow()
+            return
+          }
+          if (tries < maxTries) setTimeout(retry, 150)
+          else console.error('showStoredSuccessIfAny: could not find success modal elements after retries')
+        }
+        retry()
+      } else {
+        populateAndShow()
+      }
     } catch (e) {
-      console.warn("showStoredSuccessIfAny error", e)
+      console.warn('showStoredSuccessIfAny error', e)
     }
   }
 
@@ -883,7 +913,7 @@ academicYear: document.getElementById("academicYearInput")?.value || "",
      ========================= */
   confirmSubmissionBtn.addEventListener("click", async () => {
     // close confirmation modal
-    confirmationModal.style.display = "none"
+    if (confirmationModal) confirmationModal.style.display = "none"
     document.body.classList.remove("modal-open")
 
     // final validation: ensure all files are present and allowed
@@ -921,7 +951,7 @@ academicYear: document.getElementById("academicYearInput")?.value || "",
     formData.append("courseYear", sentMeta.courseYear)
     formData.append("pickupDateTime", sentMeta.pickupDateTime || "")
     formData.append("semester", semesterInput?.value || "")
-formData.append("academicYear", academicYearInput?.value || "")
+    formData.append("academicYear", academicYearInput?.value || "")
 
     const printJobsData = []
     document.querySelectorAll(".print-job").forEach((job, i) => {
@@ -973,19 +1003,27 @@ formData.append("academicYear", academicYearInput?.value || "")
         throw new Error(errorMsg)
       }
 
-      // SUCCESS PATH
-      successDetails.innerHTML = `
-        <p><strong>Request ID:</strong> ${result.requestId || "-"}</p>
-        <p><strong>Full Name:</strong> ${sentMeta.fullName}</p>
-        <p><strong>Course Year:</strong> ${sentMeta.courseYear}</p>
-        <p><strong>Total Tokens Used:</strong> ${result.totalTokens ?? "-"}</p>
-        <p><strong>Remaining Tokens:</strong> ${result.remainingTokens ?? "-"}</p>
-        <p><strong>Status:</strong> ${result.status || "Submitted"}</p>
-      `
-
-      // Show the success modal
-      successModal.style.display = "block"
-      document.body.classList.add("modal-open")
+      // SUCCESS PATH - use runtime lookup to avoid stale references
+      try {
+        const detailsEl = document.getElementById('successDetails')
+        const modalEl = document.getElementById('successModal')
+        if (detailsEl && modalEl) {
+          detailsEl.innerHTML = `
+            <p><strong>Request ID:</strong> ${result.requestId || "-"}</p>
+            <p><strong>Full Name:</strong> ${sentMeta.fullName}</p>
+            <p><strong>Course Year:</strong> ${sentMeta.courseYear}</p>
+            <p><strong>Total Tokens Used:</strong> ${result.totalTokens ?? "-"}</p>
+            <p><strong>Remaining Tokens:</strong> ${result.remainingTokens ?? "-"}</p>
+            <p><strong>Status:</strong> ${result.status || "Submitted"}</p>
+          `
+          modalEl.style.display = 'block'
+          document.body.classList.add('modal-open')
+        } else {
+          console.warn('Success modal elements not found at success path; skipping immediate display')
+        }
+      } catch (err) {
+        console.error('Error while showing success modal:', err)
+      }
 
       // Save success details and reset form
       storeSuccess(result, sentMeta)
@@ -1005,94 +1043,178 @@ formData.append("academicYear", academicYearInput?.value || "")
     logoRefresh.addEventListener("click", () => (window.location.href = "home.html"))
   }
 
-  function setMinPickupDateTime() {
+  /* ===== Improved pickup date/time constraints ===== */
+  function pad(n) { return String(n).padStart(2, "0") }
+
+  function formatDateTimeLocal(d) {
+    // returns YYYY-MM-DDTHH:MM for datetime-local inputs
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  function formatDateTimeReadable(d) {
+    // returns a human-friendly string used in messages
+    return d.toLocaleString([], { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+  }
+
+  function setPickupConstraints() {
+    if (!pickupDateTime) return
+
     const now = new Date()
-    now.setHours(now.getHours() + 1)
-    const year = now.getFullYear()
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const day = String(now.getDate()).padStart(2, '0')
-    const hours = String(now.getHours()).padStart(2, '0')
-    const minutes = String(now.getMinutes()).padStart(2, '0')
-    const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`
-    pickupDateTime.min = minDateTime
+    // minimum candidate is now + 1 hour
+    const minCandidate = new Date(now.getTime() + 60 * 60 * 1000)
+
+    // helper: clamp a date into the daily allowed window (07:00 - 17:00)
+    function clampIntoDailyWindow(dt) {
+      const res = new Date(dt)
+      const h = res.getHours()
+      // if before 07:00 -> set to 07:00 same day
+      if (h < 7) { res.setHours(7, 0, 0, 0); return res }
+      // if after 17:00 (strictly > 17:00 or 17:xx minutes) -> move to next day 07:00
+      if (h > 17 || (h === 17 && res.getMinutes() > 0)) {
+        res.setDate(res.getDate() + 1)
+        res.setHours(7, 0, 0, 0)
+        return res
+      }
+      // inside window -> keep exact time (no change)
+      return res
+    }
+
+    // compute min (now + 1h, then clamped into daily window)
+    const minDT = clampIntoDailyWindow(minCandidate)
+
+    // compute max = now + 7 days but cap time to 17:00 on that day
+    const maxDT = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    maxDT.setHours(17, 0, 0, 0)
+
+    // set input attributes so browsers that respect min/max will show UI feedback
+    pickupDateTime.min = formatDateTimeLocal(minDT)
+    pickupDateTime.max = formatDateTimeLocal(maxDT)
+
+    // attach change listener (ensures it's attached once)
+    pickupDateTime.removeEventListener('change', validatePickupTime)
     pickupDateTime.addEventListener('change', validatePickupTime)
   }
 
-  function getSemesterAndAcademicYear(date = new Date()) {
-  const month = date.getMonth() + 1
-  const year = date.getFullYear()
-
-  let semesterLabel, ayStart, ayEnd
-
-  if (month >= 8 && month <= 12) {
-    semesterLabel = "1st Semester"
-    ayStart = year
-    ayEnd = year + 1
-  } else if (month >= 1 && month <= 5) {
-    semesterLabel = "2nd Semester"
-    ayStart = year - 1
-    ayEnd = year
-  } else {
-    // June - July
-    semesterLabel = "Short Term"
-    ayStart = year - 1
-    ayEnd = year
-  }
-
-  const ayText = `AY ${ayStart}-${ayEnd}`
-  return { semesterLabel, ayText, ayStart, ayEnd }
-}
-
-function setSemesterAndAcademicYear(date = new Date()) {
-  const { semesterLabel, ayText } = getSemesterAndAcademicYear(date)
-
-  if (semesterInput) semesterInput.value = semesterLabel
-  if (academicYearInput) academicYearInput.value = ayText
-}
-
-function populateAcademicYearSelect(preferredValue) {
-  const sel = document.getElementById("academicYearInput")
-  if (!sel) return
-
-  // determine AY start for "current" academic year
-  const now = new Date()
-  const month = now.getMonth() + 1
-  const currentYear = now.getFullYear()
-  const currentAyStart = month >= 8 ? currentYear : currentYear - 1
-
-  // previous, current, next
-  const starts = [ currentAyStart]
-
-  // build options
-  starts.forEach((s) => {
-    const value = `AY ${s}-${s + 1}`
-    const opt = document.createElement('option')
-    opt.value = value
-    opt.textContent = value
-    sel.appendChild(opt)
-  })
-
-  // set preferred or default to current AY
-  if (preferredValue) sel.value = preferredValue
-  else sel.value = `AY ${currentAyStart}-${currentAyStart + 1}`
-
-  // save when changed
-  sel.addEventListener('change', saveFormState)
-}
-
-
-
-
+  /* Validates & clamps the selected time.
+     If out-of-range, we automatically adjust the field to the nearest allowed time
+     and show the error modal to inform the user. */
   function validatePickupTime() {
-    const selectedDateTime = new Date(pickupDateTime.value)
-    const hours = selectedDateTime.getHours()
-    if (hours < 7 || hours >= 17) {
-      alert('Pickup time must be between 7:00 AM and 5:00 PM')
-      pickupDateTime.value = ''
+    if (!pickupDateTime) return true
+    if (!pickupDateTime.value) return true
+
+    const selected = new Date(pickupDateTime.value)
+    const min = pickupDateTime.min ? new Date(pickupDateTime.min) : null
+    const max = pickupDateTime.max ? new Date(pickupDateTime.max) : null
+
+    // helper to clamp to allowed daily window (07:00 - 17:00 inclusive)
+    function clampToDailyWindow(dt) {
+      const r = new Date(dt)
+      const h = r.getHours()
+      const m = r.getMinutes()
+      if (h < 7) { r.setHours(7, 0, 0, 0); return r }
+      if (h > 17 || (h === 17 && m > 0)) { r.setHours(17, 0, 0, 0); return r }
+      return r
     }
+
+    // if less than min, clamp up to min and warn
+    if (min && selected < min) {
+      const clamped = new Date(min)
+      // ensure clamped also respects daily window (should already)
+      const finalClamp = clampToDailyWindow(clamped)
+      pickupDateTime.value = formatDateTimeLocal(finalClamp)
+      showErrorModal(`Pickup must be at least ${formatDateTimeReadable(finalClamp)}. Your selection was adjusted.`)
+      return false
+    }
+
+    // if greater than max, clamp down to max and warn
+    if (max && selected > max) {
+      const finalClamp = new Date(max)
+      pickupDateTime.value = formatDateTimeLocal(finalClamp)
+      showErrorModal(`Pickup must be no later than ${formatDateTimeReadable(finalClamp)}. Your selection was adjusted.`)
+      return false
+    }
+
+    // ensure time-of-day is within allowed range; if not, clamp to nearest valid time
+    const hour = selected.getHours()
+    const minute = selected.getMinutes()
+    if (hour < 7 || hour > 17 || (hour === 17 && minute > 0)) {
+      const clamped = clampToDailyWindow(selected)
+      // ensure within min/max bounds
+      if (min && clamped < new Date(min)) clamped.setTime(new Date(min).getTime())
+      if (max && clamped > new Date(max)) clamped.setTime(new Date(max).getTime())
+      pickupDateTime.value = formatDateTimeLocal(clamped)
+      showErrorModal(`Pickup time must be between 7:00 AM and 5:00 PM. Your selection was adjusted to ${formatDateTimeReadable(clamped)}.`)
+      return false
+    }
+
+    // valid
+    return true
   }
 
-  setMinPickupDateTime()
+  // Replace call to setMinPickupDateTime() with setPickupConstraints()
+  setPickupConstraints()
+
+  function getSemesterAndAcademicYear(date = new Date()) {
+    const month = date.getMonth() + 1
+    const year = date.getFullYear()
+
+    let semesterLabel, ayStart, ayEnd
+
+    if (month >= 8 && month <= 12) {
+      semesterLabel = "1st Semester"
+      ayStart = year
+      ayEnd = year + 1
+    } else if (month >= 1 && month <= 5) {
+      semesterLabel = "2nd Semester"
+      ayStart = year - 1
+      ayEnd = year
+    } else {
+      // June - July
+      semesterLabel = "Short Term"
+      ayStart = year - 1
+      ayEnd = year
+    }
+
+    const ayText = `AY ${ayStart}-${ayEnd}`
+    return { semesterLabel, ayText, ayStart, ayEnd }
+  }
+
+  function setSemesterAndAcademicYear(date = new Date()) {
+    const { semesterLabel, ayText } = getSemesterAndAcademicYear(date)
+
+    if (semesterInput) semesterInput.value = semesterLabel
+    if (academicYearInput) academicYearInput.value = ayText
+  }
+
+  function populateAcademicYearSelect(preferredValue) {
+    const sel = document.getElementById("academicYearInput")
+    if (!sel) return
+
+    // determine AY start for "current" academic year
+    const now = new Date()
+    const month = now.getMonth() + 1
+    const currentYear = now.getFullYear()
+    const currentAyStart = month >= 8 ? currentYear : currentYear - 1
+
+    // previous, current, next
+    const starts = [ currentAyStart]
+
+    // build options
+    starts.forEach((s) => {
+      const value = `AY ${s}-${s + 1}`
+      const opt = document.createElement('option')
+      opt.value = value
+      opt.textContent = value
+      sel.appendChild(opt)
+    })
+
+    // set preferred or default to current AY
+    if (preferredValue) sel.value = preferredValue
+    else sel.value = `AY ${currentAyStart}-${currentAyStart + 1}`
+
+    // save when changed
+    sel.addEventListener('change', saveFormState)
+  }
 
   function loadUserData() {
     if (currentUserEmail) {
@@ -1121,7 +1243,7 @@ function populateAcademicYearSelect(preferredValue) {
   setSemesterAndAcademicYear()
   populateAcademicYearSelect()
   loadUserData()
-  
+
   if (addPrintJobBtn) {
     addPrintJobBtn.addEventListener("click", () => {
       addPrintJobProgrammatic()
@@ -1230,6 +1352,12 @@ function populateAcademicYearSelect(preferredValue) {
     if (!document.getElementById("pickupDateTime").value) {
       formIsValid = false
       errorMessage += "Please select a Pickup Date & Time\n"
+    } else {
+      // validate pickup time more strictly before allowing confirmation modal
+      if (!validatePickupTime()) {
+        formIsValid = false
+        errorMessage += "Please select a valid pickup date/time between 7:00 AM and 5:00 PM and within 7 days.\n"
+      }
     }
 
     const printJobElements = document.querySelectorAll(".print-job")
