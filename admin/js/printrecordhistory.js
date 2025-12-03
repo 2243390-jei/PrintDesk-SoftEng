@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const pageNumbers = document.getElementById("pageNumbers");
   const prevPageBtn = document.getElementById("prevPage");
   const nextPageBtn = document.getElementById("nextPage");
-  const selectAll = document.getElementById("selectAll");
   const sidebarQueueCount = document.getElementById("sidebarQueueCount");
 
   // Document navigation elements
@@ -52,8 +51,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const printType = document.getElementById('printType');
   const printingSide = document.getElementById('printingSide');
   const pickupDate = document.getElementById('pickupDate');
-  const previewImage = document.getElementById('previewImage');
-  const printerUsed = document.getElementById('printerUsed');
 
   // -------------------------
   // state
@@ -268,7 +265,6 @@ document.addEventListener("DOMContentLoaded", () => {
           printType: primaryDoc.printType,
           status: request.status,
           details: {
-            printerUsed: "Epson L3210", // You can update this with actual printer data if available
             submittedOn: createdDate.toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'long',
@@ -367,7 +363,6 @@ document.addEventListener("DOMContentLoaded", () => {
     pageItems.forEach(rec => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td class="col-check"><input type="checkbox" /></td>
         <td>${rec.no}</td>
         <td style="font-weight:600">${rec.name}</td>
         <td>${rec.course}</td>
@@ -468,14 +463,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (searchInput) {
     searchInput.addEventListener("input", () => { currentPage = 1; renderView(printData); });
-  }
-
-  // select all
-  if (selectAll) {
-    selectAll.addEventListener("change", (e) => {
-      const checked = e.target.checked;
-      document.querySelectorAll("#recordsBody input[type='checkbox']").forEach(cb => cb.checked = checked);
-    });
   }
 
   // -------------------------
@@ -813,7 +800,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (requestId) requestId.textContent = rec.details.requestId;
     if (pickupDate) pickupDate.textContent = rec.details.pickupDate;
-    if (printerUsed) printerUsed.textContent = rec.details.printerUsed || "Not specified";
 
     // Update user information
     if (userName) userName.textContent = rec.details.fullName;

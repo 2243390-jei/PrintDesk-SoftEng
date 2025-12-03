@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const pageNumbers = document.getElementById("pageNumbers");
   const prevPageBtn = document.getElementById("prevPage");
   const nextPageBtn = document.getElementById("nextPage");
-  const selectAll = document.getElementById("selectAll");
   const sidebarQueueCount = document.getElementById("sidebarQueueCount");
   const documentNavigation = document.getElementById('documentNavigation');
   const documentTabs = document.getElementById('documentTabs');
@@ -382,7 +381,6 @@ document.addEventListener("DOMContentLoaded", () => {
     pageItems.forEach(rec => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td class="col-check"><input type="checkbox" /></td>
         <td>${rec.no}</td>
         <td style="font-weight:600">${rec.name}</td>
         <td>${rec.course}</td>
@@ -477,14 +475,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (searchInput) {
     searchInput.addEventListener("input", () => { currentPage = 1; renderView(printData); });
-  }
-
-  // select all
-  if (selectAll) {
-    selectAll.addEventListener("change", (e) => {
-      const checked = e.target.checked;
-      document.querySelectorAll("#recordsBody input[type='checkbox']").forEach(cb => cb.checked = checked);
-    });
   }
 
   // -------------------------

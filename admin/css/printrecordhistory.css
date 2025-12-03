@@ -224,7 +224,6 @@ body {
 .users-table thead th{ text-align:left; font-size:13px; padding:12px 14px; background:#fff; color:#333; font-weight:700; border-bottom:1px solid #e9ecef; }
 .users-table tbody tr{ border-bottom:1px solid #f1f2f3; }
 .users-table td{ padding:12px 14px; vertical-align:middle; font-size:14px; color:#263238; }
-.col-check{ width:48px; text-align:center; }
 .col-actions{ width:110px; text-align:center; }
 
 /* pills & actions */
