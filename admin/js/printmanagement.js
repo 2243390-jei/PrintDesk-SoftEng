@@ -27,8 +27,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // modals
   const detailsModal = document.getElementById("detailsModal");
-  const printerModal = document.getElementById("printerModal");
-  const printerDetailsModal = document.getElementById("printerDetailsModal");
 
   // Logout modal elements
   const logoutBtn = document.getElementById("logoutBtn");
@@ -215,9 +213,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const data = await response.json();
 
-      const filteredData = data.filter(request =>
-        request.status === "Accepted" || request.status === "Completed"
-      );
+      // Show only accepted requests in Print Management (completed requests belong in history)
+      const filteredData = data.filter(request => request.status === "Accepted");
 
       const sortedData = filteredData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -678,11 +675,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (requestId) requestId.textContent = rec.details.requestId;
     if (pickupDate) pickupDate.textContent = rec.details.pickupDate;
 
-    // Setup document navigation
+    // Setup document navigation and show file preview for first document
     setupDocumentNavigation(currentDocuments);
+    // ensure preview and navigation are visible as appropriate
+    if (documentNavigation) documentNavigation.style.display = currentDocuments && currentDocuments.length > 1 ? 'block' : 'none';
+    if (previewArea) previewArea.style.display = '';
 
-    // Show first document
-    showDocument(currentDocumentIndex);
+    // Populate the document details and show the first document's preview
+    if (currentDocuments && currentDocuments.length > 0) {
+      currentDocumentIndex = 0;
+      showDocument(currentDocumentIndex);
+    } else {
+      // no documents: clear preview fields
+      if (fileName) fileName.textContent = '';
+      if (pageCount) pageCount.textContent = 0;
+      if (copiesCount) copiesCount.textContent = 0;
+      if (paperSize) paperSize.textContent = '';
+      if (printType) printType.textContent = '';
+      if (printingSide) printingSide.textContent = '';
+      if (previewArea) previewArea.innerHTML = `<div class="preview-placeholder"><img src="../../images/admin_img/document-preview.png" alt="Document" /><p>No preview available</p></div>`;
+    }
 
     // Show the modal
     openModal(detailsModal);
@@ -794,88 +806,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // -------------------------
-  // Printer Details Modal logic
-  // -------------------------
-  function attachPrinterDetailHandlers() {
-    const printerData = {
-      printer1: {
-        name: 'Printer 1',
-        brand: 'EPSON',
-        model: 'L3210',
-        status: 'Available',
-        statusColor: '#22c55e',
-        image: '../../images/printer.png',
-        ink: {
-          Black: '80%',
-          Red: '80%',
-          Blue: '80%',
-          Yellow: '80%'
-        }
-      },
-      printer2: {
-        name: 'Laser Printer',
-        brand: 'HP',
-        model: 'LaserJet Pro',
-        status: 'Unavailable',
-        statusColor: '#ef4444',
-        image: '../../images/printer.png',
-        ink: {
-          Black: '60%',
-          Red: '55%',
-          Blue: '70%',
-          Yellow: '65%'
-        }
-      }
-    };
-
-    document.querySelectorAll('.details-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const printerId = btn.getAttribute('data-printer');
-        const data = printerData[printerId];
-        if (data) {
-          // Update modal content using IDs
-          const img = document.getElementById('printerDetailsImg');
-          if (img) img.src = data.image;
-          const nameDiv = document.getElementById('printerDetailsName');
-          if (nameDiv) nameDiv.textContent = data.name;
-          const brandDiv = document.getElementById('printerDetailsBrand');
-          if (brandDiv) brandDiv.innerHTML = `<b>Brand</b> : ${data.brand}`;
-          const modelDiv = document.getElementById('printerDetailsModel');
-          if (modelDiv) modelDiv.innerHTML = `<b>Model</b> : ${data.model}`;
-          const statusDiv = document.getElementById('printerDetailsStatus');
-          if (statusDiv) statusDiv.innerHTML = `<b>Status</b> : <span style='color:${data.statusColor};font-weight:600;'>${data.status}</span>`;
-          // Ink
-          const inkBlack = document.getElementById('printerDetailsInkBlack');
-          if (inkBlack) inkBlack.innerHTML = `<span style='color:#222;font-weight:500;'>Black</span> : ${data.ink.Black}`;
-          const inkRed = document.getElementById('printerDetailsInkRed');
-          if (inkRed) inkRed.innerHTML = `<span style='color:#b91c1c;font-weight:500;'>Red</span> : ${data.ink.Red}`;
-          const inkBlue = document.getElementById('printerDetailsInkBlue');
-          if (inkBlue) inkBlue.innerHTML = `<span style='color:#2563eb;font-weight:500;'>Blue</span> : ${data.ink.Blue}`;
-          const inkYellow = document.getElementById('printerDetailsInkYellow');
-          if (inkYellow) inkYellow.innerHTML = `<span style='color:#eab308;font-weight:500;'>Yellow</span> : ${data.ink.Yellow}`;
-        }
-        closeModal(printerModal);
-        openModal(printerDetailsModal);
-      });
-    });
-
-    const printerDetailsBackBtn = document.getElementById('printerDetailsBackBtn');
-    if (printerDetailsBackBtn) {
-      printerDetailsBackBtn.addEventListener('click', () => {
-        closeModal(printerDetailsModal);
-        openModal(printerModal);
-      });
-    }
-  }
+  // Printer selection/details removed — printing will use browser print preview
 
   // -------------------------
   // Event listeners for modals
   // -------------------------
   const backButton = document.getElementById('backBtn');
-  const printerBackButton = document.getElementById('printerBackBtn');
   const acceptBtn = document.getElementById('acceptBtn');
+  const markDoneBtn = document.getElementById('markDoneBtn');
 
   if (backButton) {
     backButton.addEventListener('click', () => {
@@ -883,17 +821,53 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (printerBackButton) {
-    printerBackButton.addEventListener('click', () => {
-      closeModal(printerModal);
-      openModal(detailsModal);
+  // Print button: open the document file in a new tab and trigger browser print preview
+  if (acceptBtn) {
+    acceptBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (!currentDocuments || currentDocuments.length === 0) {
+        alert('No document available to print.');
+        return;
+      }
+      const doc = currentDocuments[currentDocumentIndex];
+      if (!doc || !doc.filePath) {
+        alert('No file available to print.');
+        return;
+      }
+      const fileUrl = `${API_BASE}${doc.filePath}`;
+      const w = window.open(fileUrl, '_blank');
+      if (w) {
+        // Try to trigger print after load — may be blocked by browser depending on cross-origin
+        w.addEventListener('load', () => { try { w.focus(); w.print(); } catch (err) { /* ignore */ } });
+      }
     });
   }
 
-  if (acceptBtn) {
-    acceptBtn.addEventListener('click', () => {
-      closeModal(detailsModal);
-      openModal(printerModal);
+  // Mark as done: set request status to Completed via PATCH and refresh view
+  if (markDoneBtn) {
+    markDoneBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!currentRequestId) return;
+      if (!confirm('Mark this request as completed? This will move it to history.')) return;
+      try {
+        const resp = await fetch(`${REQUESTS_ENDPOINT}/${currentRequestId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'Completed' })
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to update request');
+        }
+        // Close modal and refresh list
+        closeModal(detailsModal);
+        printData = await fetchPrintRequests();
+        renderView(printData);
+        await updateQueueCount();
+      } catch (err) {
+        console.error('Error marking as done:', err);
+        alert('Failed to mark request as completed. See console for details.');
+      }
     });
   }
 
@@ -913,12 +887,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (detailsModal && detailsModal.classList.contains('open')) {
         closeModal(detailsModal);
       }
-      if (printerModal && printerModal.classList.contains('open')) {
-        closeModal(printerModal);
-      }
-      if (printerDetailsModal && printerDetailsModal.classList.contains('open')) {
-        closeModal(printerDetailsModal);
-      }
+      // printer modals removed for this page
     }
   });
 
@@ -947,7 +916,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Render the view
       renderView(printData);
-      attachPrinterDetailHandlers();
+      // No printer modal on this page anymore (printing opens browser print preview)
+      // attachPrinterDetailHandlers();
       checkForQueueRedirect();
 
     } catch (error) {
@@ -965,49 +935,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ------------------------- 
-  // LOGOUT FUNCTIONALITY
-  // -------------------------
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      openModal(logoutModal);
-    });
-  }
-
-  if (cancelLogout) {
-    cancelLogout.addEventListener("click", () => {
-      closeModal(logoutModal);
-    });
-  }
-
-  if (confirmLogout) {
-    confirmLogout.addEventListener("click", () => {
-      // Optional: clear any session data
-      sessionStorage.clear();
-      localStorage.clear(); // if you use it
-
-      // Redirect to login page
-      window.location.href = "/index.html"; // Change path if needed
-    });
-  }
-
-  // Close logout modal when clicking backdrop
-  document.querySelectorAll('[data-close-modal]').forEach(el => {
-    el.addEventListener('click', (e) => {
-      const modal = e.target.closest('.modal');
-      if (modal) closeModal(modal);
-    });
-  });
-
-  // Close any open modal with Escape key (including logout)
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      if (detailsModal && detailsModal.classList.contains('open')) closeModal(detailsModal);
-      if (printerModal && printerModal.classList.contains('open')) closeModal(printerModal);
-      if (printerDetailsModal && printerModal.classList.contains('open')) closeModal(printerDetailsModal);
-      if (logoutModal && logoutModal.classList.contains('open')) closeModal(logoutModal);
-    }
-  });
+  // Printer selection/details removed — printing will use browser print preview
 
   // Start the app
   initialize();
@@ -1025,4 +953,5 @@ document.addEventListener("DOMContentLoaded", () => {
     updateQueueCount,
     downloadCurrentDocument
   };
+
 });
