@@ -137,72 +137,7 @@
     </main>
   </div>
 
-  <!-- Printer Selection Modal -->
-  <div id="printerModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal-backdrop" data-close-modal></div>
-    <div class="modal-content">
-      <div class="modal-header">
-        <button id="printerBackBtn" class="back-btn">&larr;</button>
-        <h2>Printers Available</h2>
-      </div>
-      <div class="modal-body">
-        <div class="printer-grid">
-          <div class="printer-card">
-            <img src="../../images/printer.png" alt="Epson L3210" class="printer-icon" />
-            <div class="printer-info">
-              <h3>Epson L3210</h3>
-              <div class="status available">Status: Available</div>
-              <button class="print-btn">Print</button>
-            </div>
-            <button class="details-btn" data-printer="printer1">Details</button>
-          </div>
-          <div class="printer-card">
-            <img src="../../images/printer.png" alt="Laser Printer" class="printer-icon" />
-            <div class="printer-info">
-              <h3>Laser Printer</h3>
-              <div class="status unavailable">Status: unavailable</div>
-              <button class="print-btn" disabled>Print</button>
-            </div>
-            <button class="details-btn" data-printer="printer2">Details</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Printer Details Modal -->
-  <div id="printerDetailsModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="modal-backdrop" data-close-modal></div>
-    <div class="modal-content">
-      <div class="modal-header">
-        <button id="printerDetailsBackBtn" class="back-btn">&larr;</button>
-        <h2>Printers Detail</h2>
-      </div>
-      <div class="modal-body">
-        <div style="display: flex; align-items: flex-start; gap: 32px;">
-          <img src="../../images/printer.png" alt="Printer"
-            style="width:180px;height:180px;object-fit:contain;border-radius:12px;border:1px solid #eee;background:#fafbfc;" />
-          <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
-            <div style="font-size:20px;font-weight:600;">Printer 1</div>
-            <div style="display:flex;gap:32px;">
-              <div style="display:flex;flex-direction:column;gap:6px;">
-                <div><b>Brand</b> : EPSON</div>
-                <div><b>Model</b> : L3210</div>
-                <div><b>Status</b> : <span style="color:#22c55e;font-weight:600;">Available</span></div>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:6px;">
-                <div style="font-weight:600;">Ink Level:</div>
-                <div><span style="color:#222;font-weight:500;">Black</span> : 80%</div>
-                <div><span style="color:#b91c1c;font-weight:500;">Red</span> : 80%</div>
-                <div><span style="color:#2563eb;font-weight:500;">Blue</span> : 80%</div>
-                <div><span style="color:#eab308;font-weight:500;">Yellow</span> : 80%</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Printer selection removed: printing opens browser preview -->
 
 <!-- Details Modal -->
 <div id="detailsModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
@@ -306,6 +241,7 @@
 
       <div class="action-buttons">
         <button class="accept-btn" id="acceptBtn">Print</button>
+        <button class="accept-btn" id="markDoneBtn" style="margin-left:12px;">Mark as done</button>
       </div>
     </div>
   </div>
@@ -331,37 +267,4 @@
 
 </html>
 
-<!-- Printer Details Modal -->
-<div id="printerDetailsModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-  <div class="modal-backdrop" data-close-modal></div>
-  <div class="modal-content">
-    <div class="modal-header">
-      <button id="printerDetailsBackBtn" class="back-btn">&larr;</button>
-      <h2>Printers Detail</h2>
-    </div>
-    <div class="modal-body">
-      <div style="display: flex; align-items: flex-start; gap: 32px;">
-        <img id="printerDetailsImg" src="../../images/printer.png" alt="Printer"
-          style="width:180px;height:180px;object-fit:contain;border-radius:12px;border:1px solid #eee;background:#fafbfc;" />
-        <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
-          <div id="printerDetailsName" style="font-size:20px;font-weight:600;">Printer 1</div>
-          <div style="display:flex;gap:32px;">
-            <div style="display:flex;flex-direction:column;gap:6px;">
-              <div id="printerDetailsBrand"><b>Brand</b> : EPSON</div>
-              <div id="printerDetailsModel"><b>Model</b> : L3210</div>
-              <div id="printerDetailsStatus"><b>Status</b> : <span
-                  style="color:#22c55e;font-weight:600;">Available</span></div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px;">
-              <div style="font-weight:600;">Ink Level:</div>
-              <div id="printerDetailsInkBlack"><span style="color:#222;font-weight:500;">Black</span> : 80%</div>
-              <div id="printerDetailsInkRed"><span style="color:#b91c1c;font-weight:500;">Red</span> : 80%</div>
-              <div id="printerDetailsInkBlue"><span style="color:#2563eb;font-weight:500;">Blue</span> : 80%</div>
-              <div id="printerDetailsInkYellow"><span style="color:#eab308;font-weight:500;">Yellow</span> : 80%</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- removed duplicate printer details modal -->
