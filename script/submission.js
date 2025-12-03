@@ -388,7 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
         modalEl.style.display = 'block'
         document.body.classList.add('modal-open')
       }
-
+console.log('showStoredSuccessIfAny called');
       if (!detailsEl || !modalEl) {
         // If the elements aren't present yet (intermittent race), retry a few times
         let tries = 0
