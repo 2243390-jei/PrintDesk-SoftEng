@@ -1393,7 +1393,6 @@ body.history-body {
     max-width: 100%;
     height: auto;
     display: block;
-    margin: 0 auto;
 }
 
 #filePreviewContent object {
@@ -1433,4 +1432,31 @@ body.history-body {
 #remainingTokens.low-tokens {
     background: #fff0f0;
     color: #c62828;
+}
+
+/* Logout Button Styling */
+.logout-section {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.logout-section button {
+    background-color: #d9534f; /* Bootstrap Danger Color */
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.logout-section button:hover {
+    background-color: #c9302c; /* Darker Danger Color */
+    transform: scale(1.05);
+}
+
+.logout-section button:active {
+    background-color: #ac2925; /* Even Darker Danger Color */
+    transform: scale(0.95);
 }

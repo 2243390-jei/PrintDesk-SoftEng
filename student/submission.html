@@ -93,24 +93,24 @@
                 </div>
 
                 <div class="form-row">
-                                 <div class="form-group">
-  <label>Semester:</label>
-  <select name="semester" id="semesterInput" required>
-    <option value="" disabled selected>Select Semester</option>
-    <option value="1st Semester">1st Semester</option>
-    <option value="2nd Semester">2nd Semester</option>
-    <option value="Short Term">Short Term</option>
-  </select>
-</div>
+                    <div class="form-group">
+                        <label>Semester:</label>
+                        <select name="semester" id="semesterInput" required>
+                            <option value="" disabled selected>Select Semester</option>
+                            <option value="1st Semester">1st Semester</option>
+                            <option value="2nd Semester">2nd Semester</option>
+                            <option value="Short Term">Short Term</option>
+                        </select>
+                    </div>
 
 
-<div class="form-group">
-  <label>Academic Year:</label>
-  <select name="academic_year" id="academicYearInput" required>
-  </select>
-</div>
+                    <div class="form-group">
+                        <label>Academic Year:</label>
+                        <select name="academic_year" id="academicYearInput" required>
+                        </select>
+                    </div>
                 </div>
-   
+
 
                 <div class="form-group">
                     <label>Preferred Pickup Date & Time:</label>
@@ -125,7 +125,7 @@
                             <h5>Print Job #1</h5>
                             <button type="button" class="remove-job-btn" style="display: none;">&times;</button>
                         </div>
-                        
+
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Number of Copies:</label>
@@ -181,11 +181,12 @@
 
                         <div class="form-group">
                             <label>Additional Notes:</label>
-                            <textarea name="notes_1" placeholder="Specify printing preferences or remarks..."></textarea>
+                            <textarea name="notes_1"
+                                placeholder="Specify printing preferences or remarks..."></textarea>
                         </div>
                     </div>
                 </div>
-                
+
                 <button type="button" id="addPrintJob" class="add-job-btn">
                     <span>+</span> Add Another Print Job
                 </button>
@@ -259,23 +260,29 @@
                     <!-- Notifications will be dynamically added here -->
                 </div>
             </div>
+
+            <div class="logout-section">
+                <button id="logoutButton" class="reset-btn">Logout</button>
+            </div>
         </div>
     </div>
 
     <!-- Success Modal -->
-<div id="successModal" class="modal">
-  <div class="modal-content" style="text-align: center; max-width: 500px;">
-    <div style="font-size: 60px; margin-bottom: 20px;">✅</div>
-    <h2 style="color: #2e7d32; margin: 0 0 20px 0;">Submission Successful!</h2>
-    <div id="successDetails" style="text-align: left; background: #f0fff0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2e7d32;">
-      <!-- Success details will be filled in by JavaScript -->
+    <div id="successModal" class="modal">
+        <div class="modal-content" style="text-align: center; max-width: 500px;">
+            <div style="font-size: 60px; margin-bottom: 20px;">✅</div>
+            <h2 style="color: #2e7d32; margin: 0 0 20px 0;">Submission Successful!</h2>
+            <div id="successDetails"
+                style="text-align: left; background: #f0fff0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2e7d32;">
+                <!-- Success details will be filled in by JavaScript -->
+            </div>
+            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
+                <button id="successHomeBtn" class="reset-btn" style="padding: 10px 30px;">Go to Home</button>
+                <button id="successNewSubmissionBtn" class="submit-btn" style="padding: 10px 30px;">Make Another
+                    Submission</button>
+            </div>
+        </div>
     </div>
-    <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
-      <button id="successHomeBtn" class="reset-btn" style="padding: 10px 30px;">Go to Home</button>
-      <button id="successNewSubmissionBtn" class="submit-btn" style="padding: 10px 30px;">Make Another Submission</button>
-    </div>
-  </div>
-</div>
 </body>
 
 </html>

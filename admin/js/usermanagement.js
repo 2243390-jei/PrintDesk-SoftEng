@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const pageNumbers = document.getElementById("pageNumbers");
   const prevPageBtn = document.getElementById("prevPage");
   const nextPageBtn = document.getElementById("nextPage");
-  const selectAll = document.getElementById("selectAll");
   const sidebarQueueCount = document.getElementById("sidebarQueueCount");
   const passwordFieldContainer = document.getElementById("passwordFieldContainer");
   const editPassword = document.getElementById("editPassword");
@@ -261,7 +260,6 @@ document.addEventListener("DOMContentLoaded", () => {
     pageItems.forEach(u => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td class="col-check"><input type="checkbox" /></td>
         <td>
           <div class="user-name">
             <div class="user-avatar" aria-hidden="true">${u.name.split(",")[0]?.slice(0, 1) || 'U'}</div>
@@ -345,13 +343,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (searchInput) {
     searchInput.addEventListener("input", () => { currentPage = 1; renderView(users); });
-  }
-
-  if (selectAll) {
-    selectAll.addEventListener("change", (e) => {
-      const checked = e.target.checked;
-      document.querySelectorAll("#usersBody input[type='checkbox']").forEach(cb => cb.checked = checked);
-    });
   }
 
   // -------------------------

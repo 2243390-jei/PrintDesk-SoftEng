@@ -292,7 +292,6 @@ body{
 }
 .users-table tbody tr{ border-bottom:1px solid #f1f2f3; }
 .users-table td{ padding:14px 18px; vertical-align:middle; font-size:14px; color:#263238; }
-.col-check { width:48px; text-align:center; }
 .col-actions { width:110px; text-align:center; }
 
 /* user row avatar/checkbox area */
