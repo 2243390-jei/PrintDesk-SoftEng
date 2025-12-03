@@ -70,6 +70,19 @@ document.addEventListener("DOMContentLoaded", () => {
       if (event.target === modal) modal.style.display = "none";
     });
   }
+
+  // --- Handle logout ---
+  const logoutButton = document.getElementById("logoutButton");
+
+  if (logoutButton) {
+    logoutButton.addEventListener("click", () => {
+      // Clear session storage
+      sessionStorage.clear();
+
+      // Redirect to login page
+      window.location.href = "../index.html";
+    });
+  }
 });
 
 // =========================
