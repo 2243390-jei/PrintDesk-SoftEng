@@ -230,7 +230,7 @@ body {
 .pill{ padding:6px 10px; border-radius:999px; font-size:13px; display:inline-block; font-weight:600; }
 .pill.completed{ background:#e8f6ea; color:#1f7a2f; }
 .pill.rejected{ background:#f8d7da; color:#721c24; }
-.pill.canceled{ background:#f8d7da; color:#850404; }
+.pill.cancelled{ background:#f8d7da; color:#721c24; }
 
 .action-btn { 
   padding: 6px 12px;
@@ -660,6 +660,8 @@ body {
   background: #fff3cd;
   color: #856404;
 }
+
+.status-badge.status-cancelled { background: #FEE2E2; color: #721c24; }
 
 /* Action buttons for logout modal */
 .action-buttons {

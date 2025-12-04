@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function statusPill(status) {
     const statusLower = status.toLowerCase();
     if (statusLower === "completed") return `<span class="pill completed">${status}</span>`;
-    if (statusLower === "canceled") return `<span class="pill canceled">${status}</span>`;
+    if (statusLower === "cancelled") return `<span class="pill cancelled">${status}</span>`;
     if (statusLower === "rejected") return `<span class="pill rejected">${status}</span>`;
     return `<span class="pill pending">${status}</span>`;
   }
@@ -217,10 +217,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const data = await response.json();
 
-      // Filter only completed requests for history
-      const filteredData = data.filter(request =>
-        request.status === "Completed" || request.status === "Canceled" || request.status === "Rejected"
-      );
+      // Filter only completed / rejected / cancelled requests for history
+      // Normalize any legacy 'Canceled' -> 'Cancelled' for display
+      const filteredData = (Array.isArray(data) ? data : []).filter(request => {
+        const s = String(request.status || '').trim();
+        const statusNormalized = s === 'Canceled' ? 'Cancelled' : s;
+        return statusNormalized === 'Completed' || statusNormalized === 'Rejected' || statusNormalized === 'Cancelled';
+      }).map(r => ({ ...r, status: String(r.status || '').trim() === 'Canceled' ? 'Cancelled' : r.status }));
 
       // Sort by createdAt (newest first) for records
       const sortedData = filteredData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));

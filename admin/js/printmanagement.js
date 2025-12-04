@@ -88,6 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (statusLower === "completed") return `<span class="pill completed">${status}</span>`;
     if (statusLower === "accepted") return `<span class="pill accepted">${status}</span>`;
     if (statusLower === "rejected") return `<span class="pill rejected">${status}</span>`;
+    if (statusLower === "cancelled" || statusLower === "canceled") return `<span class="pill cancelled">${status}</span>`;
     return `<span class="pill pending">${status}</span>`;
   }
 
@@ -212,10 +213,60 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const data = await response.json();
 
-      // Show only accepted requests in Print Management (completed requests belong in history)
-      const filteredData = data.filter(request => request.status === "Accepted");
+      // Client-side: if any Accepted request has a pickupDateTime that is expired (> pickup + 1 day),
+      // proactively mark it Cancelled so it is immediately removed from Print Management.
+      const now = new Date();
+      const toCancel = [];
 
-      const sortedData = filteredData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // Filter only accepted requests for display, ignoring those that are expired (we will cancel them)
+      const accepted = (Array.isArray(data) ? data : []).filter(request => {
+        if (request.status !== 'Accepted') return false;
+        if (!request.pickupDateTime) return true; // no pickup date: keep in the queue
+        const pd = new Date(request.pickupDateTime);
+        if (isNaN(pd.getTime())) return true; // invalid date: keep
+        const cutoff = new Date(pd);
+        cutoff.setDate(cutoff.getDate() + 1);
+        if (now > cutoff) {
+          toCancel.push(request._id);
+          return false;
+        }
+        return true;
+      });
+
+      // If there are expired requests, send PATCH to mark them Cancelled (fire-and-wait to ensure UI consistency)
+      if (toCancel.length > 0) {
+        try {
+          await Promise.all(toCancel.map(id => fetch(`${REQUESTS_ENDPOINT}/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'Cancelled' })
+          }).then(r => r.ok ? r.json().catch(() => null) : null)));
+        } catch (err) {
+          console.warn('Failed to auto-cancel some expired requests (will be handled by server scheduler):', err);
+        }
+      }
+
+      // Determine which accepted requests should be shown by default.
+      // Prefer requests whose pickupDateTime is today (start..end of day).
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const todayRequests = accepted.filter(request => {
+        if (!request.pickupDateTime) return false;
+        const pd = new Date(request.pickupDateTime);
+        if (isNaN(pd.getTime())) return false;
+        pd.setHours(0, 0, 0, 0);
+        return pd.getTime() === today.getTime();
+      });
+
+      const displayList = todayRequests.length > 0 ? todayRequests : accepted;
+
+      const sortedData = displayList.sort((a, b) => {
+        // Sort by pickup date if available, newest first; otherwise fall back to createdAt
+        const aDate = a.pickupDateTime ? new Date(a.pickupDateTime) : new Date(a.createdAt);
+        const bDate = b.pickupDateTime ? new Date(b.pickupDateTime) : new Date(b.createdAt);
+        return bDate - aDate;
+      });
 
       return sortedData.map((request, index) => {
         const primaryDoc = request.documents && request.documents.length > 0
@@ -230,23 +281,27 @@ document.addEventListener("DOMContentLoaded", () => {
             filePath: null
           };
 
-        const createdDate = new Date(request.createdAt);
-        const formattedDate = `${createdDate.getMonth() + 1}/${createdDate.getDate()}/${createdDate.getFullYear().toString().slice(-2)}`;
+        // Use pickupDateTime for the table date display when available
+        const dateObj = request.pickupDateTime && !isNaN(new Date(request.pickupDateTime).getTime())
+          ? new Date(request.pickupDateTime)
+          : new Date(request.createdAt);
+        const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}/${dateObj.getFullYear().toString().slice(-2)}`;
 
+        const normalizedStatus = String(request.status || 'Accepted').trim() === 'Canceled' ? 'Cancelled' : (request.status || 'Accepted');
         return {
           no: index + 1,
           name: request.fullName,
           course: request.courseYear,
           date: formattedDate,
-          status: request.status || "Accepted",
+          status: normalizedStatus,
           details: {
-            submittedOn: createdDate.toLocaleDateString('en-US', {
+            submittedOn: new Date(request.createdAt).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'long',
               day: 'numeric'
             }),
             totalCost: `${request.totalTokens} tokens`,
-            status: request.status || "Accepted",
+            status: normalizedStatus,
             requestId: request._id,
             fileName: primaryDoc.documentTitle,
             pageCount: primaryDoc.pageCount,
