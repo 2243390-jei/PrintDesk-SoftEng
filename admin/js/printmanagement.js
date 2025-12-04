@@ -144,28 +144,70 @@ document.addEventListener("DOMContentLoaded", () => {
       const pdfContainer = document.createElement('div');
       pdfContainer.className = 'pdf-preview-container';
       
+      const iframeWrapper = document.createElement('div');
+      iframeWrapper.style.position = 'relative';
+      iframeWrapper.style.width = '100%';
+      iframeWrapper.style.height = '400px';
+      
       const iframe = document.createElement('iframe');
       iframe.src = fileUrl + '#toolbar=0&navpanes=0';
       iframe.type = 'application/pdf';
       iframe.style.width = '100%';
-      iframe.style.height = '400px';
+      iframe.style.height = '100%';
       iframe.style.border = 'none';
       iframe.style.borderRadius = '6px';
       
-      // Handle iframe load error
-      iframe.addEventListener('error', () => showPreviewUnavailable(filename, 'deleted'));
-      iframe.addEventListener('load', () => {
-        // Check if iframe loaded a blank/error page
-        try {
-          if (!iframe.contentDocument || !iframe.contentDocument.body) {
-            showPreviewUnavailable(filename, 'deleted');
-          }
-        } catch (e) {
-          // Ignore cross-origin errors - iframe loaded successfully
-        }
+      // Create error overlay
+      const errorOverlay = document.createElement('div');
+      errorOverlay.style.position = 'absolute';
+      errorOverlay.style.top = '0';
+      errorOverlay.style.left = '0';
+      errorOverlay.style.width = '100%';
+      errorOverlay.style.height = '100%';
+      errorOverlay.style.display = 'none';
+      errorOverlay.style.backgroundColor = 'white';
+      errorOverlay.style.zIndex = '10';
+      errorOverlay.style.borderRadius = '6px';
+      
+      function showErrorFallback() {
+        errorOverlay.style.display = 'flex';
+        errorOverlay.style.flexDirection = 'column';
+        errorOverlay.style.alignItems = 'center';
+        errorOverlay.style.justifyContent = 'center';
+        errorOverlay.style.gap = '16px';
+        errorOverlay.style.padding = '40px';
+        errorOverlay.innerHTML = `
+          <p style="margin: 0; color: #6b7280; font-size: 14px; text-align: center;">Can't view the file? <a href="#" style="color: #0d6efd; text-decoration: none; font-weight: 500;">Download the file</a></p>
+        `;
+        errorOverlay.querySelector('a').addEventListener('click', (e) => {
+          e.preventDefault();
+          downloadCurrentDocument();
+        });
+      }
+      
+      // Only show error on actual iframe error event (e.g., 404)
+      iframe.addEventListener('error', showErrorFallback);
+      
+      iframeWrapper.appendChild(iframe);
+      iframeWrapper.appendChild(errorOverlay);
+      pdfContainer.appendChild(iframeWrapper);
+      
+      // Add download fallback below the preview
+      const downloadFallback = document.createElement('div');
+      downloadFallback.style.marginTop = '12px';
+      downloadFallback.style.padding = '12px';
+      downloadFallback.style.backgroundColor = '#f8f9fa';
+      downloadFallback.style.borderRadius = '6px';
+      downloadFallback.style.textAlign = 'center';
+      downloadFallback.innerHTML = `
+        <p style="margin: 0; font-size: 14px; color: #6b7280;">Can't view the file? <a href="#" style="color: #0d6efd; text-decoration: none; font-weight: 500;">Download the file</a></p>
+      `;
+      downloadFallback.querySelector('a').addEventListener('click', (e) => {
+        e.preventDefault();
+        downloadCurrentDocument();
       });
       
-      pdfContainer.appendChild(iframe);
+      pdfContainer.appendChild(downloadFallback);
       previewArea.appendChild(pdfContainer);
 
     } else if (isWordFile(filename) || isExcelFile(filename) || isPowerPointFile(filename)) {
