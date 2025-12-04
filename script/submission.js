@@ -1098,7 +1098,7 @@ console.log('Found successModal element:', !!modalEl);
       return false
     }
 
-    // if selected is today, ensure current time is within allowed window (07:30 - 17:00)
+    // if selected is today, ensure current time is within allowed window 
     if (selected.getFullYear() === today.getFullYear() && selected.getMonth() === today.getMonth() && selected.getDate() === today.getDate()) {
       const minutesNow = now.getHours() * 60 + now.getMinutes()
       const start = 7 * 60 + 30 // 7:30
