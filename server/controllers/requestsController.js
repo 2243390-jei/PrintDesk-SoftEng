@@ -63,6 +63,29 @@ const updateRequest = async (req, res) => {
     if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No valid fields to update' })
 
     const updatedRequest = await PrintRequest.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
+
+    // If status changed, add a notification to the user
+    if (updates.status && currentRequest.userId) {
+      try {
+        const notifType = 'print_request_status'
+        const fileNames = updatedRequest.documents.map(d => d.documentTitle).join(', ')
+        let message = `Your print request for "${fileNames}" status changed to ${updates.status}.`
+        if (updates.status === 'Accepted') message = `Your print request for "${fileNames}" has been accepted and is being processed.`
+        if (updates.status === 'Completed' || updates.status === 'Ready') message = `Your print request for "${fileNames}" is ready for pickup.`
+        if (updates.status === 'Rejected') message = `Your print request for "${fileNames}" was rejected.`
+
+        const notification = { type: notifType, message, requestId: updatedRequest._id }
+        await User.findByIdAndUpdate(currentRequest.userId, { $push: { notifications: notification } })
+        
+        // Emit real-time notification via Socket.IO if available
+        if (global.io) {
+          global.io.emit(`notification:${currentRequest.userId}`, notification)
+        }
+      } catch (notifErr) {
+        console.error('Failed to add notification after status update:', notifErr)
+      }
+    }
+
     res.json(updatedRequest)
   } catch (err) {
     console.error('Error updating print request:', err)
@@ -107,6 +130,23 @@ const deleteRequest = async (req, res) => {
 
     // Delete the request after attempting refund
     await PrintRequest.findByIdAndDelete(req.params.id)
+
+    // Notify user that request was cancelled/deleted
+    try {
+      if (userId) {
+        const fileNames = request.documents.map(d => d.documentTitle).join(', ')
+        const message = `Your print request for "${fileNames}" was cancelled.`
+        const notification = { type: 'print_request_cancelled', message, requestId: request._id }
+        await User.findByIdAndUpdate(userId, { $push: { notifications: notification } })
+        
+        // Emit real-time notification via Socket.IO if available
+        if (global.io) {
+          global.io.emit(`notification:${userId}`, notification)
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to add cancellation notification:', notifErr)
+    }
 
     const resp = { message: 'Request deleted successfully', refunded, refundedAmount }
     if (refunded) resp.newBalance = newBalance
@@ -217,6 +257,8 @@ const submitRequest = async (req, res) => {
 
     user.tokenBalance -= totalTokensRequest
     await user.save()
+
+    // Do not add notification for new request creation
 
     res.status(200).json({ message: 'Print request submitted successfully', requestId: newRequest._id, totalTokens: totalTokensRequest, remainingTokens: user.tokenBalance, status: newRequest.status })
   } catch (err) {

@@ -9,6 +9,15 @@ const userSchema = new mongoose.Schema({
   googleId: { type: String },
   picture: String,
   tokenBalance: { type: Number, default: 500 },
+  notifications: [
+    {
+      type: { type: String },
+      message: String,
+      requestId: { type: mongoose.Schema.Types.ObjectId, ref: 'print_requests' },
+      read: { type: Boolean, default: false },
+      createdAt: { type: Date, default: Date.now },
+    },
+  ],
   createdAt: { type: Date, default: Date.now },
   lastLogin: Date,
 })

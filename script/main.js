@@ -3,6 +3,43 @@
 // =========================
 
 let currentUserEmail = sessionStorage.getItem("userEmail") || null;
+let socket = null;
+let currentUserId = null;
+
+// Initialize Socket.IO connection
+function initializeSocket() {
+  if (typeof io !== 'undefined') {
+    socket = io('http://localhost:3000', {
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5
+    });
+
+    socket.on('connect', () => {
+      console.log('Socket connected:', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Socket disconnected');
+    });
+  }
+}
+
+// Set up socket listener for user notifications
+function setupNotificationListener(userId) {
+  if (!socket) return;
+  
+  currentUserId = userId;
+  socket.off(`notification:${userId}`);
+  socket.on(`notification:${userId}`, (notification) => {
+    console.log('Real-time notification received:', notification);
+    // Refresh the notifications display
+    if (currentUserEmail) {
+      fetchAndDisplayUser(currentUserEmail);
+    }
+  });
+}
 
 // --- Handle manual login ---
 document.addEventListener("DOMContentLoaded", () => {
@@ -46,6 +83,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeModal = document.querySelector(".profile-modal-close");
 
   if (navbarProfilePic) {
+    // Add badge for unread notifications
+    let notifBadge = document.createElement('span');
+    notifBadge.id = 'notifBadge';
+    notifBadge.style.position = 'absolute';
+    notifBadge.style.top = '2px';
+    notifBadge.style.right = '2px';
+    notifBadge.style.background = '#e53935';
+    notifBadge.style.color = '#fff';
+    notifBadge.style.fontSize = '12px';
+    notifBadge.style.fontWeight = 'bold';
+    notifBadge.style.borderRadius = '50%';
+    notifBadge.style.padding = '2px 6px';
+    notifBadge.style.zIndex = '10';
+    notifBadge.style.display = 'none';
+    notifBadge.style.pointerEvents = 'none';
+    notifBadge.style.boxShadow = '0 1px 4px rgba(0,0,0,0.15)';
+    navbarProfilePic.style.position = 'relative';
+    navbarProfilePic.parentElement.style.position = 'relative';
+    navbarProfilePic.parentElement.appendChild(notifBadge);
+
     // Load user details if session exists
     if (currentUserEmail) {
       fetchAndDisplayUser(currentUserEmail);
@@ -83,6 +140,9 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = "../index.html";
     });
   }
+
+  // Initialize Socket.IO
+  initializeSocket();
 });
 
 // =========================
@@ -98,8 +158,79 @@ async function fetchAndDisplayUser(email) {
     updateProfileModal(user.fullName, user.email, user.tokenBalance, user.role, user.picture);
     updateNavbarProfilePic(user.picture);
     updateTokenProgress(user.tokenBalance);
+    updateNotifications(user.notifications || [], user._id);
+    
+    // Set up real-time notification listener for this user
+    setupNotificationListener(user._id);
   } catch (err) {
     console.error("⚠️ Failed to fetch user:", err);
+  }
+}
+
+// Render notifications into the profile modal and update badge
+function updateNotifications(notifications = [], userId) {
+  const list = document.getElementById('notificationsList');
+  const notifBadge = document.getElementById('notifBadge');
+  if (!list) return;
+  if (!Array.isArray(notifications) || notifications.length === 0) {
+    list.innerHTML = '<div style="color:#666;padding:8px;">No notifications</div>';
+    if (notifBadge) notifBadge.style.display = 'none';
+    return;
+  }
+
+  // Sort by newest first
+  const sorted = notifications.slice().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  list.innerHTML = '';
+  let unreadCount = 0;
+  sorted.forEach((n) => {
+    const item = document.createElement('div');
+    item.className = 'notification-item';
+    if (!n.read) {
+      item.style.background = '#f0f6ff';
+      unreadCount++;
+    }
+    item.style.cursor = 'pointer';
+    item.style.padding = '10px';
+    item.style.borderBottom = '1px solid #eee';
+
+    const title = document.createElement('div');
+    title.className = 'notification-title';
+    title.textContent = n.message || 'Notification';
+    title.style.fontWeight = n.read ? '500' : '700';
+
+    const time = document.createElement('div');
+    time.className = 'notification-time';
+    time.textContent = new Date(n.createdAt).toLocaleString();
+    time.style.fontSize = '11px';
+    time.style.color = '#888';
+
+    item.appendChild(title);
+    item.appendChild(time);
+
+    item.addEventListener('click', async () => {
+      // Remove notification from UI immediately
+      item.remove();
+      // If notification has id and userId, try to delete on server
+      if (n._id && userId) {
+        try {
+          await fetch(`http://localhost:3000/users/${userId}/notifications/${n._id}/read`, { method: 'PATCH' });
+        } catch (err) {
+          console.error('Failed to delete notification:', err);
+        }
+      }
+      // Update badge count
+      if (notifBadge) {
+        unreadCount--;
+        notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
+        notifBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
+      }
+    });
+
+    list.appendChild(item);
+  });
+  if (notifBadge) {
+    notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
+    notifBadge.style.display = unreadCount > 0 ? 'inline-block' : 'none';
   }
 }
 

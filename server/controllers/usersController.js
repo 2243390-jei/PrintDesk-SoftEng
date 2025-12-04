@@ -76,4 +76,33 @@ const getUserByEmail = async (req, res) => {
   }
 }
 
-module.exports = { getAllUsers, createUser, updateUser, deleteUser, getUserByEmail }
+const getNotificationsByEmail = async (req, res) => {
+  try {
+    const email = decodeURIComponent(req.params.email)
+    const user = await User.findOne({ email }).select('notifications')
+    if (!user) return res.status(404).json({ error: 'User not found' })
+    res.json(user.notifications || [])
+  } catch (err) {
+    console.error('Error fetching notifications:', err)
+    res.status(500).json({ error: 'Failed to fetch notifications', details: err.message })
+  }
+}
+
+const markNotificationRead = async (req, res) => {
+  try {
+    const userId = req.params.id
+    const nid = req.params.nid
+    const user = await User.findById(userId)
+    if (!user) return res.status(404).json({ error: 'User not found' })
+    const notif = user.notifications.id(nid)
+    if (!notif) return res.status(404).json({ error: 'Notification not found' })
+    user.notifications.pull(nid);
+    await user.save();
+    res.json({ message: 'Notification deleted', notificationId: nid })
+  } catch (err) {
+    console.error('Error deleting notification:', err)
+    res.status(500).json({ error: 'Failed to delete notification', details: err.message })
+  }
+}
+
+module.exports = { getAllUsers, createUser, updateUser, deleteUser, getUserByEmail, getNotificationsByEmail, markNotificationRead }
