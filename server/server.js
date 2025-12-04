@@ -98,7 +98,6 @@ async function cancelExpiredRequestsOnce() {
             await User.findByIdAndUpdate(req.userId, { $push: { notifications: notification } })
             if (global.io) global.io.emit(`notification:${req.userId}`, notification)
           }
-          console.log(`Auto-cancelled request ${req._id} (pickup ${req.pickupDateTime})`)
         } catch (innerErr) {
           console.error('Failed to auto-cancel request', req._id, innerErr)
         }
