@@ -1385,6 +1385,15 @@ console.log('Found successModal element:', !!modalEl);
     document.body.classList.add("modal-open")
   })
 
+  // Disable the semester dropdown
+  if (semesterInput) {
+    semesterInput.disabled = true;
+  }
+
+  if(academicYearInput) {
+    academicYearInput.disabled = true;
+  }
+
   restoreFormState()
   showStoredSuccessIfAny()
 
