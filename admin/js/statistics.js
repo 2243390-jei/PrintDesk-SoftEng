@@ -7,10 +7,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const recentActivityList = document.getElementById("recentActivityList");
   const totalUsers = document.getElementById("totalUsers");
   const totalPrints = document.getElementById("totalPrints");
-  const totalLeads = document.getElementById("totalLeads");
   const usersChange = document.getElementById("usersChange");
   const printsChange = document.getElementById("printsChange");
-  const leadsChange = document.getElementById("leadsChange");
   const statsContent = document.getElementById("statsContent");
 
   // filters UI
@@ -371,13 +369,11 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (totalUsers) totalUsers.textContent = String(uniqueUsers.size || 0);
     if (totalPrints) totalPrints.textContent = String(requests.reduce((s, r) => s + ((r.documents || []).reduce((a,d)=>(a + (d.pageCount||0)*(d.numberOfCopies||1)),0)), 0) || 0);
-    if (totalLeads) totalLeads.textContent = String(accepted || 0);
-
+ 
     // simple percent changes placeholders
     if (usersChange) usersChange.textContent = '';
     if (printsChange) printsChange.textContent = '';
-    if (leadsChange) leadsChange.textContent = '';
-
+ 
     // ensure analyticsData has values
     if (!analyticsData.daily) analyticsData = createEmptyAnalyticsData();
   }
@@ -841,11 +837,27 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch(REQUESTS_ENDPOINT);
       if (!res.ok) return;
       const data = await res.json();
-      const pending = Array.isArray(data) ? data.filter(r => String(r.status).toLowerCase() === 'pending').length : 0;
+      
+      // Get today's date at midnight
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Count only pending requests scheduled for today or later
+      const todayAndFuturePending = Array.isArray(data) 
+        ? data.filter(r => {
+            if (String(r.status).toLowerCase() !== 'pending') return false;
+            
+            const requestDate = new Date(r.createdAt);
+            requestDate.setHours(0, 0, 0, 0);
+            
+            return requestDate >= today;
+          }).length 
+        : 0;
+      
       const sidebarCount = document.getElementById('sidebarQueueCount');
       if (sidebarCount) {
-        sidebarCount.textContent = pending;
-        sidebarCount.classList.toggle('has-count', pending > 0);
+        sidebarCount.textContent = todayAndFuturePending;
+        sidebarCount.classList.toggle('has-count', todayAndFuturePending > 0);
       }
     } catch (err) {
       console.warn('fetchQueueCount err', err);
