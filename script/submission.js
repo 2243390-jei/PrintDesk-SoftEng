@@ -53,6 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ]
   const ALLOWED_EXTS = ['.pdf', '.png', '.jpg', '.jpeg', '.txt', '.doc', '.docx']
+  
 
   /* =========================
      Error Modal (dynamic)
@@ -1024,115 +1025,95 @@ console.log('Found successModal element:', !!modalEl);
     logoRefresh.addEventListener("click", () => (window.location.href = "home.html"))
   }
 
-  /* ===== Improved pickup date/time constraints ===== */
+  /* ===== Pickup date constraints (date-only) ===== */
   function pad(n) { return String(n).padStart(2, "0") }
 
-  function formatDateTimeLocal(d) {
-    // returns YYYY-MM-DDTHH:MM for datetime-local inputs
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  function formatDateYYYYMMDD(d) {
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   }
 
-  function formatDateTimeReadable(d) {
-    // returns a human-friendly string used in messages
-    return d.toLocaleString([], { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+  function formatDateReadable(d) {
+    return d.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })
   }
 
   function setPickupConstraints() {
     if (!pickupDateTime) return
-
     const now = new Date()
-    // minimum candidate is now + 1 hour
-    const minCandidate = new Date(now.getTime() + 60 * 60 * 1000)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    // determine earliest selectable date based on day-of-week and current time
+    let minDate = new Date(today)
+    const minutesNow = now.getHours() * 60 + now.getMinutes()
+    const start = 7 * 60 + 30 // 7:30
+    const end = 17 * 60 // 17:00
 
-    // helper: clamp a date into the daily allowed window (07:00 - 17:00)
-    function clampIntoDailyWindow(dt) {
-      const res = new Date(dt)
-      const h = res.getHours()
-      // if before 07:00 -> set to 07:00 same day
-      if (h < 7) { res.setHours(7, 0, 0, 0); return res }
-      // if after 17:00 (strictly > 17:00 or 17:xx minutes) -> move to next day 07:00
-      if (h > 17 || (h === 17 && res.getMinutes() > 0)) {
-        res.setDate(res.getDate() + 1)
-        res.setHours(7, 0, 0, 0)
-        return res
+    // if today is Sunday, move to Monday
+    if (minDate.getDay() === 0) {
+      minDate.setDate(minDate.getDate() + 1)
+    } else {
+      // if today but current time outside allowed window, disallow today
+      if (minutesNow < start || minutesNow > end) {
+        minDate.setDate(minDate.getDate() + 1)
       }
-      // inside window -> keep exact time (no change)
-      return res
+      // if that moves to Sunday, skip to Monday
+      if (minDate.getDay() === 0) minDate.setDate(minDate.getDate() + 1)
     }
 
-    // compute min (now + 1h, then clamped into daily window)
-    const minDT = clampIntoDailyWindow(minCandidate)
+    const maxDate = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-    // compute max = now + 7 days but cap time to 17:00 on that day
-    const maxDT = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-    maxDT.setHours(17, 0, 0, 0)
+    pickupDateTime.min = formatDateYYYYMMDD(minDate)
+    pickupDateTime.max = formatDateYYYYMMDD(maxDate)
 
-    // set input attributes so browsers that respect min/max will show UI feedback
-    pickupDateTime.min = formatDateTimeLocal(minDT)
-    pickupDateTime.max = formatDateTimeLocal(maxDT)
-
-    // attach change listener (ensures it's attached once)
-    pickupDateTime.removeEventListener('change', validatePickupTime)
-    pickupDateTime.addEventListener('change', validatePickupTime)
+    pickupDateTime.removeEventListener('change', validatePickupDate)
+    pickupDateTime.addEventListener('change', validatePickupDate)
   }
 
-  /* Validates & clamps the selected time.
-     If out-of-range, we automatically adjust the field to the nearest allowed time
-     and show the error modal to inform the user. */
-  function validatePickupTime() {
+  function validatePickupDate() {
     if (!pickupDateTime) return true
     if (!pickupDateTime.value) return true
 
-    const selected = new Date(pickupDateTime.value)
-    const min = pickupDateTime.min ? new Date(pickupDateTime.min) : null
-    const max = pickupDateTime.max ? new Date(pickupDateTime.max) : null
+    const selected = new Date(pickupDateTime.value + 'T00:00:00')
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const minDate = pickupDateTime.min ? new Date(pickupDateTime.min + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const maxDate = pickupDateTime.max ? new Date(pickupDateTime.max + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7)
 
-    // helper to clamp to allowed daily window (07:00 - 17:00 inclusive)
-    function clampToDailyWindow(dt) {
-      const r = new Date(dt)
-      const h = r.getHours()
-      const m = r.getMinutes()
-      if (h < 7) { r.setHours(7, 0, 0, 0); return r }
-      if (h > 17 || (h === 17 && m > 0)) { r.setHours(17, 0, 0, 0); return r }
-      return r
-    }
-
-    // if less than min, clamp up to min and warn
-    if (min && selected < min) {
-      const clamped = new Date(min)
-      // ensure clamped also respects daily window (should already)
-      const finalClamp = clampToDailyWindow(clamped)
-      pickupDateTime.value = formatDateTimeLocal(finalClamp)
-      showErrorModal(`Pickup must be at least ${formatDateTimeReadable(finalClamp)}. Your selection was adjusted.`)
+    // no past dates relative to minDate
+    if (selected < minDate) {
+      showErrorModal('Pickup date cannot be in the past. Please choose a valid date.')
+      pickupDateTime.value = ''
       return false
     }
 
-    // if greater than max, clamp down to max and warn
-    if (max && selected > max) {
-      const finalClamp = new Date(max)
-      pickupDateTime.value = formatDateTimeLocal(finalClamp)
-      showErrorModal(`Pickup must be no later than ${formatDateTimeReadable(finalClamp)}. Your selection was adjusted.`)
+    // not more than configured max ahead
+    if (selected > maxDate) {
+      showErrorModal('Pickup date cannot be more than 7 days in advance.')
+      pickupDateTime.value = ''
       return false
     }
 
-    // ensure time-of-day is within allowed range; if not, clamp to nearest valid time
-    const hour = selected.getHours()
-    const minute = selected.getMinutes()
-    if (hour < 7 || hour > 17 || (hour === 17 && minute > 0)) {
-      const clamped = clampToDailyWindow(selected)
-      // ensure within min/max bounds
-      if (min && clamped < new Date(min)) clamped.setTime(new Date(min).getTime())
-      if (max && clamped > new Date(max)) clamped.setTime(new Date(max).getTime())
-      pickupDateTime.value = formatDateTimeLocal(clamped)
-      showErrorModal(`Pickup time must be between 7:00 AM and 5:00 PM. Your selection was adjusted to ${formatDateTimeReadable(clamped)}.`)
+    // cannot be Sunday (0 === Sunday)
+    if (selected.getDay() === 0) {
+      showErrorModal('Pickup cannot be scheduled on Sundays. Please choose another day.')
+      pickupDateTime.value = ''
       return false
     }
 
-    // valid
+    // if selected is today, ensure current time is within allowed window (07:30 - 17:00)
+    if (selected.getFullYear() === today.getFullYear() && selected.getMonth() === today.getMonth() && selected.getDate() === today.getDate()) {
+      const minutesNow = now.getHours() * 60 + now.getMinutes()
+      const start = 7 * 60 + 30 // 7:30
+      const end = 17 * 60 // 17:00
+      if (minutesNow < start || minutesNow > end) {
+        showErrorModal('Today cannot be selected because current time is outside the allowed pickup window (7:30 AM - 5:00 PM). Please choose another date.')
+        pickupDateTime.value = ''
+        return false
+      }
+    }
+
     return true
   }
 
-  // Replace call to setMinPickupDateTime() with setPickupConstraints()
+  // initialize constraints
   setPickupConstraints()
 
   function getSemesterAndAcademicYear(date = new Date()) {
@@ -1322,9 +1303,16 @@ console.log('Found successModal element:', !!modalEl);
     let formIsValid = true
     let errorMessage = ""
 
-    if (!document.getElementById("courseInput").value) {
+    const courseInput = document.getElementById("courseInput")
+    const validCourses = courseInput.getAttribute("data-valid-courses").split(",")
+    const selectedCourse = courseInput.value.trim()
+    
+    if (!selectedCourse) {
       formIsValid = false
       errorMessage = "Please fill in your Course\n"
+    } else if (!validCourses.includes(selectedCourse)) {
+      formIsValid = false
+      errorMessage = "Invalid course selected. Please choose from the available options.\n"
     }
     if (!document.getElementById("yearSelect").value) {
       formIsValid = false
@@ -1335,9 +1323,9 @@ console.log('Found successModal element:', !!modalEl);
       errorMessage += "Please select a Pickup Date & Time\n"
     } else {
       // validate pickup time more strictly before allowing confirmation modal
-      if (!validatePickupTime()) {
+      if (!validatePickupDate()) {
         formIsValid = false
-        errorMessage += "Please select a valid pickup date/time between 7:00 AM and 5:00 PM and within 7 days.\n"
+        errorMessage += "Please select a valid pickup date (not past, not Sunday, within 7 days).\n"
       }
     }
 

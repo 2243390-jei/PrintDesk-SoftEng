@@ -1,6 +1,15 @@
 const PrintRequest = require('../models/PrintRequest')
 const User = require('../models/User')
 
+// Helper function to extract original filename from formatted filename
+function extractOriginalFilename(formattedName) {
+  const match = formattedName.match(/^(.+?)_\d{2}-\d{2}-\d{4}(\.[^.]+)$/)
+  if (match) {
+    return match[1] + match[2] // name + extension
+  }
+  return formattedName // return as-is if doesn't match pattern
+}
+
 const getAllRequests = async (req, res) => {
   try {
     const requests = await PrintRequest.find().sort({ createdAt: 1 })
@@ -192,7 +201,7 @@ const submitRequest = async (req, res) => {
       totalTokensRequest += totalTokens
 
       documents.push({
-        documentTitle: job.documentTitle || (file ? file.originalname : 'Untitled'),
+        documentTitle: file ? extractOriginalFilename(file.originalname) : (job.documentTitle ? extractOriginalFilename(job.documentTitle) : 'Untitled'),
         filePath: file ? '/uploads/' + file.filename : null,
         numberOfCopies: Number.parseInt(job.copies ?? '1', 10) || 1,
         paperSize: job.paperSize || '',

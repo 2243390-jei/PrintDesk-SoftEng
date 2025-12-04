@@ -19,17 +19,11 @@ global.io = io
 
 // Handle socket connections
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id)
   
   // Join a user-specific room for notifications
   socket.on('join-user', (userId) => {
-    socket.join(`user:${userId}`)
-    console.log(`Socket ${socket.id} joined user:${userId}`)
-  })
+    socket.join(`user:${userId}`)  })
   
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id)
-  })
 })
 
 server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`))
