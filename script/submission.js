@@ -590,7 +590,65 @@ console.log('Found successModal element:', !!modalEl);
             remainingDisplay.style.background = "#fff0f0"
             remainingDisplay.style.color = "#c62828"
           }
+          // Ensure the queue display element exists above remainingDisplay
+          let queueDisplay = document.getElementById('queuePosition')
+          if (!queueDisplay) {
+            queueDisplay = document.createElement('div')
+            queueDisplay.id = 'queuePosition'
+            queueDisplay.style.marginTop = '8px'
+            queueDisplay.style.padding = '8px 12px'
+            queueDisplay.style.borderRadius = '6px'
+            queueDisplay.style.fontWeight = 'bold'
+            queueDisplay.style.textAlign = 'right'
+            remainingDisplay.parentNode.insertBefore(queueDisplay, remainingDisplay)
+          }
+
+          // Update remaining tokens text
           remainingDisplay.textContent = `🪙 Remaining Tokens After Transaction: ${remainingTokens}`
+
+          // If pickup date selected, query queue count for that date and update queueDisplay
+          try {
+            const selectedDate = pickupDateTime?.value
+            if (!selectedDate) {
+              queueDisplay.style.display = 'none'
+            } else {
+              queueDisplay.style.display = 'block'
+              const dateMatch = String(selectedDate).match(/^(\d{4}-\d{2}-\d{2})/)
+              const dateOnly = dateMatch ? dateMatch[1] : selectedDate
+              fetch(`http://localhost:3000/requests/queue/count?date=${encodeURIComponent(dateOnly)}`)
+                .then(r => r.json())
+                .then(data => {
+                  const count = Number(data.count) || 0
+                  const position = count + 1
+                  // Determine if selected date is today
+                  const today = new Date()
+                  const sel = new Date(dateOnly + 'T00:00:00')
+                  const isToday = sel.toDateString() === new Date(today.getFullYear(), today.getMonth(), today.getDate()).toDateString()
+                  if (count >= 20 && !isToday) {
+                    queueDisplay.style.background = '#fff0f0'
+                    queueDisplay.style.color = '#9b1c1c'
+                    queueDisplay.textContent = `⚠️ Reservations full for this date (20). Please choose another date.`
+                    if (confirmSubmissionBtn) confirmSubmissionBtn.disabled = true
+                  } else {
+                    if (isToday) {
+                      queueDisplay.style.background = '#fff8e1'
+                      queueDisplay.style.color = '#6a4c00'
+                      queueDisplay.textContent = `Queue position if submitted: #${position}`
+                    } else {
+                      queueDisplay.style.background = '#eef2ff'
+                      queueDisplay.style.color = '#2e1362'
+                      queueDisplay.textContent = `Reservation position if submitted: #${position}`
+                    }
+                    if (confirmSubmissionBtn) confirmSubmissionBtn.disabled = false
+                  }
+                })
+                .catch((err) => {
+                  console.error('Failed to fetch queue count:', err)
+                })
+            }
+          } catch (err) {
+            console.error('Error computing queue display:', err)
+          }
         })
         .catch((err) => console.error("Failed to fetch token balance:", err))
     }
@@ -1064,6 +1122,9 @@ console.log('Found successModal element:', !!modalEl);
 
     pickupDateTime.removeEventListener('change', validatePickupDate)
     pickupDateTime.addEventListener('change', validatePickupDate)
+    // update queue/remaining tokens display when pickup date changes
+    pickupDateTime.removeEventListener('change', updateTotalTokens)
+    pickupDateTime.addEventListener('change', updateTotalTokens)
   }
 
   function validatePickupDate() {

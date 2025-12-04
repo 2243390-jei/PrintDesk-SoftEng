@@ -849,7 +849,6 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="preview-item"><div class="preview-label">Paper Size</div><div class="preview-value">${docData.paperSize || "Unknown"}</div></div>
         <div class="preview-item"><div class="preview-label">Print Type</div><div class="preview-value">${docData.printType || "Unknown"}</div></div>
         <div class="preview-item"><div class="preview-label">Printing Side</div><div class="preview-value">${docData.printingSide || "Unknown"}</div></div>
-        <div class="preview-item"><div class="preview-label">Additional Notes</div><div class="preview-value">${docData.notes || "None"}</div></div>
       `;
       docItem.appendChild(meta);
 
