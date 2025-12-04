@@ -34,9 +34,24 @@ io.on('connection', (socket) => {
 
 server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`))
 
-// For reset tokens in the userTokens in the admin side.
-const resetTokensRouter = require('./routes/resetTokens');
-app.use('/api', resetTokensRouter);
+// Handle server errors (e.g. port already in use)
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.error(`ERROR: Port ${PORT} is already in use.`)
+    console.error('Possible fixes:')
+    console.error('- Stop the process using the port (see commands below).')
+    console.error('- Start the server on a different port: in PowerShell run `$env:PORT=3001; node server.js`')
+    console.error('Helpful commands (PowerShell):')
+    console.error(`  netstat -ano | findstr :${PORT}    # show process using port ${PORT}`)
+    console.error('  taskkill /PID <pid> /F             # force kill by PID')
+    console.error('  Or: Get-Process -Id <pid> | Stop-Process -Force')
+    process.exit(1)
+  }
+  console.error('Server error:', err)
+  process.exit(1)
+})
+
+// (optional) resetTokens route removed — keep routes modular. If you add a resetTokens route, re-enable here.
 
 // Auto-cancel expired pickup requests
 const PrintRequest = require('./models/PrintRequest')

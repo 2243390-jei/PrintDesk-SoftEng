@@ -246,7 +246,22 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      const sortedData = accepted.sort((a, b) => {
+      // Determine which accepted requests should be shown by default.
+      // Prefer requests whose pickupDateTime is today (start..end of day).
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const todayRequests = accepted.filter(request => {
+        if (!request.pickupDateTime) return false;
+        const pd = new Date(request.pickupDateTime);
+        if (isNaN(pd.getTime())) return false;
+        pd.setHours(0, 0, 0, 0);
+        return pd.getTime() === today.getTime();
+      });
+
+      const displayList = todayRequests.length > 0 ? todayRequests : accepted;
+
+      const sortedData = displayList.sort((a, b) => {
         // Sort by pickup date if available, newest first; otherwise fall back to createdAt
         const aDate = a.pickupDateTime ? new Date(a.pickupDateTime) : new Date(a.createdAt);
         const bDate = b.pickupDateTime ? new Date(b.pickupDateTime) : new Date(b.createdAt);
