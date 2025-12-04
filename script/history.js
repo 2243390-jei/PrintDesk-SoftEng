@@ -117,6 +117,8 @@
         <button class="filter-btn">Pending</button>
         <button class="filter-btn">Completed</button>
         <button class="filter-btn">Cancelled</button>
+        <button class="filter-btn">Rejected</button>
+        <button class="filter-btn">Accepted</button>
       `
       filterWrapper.appendChild(fb)
     }
@@ -675,44 +677,44 @@
   }
 
   function applyFilters() {
-    if (!allRequests) return
-    const filterContainer = document.querySelector(".filter-buttons")
-    let selectedStatus = "All"
+    if (!allRequests) return;
+    const filterContainer = document.querySelector(".filter-buttons");
+    let selectedStatus = "All";
     if (filterContainer) {
-      const active = filterContainer.querySelector(".filter-btn.active")
-      if (active) selectedStatus = active.textContent.trim()
+      const active = filterContainer.querySelector(".filter-btn.active");
+      if (active) selectedStatus = active.textContent.trim();
     }
 
-    const yearSelect = document.getElementById("academicYearFilter")
-    const semesterSelect = document.getElementById("semesterFilter")
-    const selectedYear = yearSelect ? yearSelect.value : ""
-    const selectedSemester = semesterSelect ? semesterSelect.value : ""
+    const yearSelect = document.getElementById("academicYearFilter");
+    const semesterSelect = document.getElementById("semesterFilter");
+    const selectedYear = yearSelect ? yearSelect.value : "";
+    const selectedSemester = semesterSelect ? semesterSelect.value : "";
 
-    const userRequests = allRequests.filter((r) => (r.email || "").toLowerCase() === (currentUserEmail || "").toLowerCase())
-    let result = userRequests.slice()
+    const userRequests = allRequests.filter((r) => (r.email || "").toLowerCase() === (currentUserEmail || "").toLowerCase());
+    let result = userRequests.slice();
 
-    // Status filter
-    if (selectedStatus === "Completed") result = result.filter((r) => (r.status || "").toLowerCase() === "completed")
-    else if (selectedStatus === "Pending") result = result.filter((r) => (r.status || "").toLowerCase() === "pending")
-    else if (selectedStatus === "Cancelled") result = result.filter((r) => {
-      const s = (r.status || "").toLowerCase()
-      return s === "rejected" || s === "cancelled"
-    })
+    if (selectedStatus === "Completed") {
+      result = result.filter((r) => (r.status || "").toLowerCase() === "completed");
+    } else if (selectedStatus === "Pending") {
+      result = result.filter((r) => (r.status || "").toLowerCase() === "pending");
+    } else if (selectedStatus === "Cancelled") {
+      result = result.filter((r) => (r.status || "").toLowerCase() === "cancelled");
+    } else if (selectedStatus === "Rejected") {
+      result = result.filter((r) => (r.status || "").toLowerCase() === "rejected");
+    } else if (selectedStatus === "Accepted") {
+      result = result.filter((r) => (r.status || "").toLowerCase() === "accepted");
+    }
 
-    // Academic year filter
     if (selectedYear) {
-      result = result.filter((r) => (r.academicYear || "") === selectedYear)
+      result = result.filter((r) => r.academicYear === selectedYear);
     }
 
-    // Semester filter
     if (selectedSemester) {
-  result = result.filter((r) => ((r.semester || "").trim().toLowerCase() === selectedSemester.trim().toLowerCase()))
-}
+      result = result.filter((r) => r.semester === selectedSemester);
+    }
 
-    // Sort & render
-    result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-    filteredRequests = result
-    renderCards(filteredRequests)
+    filteredRequests = result;
+    renderCards(filteredRequests);
   }
 
   // ======= utility: token calculation =======
