@@ -47,12 +47,11 @@ document.addEventListener("DOMContentLoaded", () => {
     'application/pdf',
     'image/png',
     'image/jpeg',
-    'text/plain',
     // Word MIME types (may vary by platform)
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ]
-  const ALLOWED_EXTS = ['.pdf', '.png', '.jpg', '.jpeg', '.txt', '.doc', '.docx']
+  const ALLOWED_EXTS = ['.pdf', '.png', '.jpg', '.jpeg','.doc', '.docx']
   
 
   /* =========================
@@ -235,7 +234,7 @@ document.addEventListener("DOMContentLoaded", () => {
             newInput.name = "documents"
             newInput.className = "drop-zone-input"
             newInput.required = true
-            newInput.accept = ".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
+            newInput.accept = ".pdf,.jpg,.jpeg,.png,.doc,.docx"
             oldInput.replaceWith(newInput)
             initializeDropZone(dropZone)
           }
@@ -641,7 +640,7 @@ console.log('Found successModal element:', !!modalEl);
 
         // VALIDATION: show error modal if invalid
         if (!isValidFile(file)) {
-          showErrorModal("That file type is not supported. Allowed: PDF, JPG, PNG, DOC, DOCX, TXT.")
+          showErrorModal("That file type is not supported. Allowed: PDF, JPG, PNG, DOC, DOCX")
           input.value = "" // clear invalid
           // reset preview & page count
           if (filePreview) { filePreview.style.display = "none"; filePreview.innerHTML = "" }
@@ -660,7 +659,7 @@ console.log('Found successModal element:', !!modalEl);
 
     const newFileInput = fileInput.cloneNode(true)
     // ensure accept attribute preserved 
-    newFileInput.accept = fileInput.accept || ".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
+    newFileInput.accept = fileInput.accept || ".pdf,.jpg,.jpeg,.png,.doc,.docx"
     fileInput.replaceWith(newFileInput)
     newFileInput.addEventListener("change", handleFileChange)
 
@@ -694,7 +693,7 @@ console.log('Found successModal element:', !!modalEl);
 
         // VALIDATION: show error modal if invalid
         if (!isValidFile(file)) {
-          showErrorModal("That file type is not supported. Allowed: PDF, JPG, PNG, DOC, DOCX, TXT.")
+          showErrorModal("That file type is not supported. Allowed: PDF, JPG, PNG, DOC, DOCX")
           // don't attach file
           return
         }
@@ -1384,6 +1383,15 @@ console.log('Found successModal element:', !!modalEl);
     confirmationModal.style.display = "block"
     document.body.classList.add("modal-open")
   })
+
+  // Disable the semester dropdown
+  if (semesterInput) {
+    semesterInput.disabled = true;
+  }
+
+  if(academicYearInput) {
+    academicYearInput.disabled = true;
+  }
 
   restoreFormState()
   showStoredSuccessIfAny()

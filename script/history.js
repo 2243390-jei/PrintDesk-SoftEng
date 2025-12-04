@@ -409,7 +409,7 @@
       }
     }
 
-    // Edit / Save / Delete handlers (unchanged)
+    // Edit / Save / Delete handlers 
     const editBtn = e.target.closest(".btn-edit")
     if (editBtn) { enableEditMode(editBtn.dataset.id); return }
 
