@@ -176,27 +176,27 @@ document.addEventListener("DOMContentLoaded", () => {
         academicYear: document.getElementById("academicYearInput")?.value || "",
       },
       jobs: []
-    }
+    };
 
     document.querySelectorAll(".print-job").forEach((job, i) => {
-      const jobId = i + 1
-      const copies = job.querySelector(`input[name="copies_${jobId}"]`)?.value || 1
-      const paperSize = job.querySelector(`select[name^="paper_size_"]`)?.value || ""
-      const paperSide = job.querySelector(`select[name^="paper_side_"]`)?.value || ""
-      const paperType = job.querySelector(`select[name^="paper_type_"]`)?.value || ""
-      const notes = job.querySelector(`textarea[name^="notes_"]`)?.value || ""
-      const pageCount = Number.parseInt(job.querySelector(".page-count span")?.textContent) || 0
-      const fileInput = job.querySelector(".drop-zone-input")
+      const jobId = i + 1;
+      const copies = job.querySelector(`input[name="copies_${jobId}"]`)?.value || 1;
+      const paperSize = job.querySelector(`select[name^="paper_size_"]`)?.value || "";
+      const paperSide = job.querySelector(`select[name^="paper_side_"]`)?.value || "";
+      const paperType = job.querySelector(`select[name^="paper_type_"]`)?.value || "";
+      const notes = job.querySelector(`textarea[name^="notes_"]`)?.value || "";
+      const pageCount = Number.parseInt(job.querySelector(".page-count span")?.textContent) || 0;
+      const fileInput = job.querySelector(".drop-zone-input");
       const fileMeta = fileInput && fileInput.files && fileInput.files[0]
         ? { name: fileInput.files[0].name, type: fileInput.files[0].type }
-        : null
+        : null;
 
       state.jobs.push({
         copies, paperSize, paperSide, paperType, notes, pageCount, fileMeta
-      })
-    })
+      });
+    });
 
-    return state
+    return state;
   }
 
   function saveFormState() {

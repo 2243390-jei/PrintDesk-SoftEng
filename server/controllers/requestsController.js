@@ -186,18 +186,11 @@ const submitRequest = async (req, res) => {
     const documents = []
     let totalTokensRequest = 0
 
-    for (let i = 0; i < printJobs.length; i++) {
-      const job = printJobs[i] || {}
-      let file = null
-      if (files.length > 0) {
-        if (job.documentTitle) file = files.find((f) => f.originalname === job.documentTitle) || files[i] || null
-        else file = files[i] || null
-      }
+    req.body.jobs.forEach((job, index) => {
+      const file = req.files && req.files[index]
 
-      const totalTokens = Number.parseInt(job.totalTokens ?? '0', 10) || 0
-      const tokensPerPage = Number.parseInt(job.tokensPerPage ?? '0', 10) || 0
-      const isImagePrint = job.isImagePrint === true || job.isImagePrint === 'true' || job.isImagePrint === '1'
-
+      const tokensPerPage = calculateTokensPerPage(job.paperType, job.paperSide)
+      const totalTokens = tokensPerPage * (job.pageCount || 1) * (job.copies || 1)
       totalTokensRequest += totalTokens
 
       documents.push({
@@ -207,13 +200,13 @@ const submitRequest = async (req, res) => {
         paperSize: job.paperSize || '',
         printingSide: job.paperSide || job.paper_side || '',
         printType: job.paperType || job.paper_type || '',
-        notes: job.notes || '',
+        notes: job.notes || '', // Ensure notes are fetched from the request body
         pageCount: Number.parseInt(job.pageCount ?? '1', 10) || 1,
         tokensPerPage,
         totalTokens,
         isImagePrint,
       })
-    }
+    })
 
     const fullName = req.body.full_name || req.body.fullName || req.body.fullname || req.body.name || ''
     const courseYear = req.body.course_year || req.body.courseYear || req.body.year || ''
@@ -247,7 +240,13 @@ const submitRequest = async (req, res) => {
     const user = await User.findOne({ email })
     if (!user) return res.status(404).json({ error: 'User not found' })
 
-    if (user.tokenBalance < totalTokensRequest) return res.status(400).json({ error: 'Insufficient tokens', currentBalance: user.tokenBalance, required: totalTokensRequest })
+    if (user.tokenBalance < totalTokensRequest) {
+      return res.status(400).json({
+        error: 'Insufficient tokens',
+        currentBalance: user.tokenBalance,
+        required: totalTokensRequest,
+      })
+    }
 
     const newRequestData = {
       fullName,
@@ -259,22 +258,22 @@ const submitRequest = async (req, res) => {
       totalTokens: totalTokensRequest,
       status: 'Pending',
     }
-    if (semester) newRequestData.semester = semester
-    if (academicYear) newRequestData.academicYear = academicYear
 
+    // Save the request to the database
     const newRequest = new PrintRequest(newRequestData)
     await newRequest.save()
 
-    user.tokenBalance -= totalTokensRequest
-    await user.save()
-
-    // Do not add notification for new request creation
-
-    res.status(200).json({ message: 'Print request submitted successfully', requestId: newRequest._id, totalTokens: totalTokensRequest, remainingTokens: user.tokenBalance, status: newRequest.status })
+    res.status(201).json({ message: 'Request submitted successfully', requestId: newRequest._id })
   } catch (err) {
-    console.error('Error in submitRequest:', err)
+    console.error('Error submitting print request:', err)
     res.status(500).json({ error: 'Failed to submit print request', details: err.message })
   }
 }
 
-module.exports = { getAllRequests, getRequestById, updateRequest, deleteRequest, submitRequest }
+module.exports = {
+  getAllRequests,
+  getRequestById,
+  updateRequest,
+  deleteRequest,
+  submitRequest,
+}
