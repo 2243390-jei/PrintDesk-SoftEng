@@ -8,7 +8,7 @@ const documentSchema = new mongoose.Schema(
     paperSize: String,
     printingSide: String,
     printType: String,
-    notes: String,
+    notes: String, // Ensure notes field is included
     pageCount: Number,
     tokensPerPage: Number,
     totalTokens: Number,
@@ -21,18 +21,14 @@ const printRequestSchema = new mongoose.Schema({
   fullName: String,
   courseYear: String,
   email: String,
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
-  semester: {
-    type: String,
-    enum: ['1st Semester', '2nd Semester', 'Short Term'],
-  },
-  academicYear: String,
-
-  pickupDateTime: String,
+  pickupDateTime: Date,
   documents: [documentSchema],
   totalTokens: Number,
-  status: { type: String, enum: ['Pending', 'Accepted', 'Completed', 'Rejected', 'Cancelled'], default: 'Pending' },
-  createdAt: { type: Date, default: Date.now },
+  status: {
+    type: String,
+    enum: ['Pending', 'Accepted', 'Rejected', 'Completed'],
+    default: 'Pending',
+  },
 })
 
-module.exports = mongoose.model('print_requests', printRequestSchema)
+module.exports = mongoose.model('PrintRequest', printRequestSchema)
