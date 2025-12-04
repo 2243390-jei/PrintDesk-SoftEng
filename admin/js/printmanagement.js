@@ -140,178 +140,46 @@ document.addEventListener("DOMContentLoaded", () => {
       previewArea.appendChild(img);
 
     } else if (isPDFFile(filename)) {
-      // Handle PDF files - embedded without print UI
+      // Handle PDF files using PDF.js or embed
       const pdfContainer = document.createElement('div');
       pdfContainer.className = 'pdf-preview-container';
-      
-      const iframeWrapper = document.createElement('div');
-      iframeWrapper.style.position = 'relative';
-      iframeWrapper.style.width = '100%';
-      iframeWrapper.style.height = '400px';
-      
-      const iframe = document.createElement('iframe');
-      iframe.src = fileUrl + '#toolbar=0&navpanes=0';
-      iframe.type = 'application/pdf';
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
-      iframe.style.border = 'none';
-      iframe.style.borderRadius = '6px';
-      
-      // Create error overlay
-      const errorOverlay = document.createElement('div');
-      errorOverlay.style.position = 'absolute';
-      errorOverlay.style.top = '0';
-      errorOverlay.style.left = '0';
-      errorOverlay.style.width = '100%';
-      errorOverlay.style.height = '100%';
-      errorOverlay.style.display = 'none';
-      errorOverlay.style.backgroundColor = 'white';
-      errorOverlay.style.zIndex = '10';
-      errorOverlay.style.borderRadius = '6px';
-      
-      function showErrorFallback() {
-        errorOverlay.style.display = 'flex';
-        errorOverlay.style.flexDirection = 'column';
-        errorOverlay.style.alignItems = 'center';
-        errorOverlay.style.justifyContent = 'center';
-        errorOverlay.style.gap = '16px';
-        errorOverlay.style.padding = '40px';
-        errorOverlay.innerHTML = `
-          <p style="margin: 0; color: #6b7280; font-size: 14px; text-align: center;">Can't view the file? <a href="#" style="color: #0d6efd; text-decoration: none; font-weight: 500;">Download the file</a></p>
-        `;
-        errorOverlay.querySelector('a').addEventListener('click', (e) => {
-          e.preventDefault();
-          downloadCurrentDocument();
-        });
-      }
-      
-      // Only show error on actual iframe error event (e.g., 404)
-      iframe.addEventListener('error', showErrorFallback);
-      
-      iframeWrapper.appendChild(iframe);
-      iframeWrapper.appendChild(errorOverlay);
-      pdfContainer.appendChild(iframeWrapper);
-      
-      // Add download fallback below the preview
-      const downloadFallback = document.createElement('div');
-      downloadFallback.style.marginTop = '12px';
-      downloadFallback.style.padding = '12px';
-      downloadFallback.style.backgroundColor = '#f8f9fa';
-      downloadFallback.style.borderRadius = '6px';
-      downloadFallback.style.textAlign = 'center';
-      downloadFallback.innerHTML = `
-        <p style="margin: 0; font-size: 14px; color: #6b7280;">Can't view the file? <a href="#" style="color: #0d6efd; text-decoration: none; font-weight: 500;">Download the file</a></p>
+      pdfContainer.innerHTML = `
+        <embed src="${fileUrl}" type="application/pdf" width="100%" height="400px" />
+        <div class="pdf-alternative">
+          <p>Can't view the PDF? <a href="${fileUrl}" target="_blank" download="${filename}">Download instead</a></p>
+        </div>
       `;
-      downloadFallback.querySelector('a').addEventListener('click', (e) => {
-        e.preventDefault();
-        downloadCurrentDocument();
-      });
-      
-      pdfContainer.appendChild(downloadFallback);
       previewArea.appendChild(pdfContainer);
 
     } else if (isWordFile(filename) || isExcelFile(filename) || isPowerPointFile(filename)) {
-      // Handle Office documents - embedded without print UI
+      // Handle Office documents using Microsoft Office Online Viewer
       const officeContainer = document.createElement('div');
       officeContainer.className = 'office-preview-container';
-      
-      // Use Office Online Viewer with disabled toolbar
-      const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}&wdAllowInteractivity=false`;
-      
-      const iframeWrapper = document.createElement('div');
-      iframeWrapper.style.position = 'relative';
-      iframeWrapper.style.width = '100%';
-      iframeWrapper.style.height = '400px';
-      
-      const iframe = document.createElement('iframe');
-      iframe.src = officeViewerUrl;
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
-      iframe.style.border = 'none';
-      iframe.style.borderRadius = '6px';
-      iframe.setAttribute('frameborder', '0');
-      iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-forms');
-      
-      // Create overlay to intercept errors
-      const errorOverlay = document.createElement('div');
-      errorOverlay.style.position = 'absolute';
-      errorOverlay.style.top = '0';
-      errorOverlay.style.left = '0';
-      errorOverlay.style.width = '100%';
-      errorOverlay.style.height = '100%';
-      errorOverlay.style.display = 'none';
-      errorOverlay.style.backgroundColor = 'white';
-      errorOverlay.style.zIndex = '10';
-      errorOverlay.style.borderRadius = '6px';
-      
-      // Check after a delay if Office Viewer failed to load
-      setTimeout(() => {
-        try {
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-          if (!iframeDoc || iframeDoc.body.innerText.includes('error') || iframeDoc.body.innerText.includes('failed')) {
-            showErrorFallback();
-          }
-        } catch (e) {
-          // Cross-origin, likely loaded successfully
-        }
-      }, 2000);
-      
-      function showErrorFallback() {
-        errorOverlay.style.display = 'flex';
-        errorOverlay.style.flexDirection = 'column';
-        errorOverlay.style.alignItems = 'center';
-        errorOverlay.style.justifyContent = 'center';
-        errorOverlay.style.gap = '16px';
-        errorOverlay.style.padding = '40px';
-        errorOverlay.innerHTML = `
-          <p style="margin: 0; color: #6b7280; font-size: 14px; text-align: center;">Can't view the file? <a href="#" style="color: #0d6efd; text-decoration: none; font-weight: 500;">Download the file</a></p>
-        `;
-        errorOverlay.querySelector('a').addEventListener('click', (e) => {
-          e.preventDefault();
-          downloadCurrentDocument();
-        });
-      }
-      
-      iframe.addEventListener('error', showErrorFallback);
-      
-      iframeWrapper.appendChild(iframe);
-      iframeWrapper.appendChild(errorOverlay);
-      officeContainer.appendChild(iframeWrapper);
-      previewArea.appendChild(officeContainer);
-      
-      // Also add download fallback below the preview
-      const downloadFallback = document.createElement('div');
-      downloadFallback.style.marginTop = '12px';
-      downloadFallback.style.padding = '12px';
-      downloadFallback.style.backgroundColor = '#f8f9fa';
-      downloadFallback.style.borderRadius = '6px';
-      downloadFallback.style.textAlign = 'center';
-      downloadFallback.innerHTML = `
-        <p style="margin: 0; font-size: 14px; color: #6b7280;">Can't view the file? <a href="#" style="color: #0d6efd; text-decoration: none; font-weight: 500;">Download the file</a></p>
+
+      // Microsoft Office Online Viewer URL
+      const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+
+      officeContainer.innerHTML = `
+        <iframe src="${officeViewerUrl}" width="100%" height="400px" frameborder="0"></iframe>
+        <div class="office-alternative">
+          <p>Can't view the document? <a href="${fileUrl}" target="_blank" download="${filename}">Download instead</a></p>
+        </div>
       `;
-      downloadFallback.querySelector('a').addEventListener('click', (e) => {
-        e.preventDefault();
-        downloadCurrentDocument();
-      });
-      officeContainer.appendChild(downloadFallback);
+      previewArea.appendChild(officeContainer);
 
     } else {
-      // Handle other file types - show unsupported format message
-      showPreviewUnavailable(filename, 'unsupported');
+      // Handle other file types
+      showPreviewUnavailable(filename);
     }
   }
 
-  function showPreviewUnavailable(filename, reason = 'deleted') {
-    let message = 'File may have been deleted';
-    
-    if (reason === 'unsupported') {
-      message = 'File must be PDF, Image, Word, Excel, or PowerPoint format';
-    }
-    
+  function showPreviewUnavailable(filename) {
     previewArea.innerHTML = `
       <div class="preview-placeholder">
         <img src="../../images/admin_img/document-preview.png" alt="Document" />
-        <p>${message}</p>
+        <p>No preview available for ${filename}</p>
+        <p class="file-download-text">Please download the file to view its contents</p>
+        <button class="download-btn" onclick="downloadCurrentDocument()">Download Document</button>
       </div>
     `;
   }

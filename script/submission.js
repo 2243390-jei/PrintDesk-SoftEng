@@ -47,11 +47,12 @@ document.addEventListener("DOMContentLoaded", () => {
     'application/pdf',
     'image/png',
     'image/jpeg',
+    'text/plain',
     // Word MIME types (may vary by platform)
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ]
-  const ALLOWED_EXTS = ['.pdf', '.png', '.jpg', '.jpeg','.doc', '.docx']
+  const ALLOWED_EXTS = ['.pdf', '.png', '.jpg', '.jpeg', '.txt', '.doc', '.docx']
   
 
   /* =========================
@@ -175,27 +176,27 @@ document.addEventListener("DOMContentLoaded", () => {
         academicYear: document.getElementById("academicYearInput")?.value || "",
       },
       jobs: []
-    };
+    }
 
     document.querySelectorAll(".print-job").forEach((job, i) => {
-      const jobId = i + 1;
-      const copies = job.querySelector(`input[name="copies_${jobId}"]`)?.value || 1;
-      const paperSize = job.querySelector(`select[name^="paper_size_"]`)?.value || "";
-      const paperSide = job.querySelector(`select[name^="paper_side_"]`)?.value || "";
-      const paperType = job.querySelector(`select[name^="paper_type_"]`)?.value || "";
-      const notes = job.querySelector(`textarea[name^="notes_"]`)?.value || "";
-      const pageCount = Number.parseInt(job.querySelector(".page-count span")?.textContent) || 0;
-      const fileInput = job.querySelector(".drop-zone-input");
+      const jobId = i + 1
+      const copies = job.querySelector(`input[name="copies_${jobId}"]`)?.value || 1
+      const paperSize = job.querySelector(`select[name^="paper_size_"]`)?.value || ""
+      const paperSide = job.querySelector(`select[name^="paper_side_"]`)?.value || ""
+      const paperType = job.querySelector(`select[name^="paper_type_"]`)?.value || ""
+      const notes = job.querySelector(`textarea[name^="notes_"]`)?.value || ""
+      const pageCount = Number.parseInt(job.querySelector(".page-count span")?.textContent) || 0
+      const fileInput = job.querySelector(".drop-zone-input")
       const fileMeta = fileInput && fileInput.files && fileInput.files[0]
         ? { name: fileInput.files[0].name, type: fileInput.files[0].type }
-        : null;
+        : null
 
       state.jobs.push({
         copies, paperSize, paperSide, paperType, notes, pageCount, fileMeta
-      });
-    });
+      })
+    })
 
-    return state;
+    return state
   }
 
   function saveFormState() {
@@ -234,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
             newInput.name = "documents"
             newInput.className = "drop-zone-input"
             newInput.required = true
-            newInput.accept = ".pdf,.jpg,.jpeg,.png,.doc,.docx"
+            newInput.accept = ".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
             oldInput.replaceWith(newInput)
             initializeDropZone(dropZone)
           }
@@ -590,65 +591,7 @@ console.log('Found successModal element:', !!modalEl);
             remainingDisplay.style.background = "#fff0f0"
             remainingDisplay.style.color = "#c62828"
           }
-          // Ensure the queue display element exists above remainingDisplay
-          let queueDisplay = document.getElementById('queuePosition')
-          if (!queueDisplay) {
-            queueDisplay = document.createElement('div')
-            queueDisplay.id = 'queuePosition'
-            queueDisplay.style.marginTop = '8px'
-            queueDisplay.style.padding = '8px 12px'
-            queueDisplay.style.borderRadius = '6px'
-            queueDisplay.style.fontWeight = 'bold'
-            queueDisplay.style.textAlign = 'right'
-            remainingDisplay.parentNode.insertBefore(queueDisplay, remainingDisplay)
-          }
-
-          // Update remaining tokens text
           remainingDisplay.textContent = `🪙 Remaining Tokens After Transaction: ${remainingTokens}`
-
-          // If pickup date selected, query queue count for that date and update queueDisplay
-          try {
-            const selectedDate = pickupDateTime?.value
-            if (!selectedDate) {
-              queueDisplay.style.display = 'none'
-            } else {
-              queueDisplay.style.display = 'block'
-              const dateMatch = String(selectedDate).match(/^(\d{4}-\d{2}-\d{2})/)
-              const dateOnly = dateMatch ? dateMatch[1] : selectedDate
-              fetch(`http://localhost:3000/requests/queue/count?date=${encodeURIComponent(dateOnly)}`)
-                .then(r => r.json())
-                .then(data => {
-                  const count = Number(data.count) || 0
-                  const position = count + 1
-                  // Determine if selected date is today
-                  const today = new Date()
-                  const sel = new Date(dateOnly + 'T00:00:00')
-                  const isToday = sel.toDateString() === new Date(today.getFullYear(), today.getMonth(), today.getDate()).toDateString()
-                  if (count >= 20 && !isToday) {
-                    queueDisplay.style.background = '#fff0f0'
-                    queueDisplay.style.color = '#9b1c1c'
-                    queueDisplay.textContent = `⚠️ Reservations full for this date (20). Please choose another date.`
-                    if (confirmSubmissionBtn) confirmSubmissionBtn.disabled = true
-                  } else {
-                    if (isToday) {
-                      queueDisplay.style.background = '#fff8e1'
-                      queueDisplay.style.color = '#6a4c00'
-                      queueDisplay.textContent = `Queue position if submitted: #${position}`
-                    } else {
-                      queueDisplay.style.background = '#eef2ff'
-                      queueDisplay.style.color = '#2e1362'
-                      queueDisplay.textContent = `Reservation position if submitted: #${position}`
-                    }
-                    if (confirmSubmissionBtn) confirmSubmissionBtn.disabled = false
-                  }
-                })
-                .catch((err) => {
-                  console.error('Failed to fetch queue count:', err)
-                })
-            }
-          } catch (err) {
-            console.error('Error computing queue display:', err)
-          }
         })
         .catch((err) => console.error("Failed to fetch token balance:", err))
     }
@@ -698,7 +641,7 @@ console.log('Found successModal element:', !!modalEl);
 
         // VALIDATION: show error modal if invalid
         if (!isValidFile(file)) {
-          showErrorModal("That file type is not supported. Allowed: PDF, JPG, PNG, DOC, DOCX")
+          showErrorModal("That file type is not supported. Allowed: PDF, JPG, PNG, DOC, DOCX, TXT.")
           input.value = "" // clear invalid
           // reset preview & page count
           if (filePreview) { filePreview.style.display = "none"; filePreview.innerHTML = "" }
@@ -717,7 +660,7 @@ console.log('Found successModal element:', !!modalEl);
 
     const newFileInput = fileInput.cloneNode(true)
     // ensure accept attribute preserved 
-    newFileInput.accept = fileInput.accept || ".pdf,.jpg,.jpeg,.png,.doc,.docx"
+    newFileInput.accept = fileInput.accept || ".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
     fileInput.replaceWith(newFileInput)
     newFileInput.addEventListener("change", handleFileChange)
 
@@ -751,7 +694,7 @@ console.log('Found successModal element:', !!modalEl);
 
         // VALIDATION: show error modal if invalid
         if (!isValidFile(file)) {
-          showErrorModal("That file type is not supported. Allowed: PDF, JPG, PNG, DOC, DOCX")
+          showErrorModal("That file type is not supported. Allowed: PDF, JPG, PNG, DOC, DOCX, TXT.")
           // don't attach file
           return
         }
@@ -1122,9 +1065,6 @@ console.log('Found successModal element:', !!modalEl);
 
     pickupDateTime.removeEventListener('change', validatePickupDate)
     pickupDateTime.addEventListener('change', validatePickupDate)
-    // update queue/remaining tokens display when pickup date changes
-    pickupDateTime.removeEventListener('change', updateTotalTokens)
-    pickupDateTime.addEventListener('change', updateTotalTokens)
   }
 
   function validatePickupDate() {
@@ -1444,15 +1384,6 @@ console.log('Found successModal element:', !!modalEl);
     confirmationModal.style.display = "block"
     document.body.classList.add("modal-open")
   })
-
-  // Disable the semester dropdown
-  if (semesterInput) {
-    semesterInput.disabled = true;
-  }
-
-  if(academicYearInput) {
-    academicYearInput.disabled = true;
-  }
 
   restoreFormState()
   showStoredSuccessIfAny()

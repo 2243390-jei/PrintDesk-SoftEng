@@ -186,11 +186,18 @@ const submitRequest = async (req, res) => {
     const documents = []
     let totalTokensRequest = 0
 
-    req.body.jobs.forEach((job, index) => {
-      const file = req.files && req.files[index]
+    for (let i = 0; i < printJobs.length; i++) {
+      const job = printJobs[i] || {}
+      let file = null
+      if (files.length > 0) {
+        if (job.documentTitle) file = files.find((f) => f.originalname === job.documentTitle) || files[i] || null
+        else file = files[i] || null
+      }
 
-      const tokensPerPage = calculateTokensPerPage(job.paperType, job.paperSide)
-      const totalTokens = tokensPerPage * (job.pageCount || 1) * (job.copies || 1)
+      const totalTokens = Number.parseInt(job.totalTokens ?? '0', 10) || 0
+      const tokensPerPage = Number.parseInt(job.tokensPerPage ?? '0', 10) || 0
+      const isImagePrint = job.isImagePrint === true || job.isImagePrint === 'true' || job.isImagePrint === '1'
+
       totalTokensRequest += totalTokens
 
       documents.push({
@@ -200,13 +207,13 @@ const submitRequest = async (req, res) => {
         paperSize: job.paperSize || '',
         printingSide: job.paperSide || job.paper_side || '',
         printType: job.paperType || job.paper_type || '',
-        notes: job.notes || '', // Ensure notes are fetched from the request body
+        notes: job.notes || '',
         pageCount: Number.parseInt(job.pageCount ?? '1', 10) || 1,
         tokensPerPage,
         totalTokens,
         isImagePrint,
       })
-    })
+    }
 
     const fullName = req.body.full_name || req.body.fullName || req.body.fullname || req.body.name || ''
     const courseYear = req.body.course_year || req.body.courseYear || req.body.year || ''
@@ -240,103 +247,34 @@ const submitRequest = async (req, res) => {
     const user = await User.findOne({ email })
     if (!user) return res.status(404).json({ error: 'User not found' })
 
-    if (user.tokenBalance < totalTokensRequest) {
-      return res.status(400).json({
-        error: 'Insufficient tokens',
-        currentBalance: user.tokenBalance,
-        required: totalTokensRequest,
-      })
-    }
-
-    // Parse pickup date into a date-only value
-    const pickupDateStr = (req.body.pickup_datetime || req.body.pickupDateTime || '').toString()
-    const pickupDateMatch = pickupDateStr.match(/^(\d{4}-\d{2}-\d{2})/)
-    const pickupDateOnly = pickupDateMatch ? pickupDateMatch[1] : ''
-    const pickupDate = pickupDateOnly ? new Date(pickupDateOnly + 'T00:00:00') : null
-
-    // If pickup date is provided and is a future date (strictly after today), enforce max 20 pending
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    let isToday = false
-    if (pickupDate) {
-      const pd = new Date(pickupDate)
-      pd.setHours(0, 0, 0, 0)
-      isToday = pd.toDateString() === today.toDateString()
-      const isFuture = pd > today
-      if (isFuture) {
-        const startOfDay = new Date(pd)
-        startOfDay.setHours(0, 0, 0, 0)
-        const endOfDay = new Date(pd)
-        endOfDay.setHours(23, 59, 59, 999)
-        const countOnDate = await PrintRequest.countDocuments({ pickupDateTime: { $gte: startOfDay, $lte: endOfDay }, status: 'Pending' })
-        if (countOnDate >= 20) {
-          return res.status(400).json({ error: 'Reservation limit reached for this date. Maximum 20 reservations allowed per day. Please choose another date.' })
-        }
-      }
-    }
+    if (user.tokenBalance < totalTokensRequest) return res.status(400).json({ error: 'Insufficient tokens', currentBalance: user.tokenBalance, required: totalTokensRequest })
 
     const newRequestData = {
       fullName,
       courseYear,
       email,
       userId: user._id,
-      pickupDateTime: pickupDate ? pickupDate : (req.body.pickup_datetime || req.body.pickupDateTime || ''),
+      pickupDateTime: req.body.pickup_datetime || req.body.pickupDateTime || '',
       documents,
       totalTokens: totalTokensRequest,
       status: 'Pending',
     }
+    if (semester) newRequestData.semester = semester
+    if (academicYear) newRequestData.academicYear = academicYear
 
-    // Save the request to the database
     const newRequest = new PrintRequest(newRequestData)
     await newRequest.save()
 
-    // Calculate queue position (how many pending were created before this on same date)
-    let queuePosition = null
-    if (pickupDate) {
-      const startOfDay = new Date(pickupDate)
-      startOfDay.setHours(0, 0, 0, 0)
-      const endOfDay = new Date(pickupDate)
-      endOfDay.setHours(23, 59, 59, 999)
-      const beforeCount = await PrintRequest.countDocuments({ pickupDateTime: { $gte: startOfDay, $lte: endOfDay }, status: 'Pending', _id: { $lt: newRequest._id } })
-      queuePosition = beforeCount + 1
-    }
+    user.tokenBalance -= totalTokensRequest
+    await user.save()
 
-    res.status(201).json({ message: 'Request submitted successfully', requestId: newRequest._id, queuePosition, isToday })
+    // Do not add notification for new request creation
+
+    res.status(200).json({ message: 'Print request submitted successfully', requestId: newRequest._id, totalTokens: totalTokensRequest, remainingTokens: user.tokenBalance, status: newRequest.status })
   } catch (err) {
-    console.error('Error submitting print request:', err)
+    console.error('Error in submitRequest:', err)
     res.status(500).json({ error: 'Failed to submit print request', details: err.message })
   }
 }
 
-module.exports = {
-  getAllRequests,
-  getRequestById,
-  updateRequest,
-  deleteRequest,
-  submitRequest,
-}
-
-// GET /requests/queue/count?date=YYYY-MM-DD
-async function getQueueCountByDate(req, res) {
-  try {
-    const dateStr = req.query.date
-    if (!dateStr) return res.status(400).json({ error: 'Missing date query parameter' })
-    const match = String(dateStr).match(/^(\d{4}-\d{2}-\d{2})/)
-    if (!match) return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' })
-    const dateOnly = match[1]
-    const d = new Date(dateOnly + 'T00:00:00')
-    if (isNaN(d.getTime())) return res.status(400).json({ error: 'Invalid date value' })
-    const startOfDay = new Date(d)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(d)
-    endOfDay.setHours(23, 59, 59, 999)
-
-    const count = await PrintRequest.countDocuments({ pickupDateTime: { $gte: startOfDay, $lte: endOfDay }, status: 'Pending' })
-    return res.json({ date: dateOnly, count })
-  } catch (err) {
-    console.error('getQueueCountByDate error:', err)
-    return res.status(500).json({ error: 'Failed to get queue count', details: err.message })
-  }
-}
-
-module.exports.getQueueCountByDate = getQueueCountByDate
+module.exports = { getAllRequests, getRequestById, updateRequest, deleteRequest, submitRequest }
