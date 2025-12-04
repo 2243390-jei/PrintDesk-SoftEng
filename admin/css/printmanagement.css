@@ -238,6 +238,13 @@ body {
 /* pills & actions */
 .pill{ padding:6px 10px; border-radius:999px; font-size:13px; display:inline-block; font-weight:600; }
 .pill.accepted{ background:#e8f6ea; color:#1f7a2f; }
+.pill.cancelled { background:#f8d7da; color:#721c24; }
+
+/* Center the Preferred Pickup Date column (4th column) */
+.users-table thead th:nth-child(4),
+.users-table td:nth-child(4) {
+  text-align: center;
+}
 .action-btn { 
   padding: 6px 12px;
   border-radius: 6px;
@@ -860,6 +867,8 @@ body {
   background-color: #DBEAFE;
   color: #1E40AF;
 }
+
+.status-badge.status-cancelled { background-color: #FEE2E2; color: #721c24; }
 
 .modal-header {
   background: #f8f9fa;

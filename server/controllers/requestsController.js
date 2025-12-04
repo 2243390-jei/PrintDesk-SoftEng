@@ -37,7 +37,7 @@ const updateRequest = async (req, res) => {
     for (const field of allowedFields) if (req.body[field] !== undefined) updates[field] = req.body[field]
 
     if (updates.status) {
-      const validStatuses = ['Pending', 'Accepted', 'Completed', 'Rejected']
+      const validStatuses = ['Pending', 'Accepted', 'Completed', 'Rejected', 'Cancelled']
       if (!validStatuses.includes(updates.status)) return res.status(400).json({ error: 'Invalid status', validStatuses })
     }
 
@@ -73,6 +73,7 @@ const updateRequest = async (req, res) => {
         if (updates.status === 'Accepted') message = `Your print request for "${fileNames}" has been accepted and is being processed.`
         if (updates.status === 'Completed' || updates.status === 'Ready') message = `Your print request for "${fileNames}" is ready for pickup.`
         if (updates.status === 'Rejected') message = `Your print request for "${fileNames}" was rejected.`
+        if (updates.status === 'Cancelled') message = `Your print request for "${fileNames}" was cancelled due to unclaimed pickup.`
 
         const notification = { type: notifType, message, requestId: updatedRequest._id }
         await User.findByIdAndUpdate(currentRequest.userId, { $push: { notifications: notification } })
