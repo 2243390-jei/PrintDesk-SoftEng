@@ -4,6 +4,7 @@ const requestsController = require('../controllers/requestsController')
 const { upload } = require('../middleware/upload')
 
 router.get('/', requestsController.getAllRequests)
+router.get('/pendingCount', requestsController.getPendingCount)
 router.get('/:id', requestsController.getRequestById)
 router.patch('/:id', requestsController.updateRequest)
 router.delete('/:id', requestsController.deleteRequest)

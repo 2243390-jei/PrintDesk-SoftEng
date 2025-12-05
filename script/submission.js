@@ -357,6 +357,7 @@ document.addEventListener("DOMContentLoaded", () => {
       requestId: result.requestId || null,
       totalTokens: result.totalTokens || null,
       remainingTokens: result.remainingTokens || null,
+      queuePosition: result.queuePosition ?? null,
       status: result.status || "Submitted",
       fullName: sentMeta.fullName || "",
       courseYear: sentMeta.courseYear || "",
@@ -382,6 +383,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <p><strong>Course Year:</strong> ${s.courseYear || "-"}</p>
           <p><strong>Total Tokens Used:</strong> ${s.totalTokens ?? "-"}</p>
           <p><strong>Remaining Tokens:</strong> ${s.remainingTokens ?? "-"}</p>
+          <p><strong>Your Queue Position:</strong> ${s.queuePosition ?? "-"}</p>
           <p><strong>Status:</strong> ${s.status}</p>
           <p style="font-size:12px;color:#666">Submitted at: ${new Date(s.time).toLocaleString()}</p>
         `
@@ -565,6 +567,10 @@ console.log('Found successModal element:', !!modalEl);
     }
     totalDisplay.textContent = `💰 Total Tokens Required: ${total}`
 
+    // update queue info for selected pickup date (shows position/count at bottom of form)
+    const pickupVal = document.getElementById('pickupDateTime')?.value || ''
+    if (pickupVal) updateQueueInfo(pickupVal, total)
+
     if (currentUserEmail) {
       fetch(`http://localhost:3000/users/${encodeURIComponent(currentUserEmail)}`)
         .then((res) => res.json())
@@ -593,6 +599,63 @@ console.log('Found successModal element:', !!modalEl);
           remainingDisplay.textContent = `🪙 Remaining Tokens After Transaction: ${remainingTokens}`
         })
         .catch((err) => console.error("Failed to fetch token balance:", err))
+    }
+  }
+
+  // Fetch pending count for a given pickup date and render queue info at bottom of form
+  async function updateQueueInfo(pickupDateRaw, totalTokensForRequest) {
+    const pickupDateOnly = String(pickupDateRaw).substring(0,10)
+    if (!pickupDateOnly) return
+
+    let queueDisplay = document.getElementById('queueInfo')
+    if (!queueDisplay) {
+      queueDisplay = document.createElement('div')
+      queueDisplay.id = 'queueInfo'
+      queueDisplay.style.marginTop = '10px'
+      queueDisplay.style.padding = '10px 15px'
+      queueDisplay.style.borderRadius = '8px'
+      queueDisplay.style.fontWeight = 'bold'
+      queueDisplay.style.textAlign = 'right'
+      form.appendChild(queueDisplay)
+    }
+
+    try {
+      const resp = await fetch(`http://localhost:3000/requests/pendingCount?pickupDate=${encodeURIComponent(pickupDateOnly)}`)
+      if (!resp.ok) {
+        queueDisplay.style.background = '#fff7e6'
+        queueDisplay.style.color = '#8a6d3b'
+        queueDisplay.textContent = `⚠️ Could not fetch queue info (status ${resp.status})`
+        return
+      }
+      const j = await resp.json()
+      const count = Number(j.count || 0)
+
+      const today = new Date()
+      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      const sel = new Date(pickupDateOnly + 'T00:00:00')
+      const isFuture = sel.setHours(0,0,0,0) > todayOnly.setHours(0,0,0,0)
+
+      if (isFuture) {
+        queueDisplay.style.background = count >= 20 ? '#fff0f0' : '#f0fff0'
+        queueDisplay.style.color = count >= 20 ? '#c62828' : '#2e7d32'
+        const pos = count + 1
+        queueDisplay.textContent = `📅 Pickup ${pickupDateOnly} — ${count} pending, you would be #${pos}`
+        if (count >= 20) {
+          // show inline warning near form
+          queueDisplay.textContent += ' — Reservation limit reached (20)'
+        }
+      } else {
+        // for today, show simple queue length and estimated position
+        queueDisplay.style.background = '#f8f9ff'
+        queueDisplay.style.color = '#1e1362'
+        const pos = count + 1
+        queueDisplay.textContent = `📅 Pickup ${pickupDateOnly} — ${count} pending, you would be #${pos}`
+      }
+    } catch (err) {
+      console.warn('updateQueueInfo error', err)
+      queueDisplay.style.background = '#fff7e6'
+      queueDisplay.style.color = '#8a6d3b'
+      queueDisplay.textContent = '⚠️ Error loading queue info'
     }
   }
 
@@ -988,6 +1051,38 @@ console.log('Found successModal element:', !!modalEl);
     formData.append("printJobs", JSON.stringify(printJobsData))
 
     try {
+      // Before submitting, check how many pending requests exist for the chosen pickup date
+      const pickupDateOnly = (sentMeta.pickupDateTime || '').substring(0,10)
+      let clientQueuePosition = null
+      if (pickupDateOnly) {
+        try {
+          const pendingRes = await fetch(`http://localhost:3000/requests/pendingCount?pickupDate=${encodeURIComponent(pickupDateOnly)}`)
+          if (pendingRes.ok) {
+            const pendingJson = await pendingRes.json()
+            const count = Number(pendingJson.count || 0)
+
+            // Determine if chosen date is in the future (strictly after today)
+            const today = new Date()
+            const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+            const sel = new Date(pickupDateOnly + 'T00:00:00')
+            const isFuture = sel.setHours(0,0,0,0) > todayOnly.setHours(0,0,0,0)
+
+            // Enforce client-side reservation limit for future dates
+            if (isFuture && count >= 20) {
+              showErrorModal('Reservation limit reached for the selected future pickup date. Please choose another date.')
+              return
+            }
+
+            clientQueuePosition = count + 1
+          } else {
+            // Non-fatal: log but proceed with submission; server will also enforce limit
+            console.warn('Failed to get pending count before submit:', pendingRes.status)
+          }
+        } catch (err) {
+          console.warn('Error fetching pending count:', err)
+        }
+      }
+
       const res = await fetch("http://localhost:3000/submit", {
         method: "POST",
         body: formData,
@@ -1004,6 +1099,11 @@ console.log('Found successModal element:', !!modalEl);
       if (!res.ok) {
         const errorMsg = result.error || result.message || "Unknown server error"
         throw new Error(errorMsg)
+      }
+
+      // If server didn't return a queuePosition, fall back to client-calculated one
+      if (result.queuePosition == null && clientQueuePosition != null) {
+        result.queuePosition = clientQueuePosition
       }
 
       // Save success details and reset form
@@ -1114,6 +1214,19 @@ console.log('Found successModal element:', !!modalEl);
 
   // initialize constraints
   setPickupConstraints()
+
+  // update queue info whenever pickup date changes
+  if (pickupDateTime) {
+    pickupDateTime.addEventListener('change', () => {
+      // validate and then update queue info
+      if (!validatePickupDate()) return
+      if (pickupDateTime.value) updateQueueInfo(pickupDateTime.value)
+      else {
+        const q = document.getElementById('queueInfo')
+        if (q) q.remove()
+      }
+    })
+  }
 
   function getSemesterAndAcademicYear(date = new Date()) {
     const month = date.getMonth() + 1

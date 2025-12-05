@@ -249,6 +249,26 @@ const submitRequest = async (req, res) => {
 
     if (user.tokenBalance < totalTokensRequest) return res.status(400).json({ error: 'Insufficient tokens', currentBalance: user.tokenBalance, required: totalTokensRequest })
 
+    // Enforce reservation limit for future pickup dates (max 20 pending requests)
+    const pickupDateRaw = req.body.pickup_datetime || req.body.pickupDateTime || ''
+    const pickupDateOnly = (typeof pickupDateRaw === 'string' && pickupDateRaw.length >= 10) ? pickupDateRaw.substring(0,10) : pickupDateRaw
+    let queueCountBefore = 0
+    if (pickupDateOnly) {
+      // Count existing pending requests for the same pickup date
+      queueCountBefore = await PrintRequest.countDocuments({ pickupDateTime: { $regex: `^${pickupDateOnly}` }, status: 'Pending' })
+      // check if pickupDateOnly is in the future (compared to local server date)
+      const sel = new Date(pickupDateOnly + 'T00:00:00')
+      const today = new Date()
+      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      sel.setHours(0,0,0,0)
+      todayOnly.setHours(0,0,0,0)
+      // only enforce limit for days strictly after today
+      const isFuture = sel.getTime() > todayOnly.getTime()
+      if (isFuture && queueCountBefore >= 20) {
+        return res.status(400).json({ error: 'Reservation limit reached for selected pickup date', currentCount: queueCountBefore, limit: 20 })
+      }
+    }
+
     const newRequestData = {
       fullName,
       courseYear,
@@ -270,11 +290,31 @@ const submitRequest = async (req, res) => {
 
     // Do not add notification for new request creation
 
-    res.status(200).json({ message: 'Print request submitted successfully', requestId: newRequest._id, totalTokens: totalTokensRequest, remainingTokens: user.tokenBalance, status: newRequest.status })
+    // compute queue position: previous count + 1 (if pickupDateOnly known)
+    let queuePosition = null
+    if (pickupDateOnly) {
+      queuePosition = queueCountBefore + 1
+    }
+
+    res.status(200).json({ message: 'Print request submitted successfully', requestId: newRequest._id, totalTokens: totalTokensRequest, remainingTokens: user.tokenBalance, status: newRequest.status, queuePosition })
   } catch (err) {
     console.error('Error in submitRequest:', err)
     res.status(500).json({ error: 'Failed to submit print request', details: err.message })
   }
 }
 
-module.exports = { getAllRequests, getRequestById, updateRequest, deleteRequest, submitRequest }
+// New: return count of pending requests for a given pickup date
+const getPendingCount = async (req, res) => {
+  try {
+    const pickupDateRaw = req.query.pickupDate || req.query.pickupDateTime || ''
+    if (!pickupDateRaw) return res.status(400).json({ error: 'pickupDate query parameter required (YYYY-MM-DD)' })
+    const pickupDateOnly = String(pickupDateRaw).substring(0,10)
+    const count = await PrintRequest.countDocuments({ pickupDateTime: { $regex: `^${pickupDateOnly}` }, status: 'Pending' })
+    res.json({ count })
+  } catch (err) {
+    console.error('getPendingCount error:', err)
+    res.status(500).json({ error: 'Failed to get pending count', details: err.message })
+  }
+}
+
+module.exports = { getAllRequests, getRequestById, updateRequest, deleteRequest, submitRequest, getPendingCount }
