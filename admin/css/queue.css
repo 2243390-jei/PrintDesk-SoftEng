@@ -420,10 +420,8 @@ body{
 .table-footer{ padding-top: 14px; display:flex; justify-content:center; align-items:center; }
 .pagination{ display:flex; align-items:center; gap:10px; }
 .page-numbers{ display:flex; gap:8px; align-items:center; }
-.page-numbers button{
-  width:32px;height:32px;border-radius:50%; border:none; background:#3a4146;color:white;font-weight:700; cursor:pointer;
-}
-.page-numbers button.inactive{ background:#fff; color:#3a4146; border:1px solid #d9dde0; font-weight:600; }
+.page-numbers button { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: white; color: #3a4146; font-weight: 700; cursor: pointer; }
+.page-numbers button.inactive { background: #3a4146; color: #fff; border: 1px solid #d9dde0; }
 .page-arrow{ background:transparent; border:1px solid rgba(255,255,255,0.08); color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer; }
 
 /* footer */
