@@ -1140,4 +1140,31 @@ document.addEventListener("DOMContentLoaded", () => {
     downloadCurrentDocument
   };
 
+  if (logoutBtn && logoutModal) {
+    logoutBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openModal(logoutModal);
+    });
+
+    // Close modal when clicking backdrop(s)
+    document.querySelectorAll('[data-close-modal]').forEach(el => {
+      el.addEventListener('click', () => closeModal(logoutModal));
+    });
+
+    // Allow ESC to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal(logoutModal);
+    });
+
+    if (cancelLogout) {
+      cancelLogout.addEventListener('click', () => closeModal(logoutModal));
+    }
+
+    if (confirmLogout) {
+      confirmLogout.addEventListener('click', () => {
+        closeModal(logoutModal);
+        window.location.href = '/index.html'; // Redirect to the homepage
+      });
+    }
+  }
 });
