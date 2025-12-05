@@ -1,4 +1,4 @@
-;(() => {
+; (() => {
   const API_URL = "http://localhost:3000/requests"
   let allRequests = []
   let filteredRequests = []
@@ -117,6 +117,8 @@
         <button class="filter-btn">Pending</button>
         <button class="filter-btn">Completed</button>
         <button class="filter-btn">Cancelled</button>
+        <button class="filter-btn">Rejected</button>
+        button class="filter-btn">Accepted</button>
       `
       filterWrapper.appendChild(fb)
     }
@@ -150,28 +152,28 @@
       filterWrapper.appendChild(ayWrap)
     }
   }
-  
+
   function getCurrentSemesterAndAcademicYear() {
-  const now = new Date()
-  const month = now.getMonth() + 1
-  const year = now.getFullYear()
+    const now = new Date()
+    const month = now.getMonth() + 1
+    const year = now.getFullYear()
 
-  let semesterLabel, academicYear
+    let semesterLabel, academicYear
 
-  if (month >= 8 && month <= 12) {
-    semesterLabel = "1st Semester"
-    academicYear = `AY ${year}-${year + 1}`
-  } else if (month >= 1 && month <= 5) {
-    semesterLabel = "2nd Semester"
-    academicYear = `AY ${year - 1}-${year}`
-  } else {
-    // June - July
-    semesterLabel = "Short Term"
-    academicYear = `AY ${year - 1}-${year}`
+    if (month >= 8 && month <= 12) {
+      semesterLabel = "1st Semester"
+      academicYear = `AY ${year}-${year + 1}`
+    } else if (month >= 1 && month <= 5) {
+      semesterLabel = "2nd Semester"
+      academicYear = `AY ${year - 1}-${year}`
+    } else {
+      // June - July
+      semesterLabel = "Short Term"
+      academicYear = `AY ${year - 1}-${year}`
+    }
+
+    return { semesterLabel, academicYear }
   }
-
-  return { semesterLabel, academicYear }
-}
 
   // Auto-populate AY list using available requests' academicYear fields
   function populateAcademicYearFilter() {
@@ -251,58 +253,58 @@
   })
 
   async function initialize() {
-  const submissionList = document.getElementById("submissionList")
-  if (!currentUserEmail) {
-    submissionList.innerHTML = `
+    const submissionList = document.getElementById("submissionList")
+    if (!currentUserEmail) {
+      submissionList.innerHTML = `
       <div class="no-data">
         <img src="../images/student_img/history/folder.png" alt="No Data" style="width:120px;margin-bottom:1rem;">
         <p>Please log in to view your print history.</p>
       </div>`
-    stopPolling()
-    return
-  }
-
-  try {
-    const resp = await fetchWithTimeout(API_URL)
-    const data = await resp.json()
-    allRequests = Array.isArray(data) ? data : []
-    populateAcademicYearFilter()
-    const { semesterLabel, academicYear } = getCurrentSemesterAndAcademicYear()
-
-    const semSelect = document.getElementById("semesterFilter")
-    const aySelect = document.getElementById("academicYearFilter")
-
-    if (semSelect) {
-      semSelect.value = semesterLabel
+      stopPolling()
+      return
     }
 
-    if (aySelect) {
-      const hasOption = Array.from(aySelect.options).some(o => o.value === academicYear)
-      if (!hasOption) {
-        const opt = document.createElement("option")
-        opt.value = academicYear
-        opt.textContent = academicYear
-        aySelect.appendChild(opt)
+    try {
+      const resp = await fetchWithTimeout(API_URL)
+      const data = await resp.json()
+      allRequests = Array.isArray(data) ? data : []
+      populateAcademicYearFilter()
+      const { semesterLabel, academicYear } = getCurrentSemesterAndAcademicYear()
+
+      const semSelect = document.getElementById("semesterFilter")
+      const aySelect = document.getElementById("academicYearFilter")
+
+      if (semSelect) {
+        semSelect.value = semesterLabel
       }
-      aySelect.value = academicYear
-    }
 
-    // set "Pending" as active status button
-    const filterContainer = document.querySelector(".filter-buttons")
-    if (filterContainer) {
-      Array.from(filterContainer.querySelectorAll(".filter-btn")).forEach((b) => b.classList.remove("active"))
-      const pendingBtn = Array.from(filterContainer.querySelectorAll(".filter-btn"))
-        .find(b => b.textContent.trim().toLowerCase() === 'pending')
-      if (pendingBtn) pendingBtn.classList.add('active')
-    }
+      if (aySelect) {
+        const hasOption = Array.from(aySelect.options).some(o => o.value === academicYear)
+        if (!hasOption) {
+          const opt = document.createElement("option")
+          opt.value = academicYear
+          opt.textContent = academicYear
+          aySelect.appendChild(opt)
+        }
+        aySelect.value = academicYear
+      }
 
-    applyFilters()
-  } catch (err) {
-    submissionList.innerHTML = `<div class="error-message"><p>Error loading requests: ${err.message}</p></div>`
-    console.error("history init error:", err)
-    stopPolling()
+      // set "Pending" as active status button
+      const filterContainer = document.querySelector(".filter-buttons")
+      if (filterContainer) {
+        Array.from(filterContainer.querySelectorAll(".filter-btn")).forEach((b) => b.classList.remove("active"))
+        const pendingBtn = Array.from(filterContainer.querySelectorAll(".filter-btn"))
+          .find(b => b.textContent.trim().toLowerCase() === 'pending')
+        if (pendingBtn) pendingBtn.classList.add('active')
+      }
+
+      applyFilters()
+    } catch (err) {
+      submissionList.innerHTML = `<div class="error-message"><p>Error loading requests: ${err.message}</p></div>`
+      console.error("history init error:", err)
+      stopPolling()
+    }
   }
-}
 
   // ======= UI: notification =======
   function showUpdateNotification() {
@@ -675,44 +677,44 @@
   }
 
   function applyFilters() {
-    if (!allRequests) return
-    const filterContainer = document.querySelector(".filter-buttons")
-    let selectedStatus = "All"
+    if (!allRequests) return;
+    const filterContainer = document.querySelector(".filter-buttons");
+    let selectedStatus = "All";
     if (filterContainer) {
-      const active = filterContainer.querySelector(".filter-btn.active")
-      if (active) selectedStatus = active.textContent.trim()
+      const active = filterContainer.querySelector(".filter-btn.active");
+      if (active) selectedStatus = active.textContent.trim();
     }
 
-    const yearSelect = document.getElementById("academicYearFilter")
-    const semesterSelect = document.getElementById("semesterFilter")
-    const selectedYear = yearSelect ? yearSelect.value : ""
-    const selectedSemester = semesterSelect ? semesterSelect.value : ""
+    const yearSelect = document.getElementById("academicYearFilter");
+    const semesterSelect = document.getElementById("semesterFilter");
+    const selectedYear = yearSelect ? yearSelect.value : "";
+    const selectedSemester = semesterSelect ? semesterSelect.value : "";
 
-    const userRequests = allRequests.filter((r) => (r.email || "").toLowerCase() === (currentUserEmail || "").toLowerCase())
-    let result = userRequests.slice()
+    const userRequests = allRequests.filter((r) => (r.email || "").toLowerCase() === (currentUserEmail || "").toLowerCase());
+    let result = userRequests.slice();
 
-    // Status filter
-    if (selectedStatus === "Completed") result = result.filter((r) => (r.status || "").toLowerCase() === "completed")
-    else if (selectedStatus === "Pending") result = result.filter((r) => (r.status || "").toLowerCase() === "pending")
-    else if (selectedStatus === "Cancelled") result = result.filter((r) => {
-      const s = (r.status || "").toLowerCase()
-      return s === "rejected" || s === "cancelled"
-    })
+    if (selectedStatus === "Completed") {
+      result = result.filter((r) => (r.status || "").toLowerCase() === "completed");
+    } else if (selectedStatus === "Pending") {
+      result = result.filter((r) => (r.status || "").toLowerCase() === "pending");
+    } else if (selectedStatus === "Cancelled") {
+      result = result.filter((r) => (r.status || "").toLowerCase() === "cancelled");
+    } else if (selectedStatus === "Rejected") {
+      result = result.filter((r) => (r.status || "").toLowerCase() === "rejected");
+    } else if (selectedStatus === "Accepted") {
+      result = result.filter((r) => (r.status || "").toLowerCase() === "accepted");
+    }
 
-    // Academic year filter
     if (selectedYear) {
-      result = result.filter((r) => (r.academicYear || "") === selectedYear)
+      result = result.filter((r) => r.academicYear === selectedYear);
     }
 
-    // Semester filter
     if (selectedSemester) {
-  result = result.filter((r) => ((r.semester || "").trim().toLowerCase() === selectedSemester.trim().toLowerCase()))
-}
+      result = result.filter((r) => r.semester === selectedSemester);
+    }
 
-    // Sort & render
-    result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-    filteredRequests = result
-    renderCards(filteredRequests)
+    filteredRequests = result;
+    renderCards(filteredRequests);
   }
 
   // ======= utility: token calculation =======
