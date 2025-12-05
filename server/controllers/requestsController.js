@@ -317,4 +317,17 @@ const getPendingCount = async (req, res) => {
   }
 }
 
-module.exports = { getAllRequests, getRequestById, updateRequest, deleteRequest, submitRequest, getPendingCount }
+const getQueue = async (req, res) => {
+  try {
+    const queue = await PrintRequest.find({ status: 'Pending' })
+      .sort({ pickupDateTime: 1 })
+      .select('fullName courseYear email pickupDateTime documents totalTokens notes');
+
+    res.json(queue);
+  } catch (err) {
+    console.error('Error fetching queue:', err);
+    res.status(500).json({ error: 'Failed to fetch queue', details: err.message });
+  }
+};
+
+module.exports = { getAllRequests, getRequestById, updateRequest, deleteRequest, submitRequest, getPendingCount, getQueue }
