@@ -17,11 +17,22 @@ const createUser = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields', required: ['email', 'fullName', 'role', 'password'] })
     }
 
-    const existing = await User.findOne({ email })
-    if (existing) return res.status(409).json({ error: 'User already exists' })
+    // Ensure email ends with @slu.edu.ph
+    if (!email.endsWith('@slu.edu.ph')) {
+      return res.status(400).json({ error: 'Email must end with @slu.edu.ph' })
+    }
 
-    if (!['student', 'admin'].includes(role)) return res.status(400).json({ error: 'Invalid role', validRoles: ['student', 'admin'] })
-    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters long' })
+    const existing = await User.findOne({ email })
+    if (existing) {
+      return res.status(409).json({ error: 'User already exists' })
+    }
+
+    if (!['student', 'admin'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role', validRoles: ['student', 'admin'] })
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' })
+    }
 
     const newUser = new User({ email, fullName, password, role, authProvider: 'manual', tokenBalance: 500, createdAt: new Date(), lastLogin: new Date() })
     const saved = await newUser.save()
@@ -30,7 +41,9 @@ const createUser = async (req, res) => {
     res.status(201).json(userResponse)
   } catch (err) {
     console.error('Error creating user:', err)
-    if (err.code === 11000) return res.status(409).json({ error: 'Email already exists' })
+    if (err.code === 11000) {
+      return res.status(409).json({ error: 'Email already exists' })
+    }
     res.status(500).json({ error: 'Failed to create user', details: err.message })
   }
 }

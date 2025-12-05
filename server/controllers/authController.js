@@ -3,6 +3,10 @@ const User = require('../models/User')
 const login = async (req, res) => {
   try {
     const { email, password } = req.body
+    if (!email.endsWith('@slu.edu.ph')) {
+      return res.status(401).json({ error: 'Only SLU emails are allowed to log in.' })
+    }
+
     const user = await User.findOne({ email, authProvider: 'manual' }).select('+password')
     if (!user || user.password !== password) return res.status(401).json({ error: 'Invalid email or password' })
     user.lastLogin = new Date()

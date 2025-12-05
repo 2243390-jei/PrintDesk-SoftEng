@@ -432,7 +432,9 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (error.message.includes("400")) {
           if (error.message.includes("Password must be at least 6 characters")) {
             alert("Password must be at least 6 characters long.");
-          } else {
+          } else if (error.message.includes("Email must end with @slu.edu.ph")) {
+            alert("Email must end with @slu.edu.ph");
+          } else{
             alert("Please check the form data and try again.");
           }
         } else {
