@@ -128,19 +128,21 @@
   <!-- Add User Modal -->
   <div id="addModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="addModalTitle">
     <div class="modal-backdrop" data-close-modal></div>
-    <div class="modal-content">
-      <h3 id="addModalTitle">Add New User</h3>
-      <form id="addForm">
+    <div class="modal-content user-modal">
+      <div class="modal-header">
+        <h3 id="addModalTitle">Add New User</h3>
+        <button class="btn secondary" data-close-modal>&times;</button>
+      </div>
+      <form id="addForm" class="modal-body">
         <label for="addEmail">Email</label>
-        <input type="email" id="addEmail" name="email" required />
+        <input type="email" id="addEmail" name="email" required placeholder="Enter SLU email (e.g., user@slu.edu.ph)" />
 
-        <!-- Add Password Field -->
         <label for="addPassword">Password</label>
         <input type="password" id="addPassword" name="password" required minlength="6"
           placeholder="Minimum 6 characters" />
 
         <label for="addName">Full Name</label>
-        <input type="text" id="addName" name="name" required />
+        <input type="text" id="addName" name="name" required placeholder="Enter full name" />
 
         <label for="addRole">Role</label>
         <select id="addRole" name="role" required>
@@ -159,19 +161,19 @@
   <!-- Edit User Modal -->
   <div id="editModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="editModalTitle">
     <div class="modal-backdrop" data-close-modal></div>
-    <div class="modal-content">
-      <h3 id="editModalTitle">Edit User</h3>
-      <form id="editForm">
-        <!-- Change email field to read-only display -->
+    <div class="modal-content user-modal">
+      <div class="modal-header">
+        <h3 id="editModalTitle">Edit User</h3>
+      </div>
+      <form id="editForm" class="modal-body">
         <label for="editEmail">Email</label>
         <div id="editEmailDisplay" class="read-only-field"></div>
         <input type="hidden" id="editEmail" name="email" />
 
         <label for="editName">Name</label>
-        <input type="text" id="editName" name="name" required />
+        <input type="text" id="editName" name="name" required placeholder="Enter full name" />
 
-        <!-- Add Password Field (initially hidden) -->
-        <div id="passwordFieldContainer" style="display: none;">
+        <div id="passwordFieldContainer">
           <label for="editPassword">New Password (leave blank to keep current)</label>
           <input type="password" id="editPassword" name="password" minlength="6" placeholder="Minimum 6 characters" />
         </div>
