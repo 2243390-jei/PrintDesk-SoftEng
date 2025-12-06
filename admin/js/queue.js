@@ -108,6 +108,46 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${mm}/${dd}/${yy}`;
   }
 
+  // Check if a file exists on the server before attempting preview
+  async function checkFileExists(url) {
+    try {
+      let resp = await fetch(url, { method: 'HEAD' });
+      if (resp && resp.ok) return true;
+      // Fallback to GET if HEAD not allowed
+      resp = await fetch(url, { method: 'GET' });
+      return resp && resp.ok;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function showPreviewUnavailable(wrapper, filename, reason = 'deleted', fileUrl = null) {
+    let message = `No preview available for ${filename}`;
+    if (reason === 'unsupported') {
+      message = "We're sorry, but for some reason we can't open this for you.";
+    }
+    if (reason === 'notfound') {
+      message = 'File not found';
+    }
+
+    // Placeholder with image + message. If a file URL is provided, show a download/view link beneath it.
+    wrapper.innerHTML = `
+      <div class="preview-placeholder" style="text-align:center; padding:20px; color:#6b7780;">
+        <img src="../../images/admin_img/document-preview.png" alt="Document" style="max-width:80px; opacity:0.9; margin-bottom:12px;" />
+        <p style="margin:0 0 8px 0;">${message}</p>
+      </div>
+    `;
+
+    if (fileUrl) {
+      const links = document.createElement('div');
+      links.style.textAlign = 'center';
+      links.style.paddingBottom = '12px';
+      // Single link that opens the file in a new tab so user can view or save it
+      links.innerHTML = `<p style="margin:0; font-size:14px; color:#6b7780;">Can't view the file? <a href="${fileUrl}" target="_blank" rel="noopener" style="color:#0d6efd; text-decoration:none; font-weight:500;">Download the file</a></p>`;
+      wrapper.appendChild(links);
+    }
+  }
+
   // -------------------------
   // API Functions - FIXED VERSION with Date Filtering & Auto-Cancellation
   // -------------------------
@@ -710,7 +750,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   // Modal: View Details with Multiple Document Support
   // -------------------------
-  function openDetailsForId(id) {
+  async function openDetailsForId(id) {
     console.log("Opening details for ID:", id);
     const item = queueData.find(item => item.id === id);
     if (!item) {
@@ -730,8 +770,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (requestId) requestId.textContent = `Queue #${item.queueNumber}`;
 
-    // Render all documents for this request
-    renderAllDocuments(item);
+    // Render all documents for this request (await existence checks)
+    await renderAllDocuments(item);
 
     // Scroll/focus to the specific document preview that was clicked
     try {
@@ -769,7 +809,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function renderAllDocuments(item) {
+  async function renderAllDocuments(item) {
     if (!documentsContainer) return;
     documentsContainer.innerHTML = "";
 
@@ -780,7 +820,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    allDocuments.forEach((docData, index) => {
+    for (let index = 0; index < allDocuments.length; index++) {
+      const docData = allDocuments[index];
       const docItem = document.createElement("div");
       docItem.className = "document-item";
       docItem.setAttribute("data-doc-index", index);
@@ -804,8 +845,12 @@ document.addEventListener("DOMContentLoaded", () => {
       previewWrapper.className = "preview-wrapper";
 
       if (fileUrl) {
-        if (isImageFile(fileName)) {
-          // Image preview (PNG/JPG/GIF/etc.)
+        // Verify resource exists before rendering preview
+        const exists = await checkFileExists(fileUrl);
+        if (!exists) {
+          showPreviewUnavailable(previewWrapper, fileName, 'notfound');
+        } else if (isImageFile(fileName)) {
+          // Image preview (PNG/JPG/GIF/etc.) — inline, no print controls
           const img = document.createElement("img");
           img.src = fileUrl;
           img.alt = `Preview of ${fileName}`;
@@ -813,39 +858,21 @@ document.addEventListener("DOMContentLoaded", () => {
           img.tabIndex = 0;
           previewWrapper.appendChild(img);
         } else if (isPdfFile(fileName)) {
-          // PDF preview using <object> with fallback link
-          const pdfWrap = document.createElement("div");
-          pdfWrap.className = "pdf-preview-wrapper";
-          const obj = document.createElement("object");
-          obj.data = fileUrl;
-          obj.type = "application/pdf";
-          obj.width = "100%";
-          obj.height = "420";
-          // Fallback content inside object for browsers that don't render PDFs
-          obj.innerHTML = `<p>Unable to display PDF preview. <a href="${fileUrl}" target="_blank" rel="noopener">Open PDF in new tab</a></p>`;
-          pdfWrap.appendChild(obj);
-          // Add explicit open/download links as well
-          const links = document.createElement("div");
-          links.className = "file-links";
-          links.innerHTML = `<a href="${fileUrl}" target="_blank" rel="noopener" class="open-btn">Open PDF</a>
-                             <a href="${fileUrl}" download="${fileName}" class="download-btn">Download</a>`;
-          pdfWrap.appendChild(links);
-          previewWrapper.appendChild(pdfWrap);
+          // PDF preview using iframe with toolbar parameters to provide a flat preview
+          const pdfContainer = document.createElement('div');
+          pdfContainer.className = 'pdf-preview-container';
+          const iframe = document.createElement('iframe');
+          iframe.src = fileUrl + '#toolbar=0&navpanes=0';
+          iframe.type = 'application/pdf';
+          iframe.style.width = '100%';
+          iframe.style.height = '400px';
+          iframe.style.border = 'none';
+          iframe.style.borderRadius = '6px';
+          pdfContainer.appendChild(iframe);
+          previewWrapper.appendChild(pdfContainer);
         } else {
-          // Generic file preview (icon + links)
-          const fileWrap = document.createElement("div");
-          fileWrap.className = "file-preview-wrapper";
-          const icon = document.createElement("img");
-          icon.src = "../../images/document-icon.png";
-          icon.alt = "Document icon";
-          icon.className = "preview-image";
-          fileWrap.appendChild(icon);
-          const links = document.createElement("div");
-          links.className = "file-links";
-          links.innerHTML = `<a href="${fileUrl}" download="${fileName}" class="download-btn">Download</a>
-                             <a href="${fileUrl}" target="_blank" rel="noopener" class="open-btn">Open</a>`;
-          fileWrap.appendChild(links);
-          previewWrapper.appendChild(fileWrap);
+          // Unsupported file types — existence already checked, show apology placeholder
+          showPreviewUnavailable(previewWrapper, fileName, 'unsupported', fileUrl);
         }
       } else {
         const noPreview = document.createElement("div");
@@ -873,7 +900,7 @@ document.addEventListener("DOMContentLoaded", () => {
       docItem.appendChild(meta);
 
       documentsContainer.appendChild(docItem);
-    });
+    }
   }
 
   // Handle back button
