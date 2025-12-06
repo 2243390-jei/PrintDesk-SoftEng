@@ -1054,11 +1054,37 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       const fileUrl = `${API_BASE}${doc.filePath}`;
-      const w = window.open(fileUrl, '_blank');
-      if (w) {
-        // Try to trigger print after load — may be blocked by browser depending on cross-origin
-        w.addEventListener('load', () => { try { w.focus(); w.print(); } catch (err) { /* ignore */ } });
-      }
+      const filename = doc.documentTitle || 'document';
+
+      // Verify file exists before attempting to open/print
+      checkFileExists(fileUrl).then(exists => {
+        if (!exists) {
+          showPreviewUnavailable(filename, 'notfound');
+          try { alert('File not found. The document may have been removed from the server.'); } catch (e) { }
+          return;
+        }
+
+        // Only PDFs will trigger the print flow
+        if (isPDFFile(filename)) {
+          const w = window.open(fileUrl, '_blank');
+          if (w) {
+            w.addEventListener('load', () => { try { w.focus(); w.print(); } catch (err) { /* ignore */ } });
+          }
+          return;
+        }
+
+        // Images are previewable but we won't trigger browser print from here
+        if (isImageFile(filename)) {
+          window.open(fileUrl, '_blank');
+          return;
+        }
+
+        // Other formats: show apology message
+        try { alert("We're sorry, but for some reason we can't open this for you."); } catch (e) { }
+      }).catch(() => {
+        showPreviewUnavailable(doc.documentTitle || 'Unknown document', 'notfound');
+        try { alert('File not found. The document may have been removed from the server.'); } catch (e) { }
+      });
     });
   }
 

@@ -177,15 +177,37 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function showPreviewUnavailable(filename) {
+  function showPreviewUnavailable(filename, reason = 'deleted') {
+    let message = `No preview available for ${filename}`;
+    if (reason === 'unsupported') {
+      message = "We're sorry, but for some reason we can't open this for you.";
+    }
+    if (reason === 'notfound') {
+      message = 'File not found';
+    }
+
     previewArea.innerHTML = `
       <div class="preview-placeholder">
         <img src="../../images/admin_img/document-preview.png" alt="Document" />
-        <p>No preview available for ${filename}</p>
+        <p>${message}</p>
         <p class="file-download-text">Please download the file to view its contents</p>
         <button class="download-btn" onclick="downloadCurrentDocument()">Download Document</button>
       </div>
     `;
+  }
+
+  // Check if a file exists on the server before attempting to preview it.
+  // Returns true if the URL responds with a 2xx status, false otherwise.
+  async function checkFileExists(url) {
+    try {
+      let resp = await fetch(url, { method: 'HEAD' });
+      if (resp && resp.ok) return true;
+      // Fallback to GET if HEAD didn't return ok (some servers disallow HEAD)
+      resp = await fetch(url, { method: 'GET' });
+      return resp && resp.ok;
+    } catch (err) {
+      return false;
+    }
   }
 
   function downloadCurrentDocument() {
@@ -767,10 +789,37 @@ document.addEventListener("DOMContentLoaded", () => {
     if (doc.filePath) {
       const fileUrl = `${API_BASE}${doc.filePath}`;
       const filename = doc.documentTitle || 'document';
-      createFilePreview(fileUrl, filename, doc.documentTitle);
+
+      // Verify file exists before attempting to preview
+      checkFileExists(fileUrl).then(exists => {
+        if (!exists) {
+          showPreviewUnavailable(filename, 'notfound');
+          try { alert('File not found. The document may have been removed from the server.'); } catch (e) { }
+          return;
+        }
+
+        // Images are previewable inline
+        if (isImageFile(filename)) {
+          createFilePreview(fileUrl, filename, doc.documentTitle);
+          return;
+        }
+
+        // PDFs and Office formats will attempt to preview using existing handlers
+        if (isPDFFile(filename) || isWordFile(filename) || isExcelFile(filename) || isPowerPointFile(filename)) {
+          createFilePreview(fileUrl, filename, doc.documentTitle);
+          return;
+        }
+
+        // Unsupported formats
+        showPreviewUnavailable(filename, 'unsupported');
+      }).catch(() => {
+        showPreviewUnavailable(doc.documentTitle || 'Unknown document', 'notfound');
+        try { alert('File not found. The document may have been removed from the server.'); } catch (e) { }
+      });
     } else {
       // No file path available
-      showPreviewUnavailable(doc.documentTitle || 'Unknown document');
+      showPreviewUnavailable(doc.documentTitle || 'Unknown document', 'notfound');
+      try { alert('File not found for this document.'); } catch (e) { }
     }
 
     // Update active tab
