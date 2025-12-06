@@ -72,8 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (curYear) curYear.textContent = new Date().getFullYear();
 
   // -------------------------
-  // Utility functions
-  // -------------------------
   function openModal(modal) {
     if (!modal) return;
     modal.classList.add('open');
@@ -89,18 +87,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function statusPill(status) {
-    const statusLower = status.toLowerCase();
+    const statusLower = (status || '').toLowerCase();
     if (statusLower === "completed") return `<span class="pill completed">${status}</span>`;
-    if (statusLower === "cancelled") return `<span class="pill cancelled">${status}</span>`;
+    if (statusLower === "accepted") return `<span class="pill accepted">${status}</span>`;
     if (statusLower === "rejected") return `<span class="pill rejected">${status}</span>`;
+    if (statusLower === "cancelled" || statusLower === "canceled") return `<span class="pill cancelled">${status}</span>`;
     return `<span class="pill pending">${status}</span>`;
   }
 
   // -------------------------
-  // File Preview Functions (from printmanagement)
-  // -------------------------
   function getFileExtension(filename) {
-    return filename.split('.').pop().toLowerCase();
+    return String(filename || '').split('.').pop().toLowerCase();
   }
 
   function isImageFile(filename) {
@@ -143,16 +140,22 @@ document.addEventListener("DOMContentLoaded", () => {
       img.onerror = () => showPreviewUnavailable(filename);
       previewArea.appendChild(img);
 
+      // no download fallback shown in record view per requirements
+
     } else if (isPDFFile(filename)) {
-      // Handle PDF files using PDF.js or embed
+      // Handle PDF files - embed in an iframe with toolbar disabled to provide a flat preview
       const pdfContainer = document.createElement('div');
       pdfContainer.className = 'pdf-preview-container';
-      pdfContainer.innerHTML = `
-        <embed src="${fileUrl}" type="application/pdf" width="100%" height="400px" />
-        <div class="pdf-alternative">
-          <p>Can't view the PDF? <a href="${fileUrl}" target="_blank" download="${filename}">Download instead</a></p>
-        </div>
-      `;
+      const iframe = document.createElement('iframe');
+      // Add hash params to suggest hiding toolbar (browser support varies)
+      iframe.src = fileUrl + '#toolbar=0&navpanes=0';
+      iframe.type = 'application/pdf';
+      iframe.style.width = '100%';
+      iframe.style.height = '400px';
+      iframe.style.border = 'none';
+      iframe.style.borderRadius = '6px';
+      pdfContainer.appendChild(iframe);
+
       previewArea.appendChild(pdfContainer);
 
     } else if (isWordFile(filename) || isExcelFile(filename) || isPowerPointFile(filename)) {
@@ -165,15 +168,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       officeContainer.innerHTML = `
         <iframe src="${officeViewerUrl}" width="100%" height="400px" frameborder="0"></iframe>
-        <div class="office-alternative">
-          <p>Can't view the document? <a href="${fileUrl}" target="_blank" download="${filename}">Download instead</a></p>
-        </div>
       `;
       previewArea.appendChild(officeContainer);
 
     } else {
       // Handle other file types
-      showPreviewUnavailable(filename);
+      showPreviewUnavailable(filename, 'unsupported');
     }
   }
 
@@ -186,14 +186,12 @@ document.addEventListener("DOMContentLoaded", () => {
       message = 'File not found';
     }
 
-    previewArea.innerHTML = `
-      <div class="preview-placeholder">
-        <img src="../../images/admin_img/document-preview.png" alt="Document" />
-        <p>${message}</p>
-        <p class="file-download-text">Please download the file to view its contents</p>
-        <button class="download-btn" onclick="downloadCurrentDocument()">Download Document</button>
-      </div>
-    `;
+      previewArea.innerHTML = `
+        <div class="preview-placeholder">
+          <img src="../../images/admin_img/document-preview.png" alt="Document" />
+          <p>${message}</p>
+        </div>
+      `;
   }
 
   // Check if a file exists on the server before attempting to preview it.

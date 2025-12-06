@@ -139,6 +139,19 @@ document.addEventListener("DOMContentLoaded", () => {
       img.onerror = () => showPreviewUnavailable(filename);
       previewArea.appendChild(img);
 
+      // Add download fallback under image preview
+      const dl = document.createElement('div');
+      dl.style.marginTop = '12px';
+      dl.style.padding = '12px';
+      dl.style.backgroundColor = '#f8f9fa';
+      dl.style.borderRadius = '6px';
+      dl.style.textAlign = 'center';
+      dl.innerHTML = `
+        <p style="margin: 0; font-size: 14px; color: #6b7280;">Can't view the file? <a href="#" style="color: #0d6efd; text-decoration: none; font-weight: 500;">Download the file</a></p>
+      `;
+      dl.querySelector('a').addEventListener('click', (e) => { e.preventDefault(); downloadCurrentDocument(); });
+      previewArea.appendChild(dl);
+
     } else if (isPDFFile(filename)) {
       // Handle PDF files - embedded without print UI
       const pdfContainer = document.createElement('div');
@@ -316,8 +329,11 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="preview-placeholder">
         <img src="../../images/admin_img/document-preview.png" alt="Document" />
         <p>${message}</p>
+        <p class="file-download-text">Can't view the file? <a href="#" id="__download_fallback_link" style="color:#0d6efd; text-decoration:none; font-weight:500;">Download the file</a></p>
       </div>
     `;
+    const a = document.getElementById('__download_fallback_link');
+    if (a) a.addEventListener('click', (e) => { e.preventDefault(); downloadCurrentDocument(); });
   }
 
   // Check if a file exists on the server before attempting to preview it.
