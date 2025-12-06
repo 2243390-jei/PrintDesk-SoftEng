@@ -32,6 +32,7 @@ const printRequestSchema = new mongoose.Schema({
   documents: [documentSchema],
   totalTokens: Number,
   status: { type: String, enum: ['Pending', 'Accepted', 'Completed', 'Rejected', 'Cancelled'], default: 'Pending' },
+  acceptedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 })
 

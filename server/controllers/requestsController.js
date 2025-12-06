@@ -71,6 +71,11 @@ const updateRequest = async (req, res) => {
 
     if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'No valid fields to update' })
 
+    // If status changed to Accepted, set acceptedAt timestamp
+    if (updates.status === 'Accepted') {
+      updates.acceptedAt = new Date()
+    }
+
     const updatedRequest = await PrintRequest.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
 
     // If status changed, add a notification to the user

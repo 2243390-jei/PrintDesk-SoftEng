@@ -940,8 +940,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const updatedRequest = await updateRequestStatus(item.requestId, "Accepted");
         
         if (updatedRequest && updatedRequest.status === "Accepted") {
-          // Store the request data in sessionStorage to pass to print management page
-          sessionStorage.setItem('selectedRequest', JSON.stringify(item));
+            // Store the server-updated request in sessionStorage to pass to print management page
+            // This stores the authoritative record from the backend (includes _id and documents)
+            try {
+              sessionStorage.setItem('selectedRequest', JSON.stringify(updatedRequest));
+            } catch (e) {
+              // fallback to the client item if storing server response fails for any reason
+              sessionStorage.setItem('selectedRequest', JSON.stringify(item));
+            }
 
           // Show confirmation message
           alert(`✅ Request Queue #${item.queueNumber} has been accepted and moved to print management.`);

@@ -414,26 +414,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // Determine which accepted requests should be shown by default.
-      // Prefer requests whose pickupDateTime is today (start..end of day).
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const todayRequests = accepted.filter(request => {
-        if (!request.pickupDateTime) return false;
-        const pd = new Date(request.pickupDateTime);
-        if (isNaN(pd.getTime())) return false;
-        pd.setHours(0, 0, 0, 0);
-        return pd.getTime() === today.getTime();
-      });
-
-      const displayList = todayRequests.length > 0 ? todayRequests : accepted;
-
-      const sortedData = displayList.sort((a, b) => {
-        // Sort by pickup date if available, newest first; otherwise fall back to createdAt
-        const aDate = a.pickupDateTime ? new Date(a.pickupDateTime) : new Date(a.createdAt);
-        const bDate = b.pickupDateTime ? new Date(b.pickupDateTime) : new Date(b.createdAt);
-        return bDate - aDate;
+      // Show all accepted requests. Sort by `acceptedAt` (when available), oldest first
+      // so newly accepted requests appear at the end of the list.
+      const sortedData = accepted.sort((a, b) => {
+        const aDate = a.acceptedAt ? new Date(a.acceptedAt) : new Date(a.createdAt);
+        const bDate = b.acceptedAt ? new Date(b.acceptedAt) : new Date(b.createdAt);
+        return aDate - bDate; // ascending
       });
 
       return sortedData.map((request, index) => {
@@ -544,22 +530,79 @@ document.addEventListener("DOMContentLoaded", () => {
     if (storedRequest) {
       const requestData = JSON.parse(storedRequest);
 
+      // Normalized helper to extract requestId from either client-shaped object or server response
+      const getRequestId = (obj) => {
+        if (!obj) return null;
+        if (obj.details && obj.details.requestId) return obj.details.requestId;
+        if (obj._id) return obj._id;
+        if (obj.requestId) return obj.requestId;
+        return null;
+      };
+
+      const incomingId = getRequestId(requestData);
+      if (!incomingId) {
+        sessionStorage.removeItem('selectedRequest');
+        return;
+      }
+
       // Check if this request already exists in printData
-      const existingIndex = printData.findIndex(r => r.details.requestId === requestData.details.requestId);
+      const existingIndex = printData.findIndex(r => r.details.requestId === incomingId);
 
       if (existingIndex === -1) {
-        // Add the new request to printData
+        // Build a consistent printData record from either shape
+        let details = {};
+        let name = '';
+        let course = '';
+        let date = '';
+
+        if (requestData.details && requestData.details.requestId) {
+          // client-shaped object (from queue transformedData)
+          details = { ...requestData.details, status: 'Accepted' };
+          name = requestData.name || (details.fullName || 'Unknown');
+          course = requestData.course || (details.courseYear || 'Unknown');
+          date = requestData.date || (details.pickupDate || '');
+        } else {
+          // server-shaped object (full request document)
+          const server = requestData;
+          const primaryDoc = server.documents && server.documents.length > 0 ? server.documents[0] : null;
+          details = {
+            submittedOn: server.createdAt ? new Date(server.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '',
+            totalCost: `${server.totalTokens || 0} tokens`,
+            status: server.status || 'Accepted',
+            requestId: server._id,
+            fileName: primaryDoc ? primaryDoc.documentTitle : 'Unknown',
+            pageCount: primaryDoc ? primaryDoc.pageCount : 0,
+            copies: primaryDoc ? primaryDoc.numberOfCopies : 1,
+            paperSize: primaryDoc ? primaryDoc.paperSize : 'Unknown',
+            printType: primaryDoc ? primaryDoc.printType : 'Unknown',
+            printingSide: primaryDoc ? primaryDoc.printingSide : 'Unknown',
+            pickupDate: server.pickupDateTime ? new Date(server.pickupDateTime).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not specified',
+            previewImage: primaryDoc && primaryDoc.filePath ? `${API_BASE}${primaryDoc.filePath}` : '../../images/SLU_Logo.png',
+            allDocuments: server.documents || [],
+            email: server.email,
+            totalTokens: server.totalTokens,
+            fullName: server.fullName,
+            courseYear: server.courseYear
+          };
+
+          name = server.fullName || 'Unknown';
+          course = server.courseYear || 'Unknown';
+          if (server.pickupDateTime) {
+            const d = new Date(server.pickupDateTime);
+            if (!isNaN(d)) date = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear().toString().slice(-2)}`;
+          } else if (server.createdAt) {
+            const d = new Date(server.createdAt);
+            if (!isNaN(d)) date = `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear().toString().slice(-2)}`;
+          }
+        }
+
         const newRequest = {
           no: printData.length + 1,
-          name: requestData.name,
-          course: requestData.course,
-          date: requestData.date,
-          status: "Accepted",
-          details: {
-            ...requestData.details,
-            status: "Accepted",
-            previewImage: "../../images/SLU_Logo.png" // Default image
-          }
+          name: name,
+          course: course,
+          date: date,
+          status: 'Accepted',
+          details
         };
 
         printData.unshift(newRequest);
@@ -572,10 +615,8 @@ document.addEventListener("DOMContentLoaded", () => {
       renderView(printData);
 
       // Find and open the details for this request
-      const record = printData.find(r => r.details.requestId === requestData.details.requestId);
-      if (record) {
-        showDetails(record);
-      }
+      const record = printData.find(r => r.details.requestId === incomingId);
+      if (record) showDetails(record);
     }
   }
 
