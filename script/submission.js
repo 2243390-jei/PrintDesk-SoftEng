@@ -876,9 +876,12 @@ console.log('Found successModal element:', !!modalEl);
 
       case 'embed':
         const pdfUrl = URL.createObjectURL(file)
+        // Use an iframe with toolbar params to produce a flat preview without viewer toolbar/actions
+        // Note: sandbox attribute removed because embedding blob URLs in a sandboxed iframe
+        // can trigger Chrome to block the content. Leaving iframe unsandboxed for blob/pdf.
         return `
           <div style="width: 100%; height: 400px;">
-            <embed src="${pdfUrl}" type="application/pdf" width="100%" height="100%" style="border-radius: 6px; border: 1px solid #ddd;" />
+            <iframe src="${pdfUrl}#toolbar=0&navpanes=0" type="application/pdf" width="100%" height="100%" style="border-radius: 6px; border: 1px solid #ddd;"></iframe>
             <p style="margin: 12px 0 0 0; color: #666; font-size: 12px;">PDF Preview - ${file.name}</p>
           </div>
         `
