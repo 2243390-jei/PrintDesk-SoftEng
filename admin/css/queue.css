@@ -364,6 +364,7 @@ body{
   background: #ffffff;
   border-radius: 12px;
   overflow: hidden;
+  /* restore default min-height so queue layout remains consistent */
   min-height: 300px;
   border: 1px solid rgba(0,0,0,0.03);
 }
