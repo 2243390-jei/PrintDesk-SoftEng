@@ -378,6 +378,16 @@ body{
 .queue-table td{ padding:14px 18px; vertical-align:middle; font-size:14px; color:#263238; }
 .col-actions { width:130px; text-align:center; }
 
+/* Preferred Pickup Date column - center the data */
+.col-pickup { text-align: center; }
+
+/* More specific selectors to override the table header default left alignment */
+.queue-table thead th.col-pickup,
+.queue-table tbody td.col-pickup {
+  text-align: center;
+  vertical-align: middle;
+}
+
 /* user row avatar/checkbox area */
 .user-name{
   display:flex; align-items:center; gap:12px;

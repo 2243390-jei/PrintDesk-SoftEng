@@ -100,12 +100,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Function to format date for display
   function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    const d = new Date(dateString);
+    if (isNaN(d)) return dateString || '';
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${mm}/${dd}/${yy}`;
   }
 
   // -------------------------
@@ -178,6 +178,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const formattedDate = formatDate(request.createdAt);
             const queueTime = formatTime(request.createdAt);
             const pickupTime = request.pickupDateTime ? formatTime(request.pickupDateTime) : "Not specified";
+            const pickupDate = request.pickupDateTime ? (() => {
+              const pd = new Date(request.pickupDateTime);
+              if (isNaN(pd)) return 'Not specified';
+              const mm = String(pd.getMonth() + 1).padStart(2, '0');
+              const dd = String(pd.getDate()).padStart(2, '0');
+              const yy = String(pd.getFullYear()).slice(-2);
+              return `${mm}/${dd}/${yy}`;
+            })() : 'Not specified';
 
             // Determine preview type and URL
             let previewImage = "../../images/SLU_Logo.png";
@@ -206,6 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
               date: formattedDate,
               queueTime: queueTime,
               pickupTime: pickupTime,
+              pickupDate: pickupDate,
               status: request.status,
               documentIndex: docIndex,
               totalDocuments: request.documents.length,
@@ -244,7 +253,15 @@ document.addEventListener("DOMContentLoaded", () => {
           const createdDate = new Date(request.createdAt);
           const formattedDate = formatDate(request.createdAt);
           const queueTime = formatTime(request.createdAt);
-          const pickupTime = request.pickupDateTime ? formatTime(request.pickupDateTime) : "Not specified";
+            const pickupTime = request.pickupDateTime ? formatTime(request.pickupDateTime) : "Not specified";
+            const pickupDate = request.pickupDateTime ? (() => {
+              const pd = new Date(request.pickupDateTime);
+              if (isNaN(pd)) return 'Not specified';
+              const mm = String(pd.getMonth() + 1).padStart(2, '0');
+              const dd = String(pd.getDate()).padStart(2, '0');
+              const yy = String(pd.getFullYear()).slice(-2);
+              return `${mm}/${dd}/${yy}`;
+            })() : 'Not specified';
 
           transformedData.push({
             id: request._id,
@@ -255,6 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
             date: formattedDate,
             queueTime: queueTime,
             pickupTime: pickupTime,
+            pickupDate: pickupDate,
             status: request.status,
             documentIndex: 0,
             totalDocuments: 1,
@@ -360,7 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (list.length === 0) {
-      queueBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #6b7780;">No pending requests in queue</td></tr>`;
+      queueBody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 40px; color: #6b7780;">No pending requests in queue</td></tr>`;
       return;
     }
 
@@ -382,6 +400,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </td>
         <td>${item.course}</td>
         <td>${item.date}</td>
+        <td class="col-pickup">${item.pickupDate || 'Not specified'}</td>
         <td>
           <div style="font-size:13px;">
             Document ${item.documentIndex + 1} of ${item.totalDocuments}
@@ -1035,7 +1054,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("Initializing queue management...");
       
       // Show loading state
-      if (queueBody) queueBody.innerHTML = "<tr><td colspan='6'>Loading print requests...</td></tr>";
+      if (queueBody) queueBody.innerHTML = "<tr><td colspan='7'>Loading print requests...</td></tr>";
 
       // Fetch data from backend
       queueData = await fetchPrintRequests();
@@ -1051,7 +1070,7 @@ document.addEventListener("DOMContentLoaded", () => {
       renderView(queueData);
     } catch (error) {
       console.error("Error initializing:", error);
-      if (queueBody) queueBody.innerHTML = "<tr><td colspan='6'>Error loading print requests</td></tr>";
+      if (queueBody) queueBody.innerHTML = "<tr><td colspan='7'>Error loading print requests</td></tr>";
     }
   }
 
