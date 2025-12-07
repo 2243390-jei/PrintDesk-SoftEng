@@ -41,7 +41,8 @@ const updateRequest = async (req, res) => {
       return res.status(400).json({ error: 'Only pending requests can be revised. This request is no longer editable.', currentStatus: currentRequest.status })
     }
 
-    const allowedFields = ['status', 'pickupDateTime', 'semester', 'academicYear']
+  // Allow admin to send a rejection reason when changing status to 'Rejected'
+  const allowedFields = ['status', 'pickupDateTime', 'semester', 'academicYear', 'rejectionReason']
     const updates = {}
     for (const field of allowedFields) if (req.body[field] !== undefined) updates[field] = req.body[field]
 
@@ -76,7 +77,60 @@ const updateRequest = async (req, res) => {
       updates.acceptedAt = new Date()
     }
 
+    // If status changed to Rejected, record timestamp if provided
+    if (updates.status === 'Rejected') {
+      updates.rejectedAt = new Date()
+    }
+
     const updatedRequest = await PrintRequest.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
+
+    // If status changed and the request was previously pending, refund tokens when rejected
+    let refunded = false
+    let refundedAmount = 0
+    let newBalance = null
+    if (updates.status === 'Rejected') {
+      try {
+        // Log useful debug info to trace why refunds may not run
+        console.log(`Refund check for request ${req.params.id}: currentStatus=${currentRequest.status}, totalTokens=${currentRequest.totalTokens}, refunded=${currentRequest.refunded}, userId=${currentRequest.userId}`)
+
+        // Only refund if the original status was pending and not already refunded
+        const wasPending = currentRequest && String(currentRequest.status).toLowerCase() === 'pending'
+        const alreadyRefunded = currentRequest && currentRequest.refunded === true
+
+        if (!wasPending) {
+          console.log(`Skipping refund: request ${req.params.id} was not pending (status=${currentRequest.status})`)
+        } else if (alreadyRefunded) {
+          console.log(`Skipping refund: request ${req.params.id} already marked refunded`)
+        } else if (!currentRequest.userId) {
+          console.log(`Skipping refund: request ${req.params.id} has no userId`)
+        } else {
+          refundedAmount = Number(currentRequest.totalTokens || 0)
+          if (refundedAmount > 0) {
+              // Use atomic increment to avoid race conditions
+              const beforeUser = await User.findById(currentRequest.userId)
+              console.log(`User before refund for request ${req.params.id}: id=${currentRequest.userId}, tokenBalance=${beforeUser ? beforeUser.tokenBalance : 'N/A'}`)
+              const updatedUser = await User.findByIdAndUpdate(currentRequest.userId, { $inc: { tokenBalance: refundedAmount } }, { new: true })
+              if (updatedUser) {
+                refunded = true
+                newBalance = updatedUser.tokenBalance
+                console.log(`User after refund for request ${req.params.id}: id=${currentRequest.userId}, tokenBalance=${newBalance}`)
+              // mark the print request as refunded so we don't refund again
+              try {
+                await PrintRequest.findByIdAndUpdate(req.params.id, { $set: { refunded: true, refundedAmount: refundedAmount, refundedAt: new Date() } })
+              } catch (markErr) {
+                console.error('Failed to mark request as refunded:', markErr)
+              }
+            } else {
+              console.warn(`User for request ${req.params.id} not found; skipping refund.`)
+            }
+          } else {
+            console.log(`No tokens to refund for request ${req.params.id} (totalTokens=${currentRequest.totalTokens})`)
+          }
+        }
+      } catch (refundErr) {
+        console.error('Failed to refund tokens on rejection:', refundErr)
+      }
+    }
 
     // If status changed, add a notification to the user
     if (updates.status && currentRequest.userId) {
@@ -86,7 +140,12 @@ const updateRequest = async (req, res) => {
         let message = `Your print request for "${fileNames}" status changed to ${updates.status}.`
         if (updates.status === 'Accepted') message = `Your print request for "${fileNames}" has been accepted and is being processed.`
         if (updates.status === 'Completed' || updates.status === 'Ready') message = `Your print request for "${fileNames}" is ready for pickup.`
-        if (updates.status === 'Rejected') message = `Your print request for "${fileNames}" was rejected.`
+        if (updates.status === 'Rejected') {
+          // Append the rejection reason to the notification if provided
+          const reason = updates.rejectionReason ? ` Reason: ${updates.rejectionReason}` : ''
+          message = `Your print request for "${fileNames}" was rejected.${reason}`
+          if (refunded) message += ` ${refundedAmount} tokens have been returned to your account.`
+        }
         if (updates.status === 'Cancelled') message = `Your print request for "${fileNames}" was cancelled due to unclaimed pickup.`
 
         const notification = { type: notifType, message, requestId: updatedRequest._id }
@@ -101,7 +160,14 @@ const updateRequest = async (req, res) => {
       }
     }
 
-    res.json(updatedRequest)
+    // Include refund info in the response when applicable
+    const respObj = updatedRequest.toObject ? updatedRequest.toObject() : updatedRequest
+    if (refunded) {
+      respObj.refunded = true
+      respObj.refundedAmount = refundedAmount
+      respObj.newBalance = newBalance
+    }
+    res.json(respObj)
   } catch (err) {
     console.error('Error updating print request:', err)
     res.status(500).json({ error: 'Failed to update print request', details: err.message })

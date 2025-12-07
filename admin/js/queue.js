@@ -20,6 +20,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const rejectBtn = document.getElementById('rejectBtn');
   const acceptBtn = document.getElementById('acceptBtn');
   const documentsContainer = document.getElementById('documentsContainer');
+  // Rejection reason panel elements (in-modal)
+  const rejectReasonPanel = document.getElementById('rejectReasonPanel');
+  const rejectReasonInput = document.getElementById('rejectReasonInput');
+  const submitRejectReason = document.getElementById('submitRejectReason');
+  const cancelRejectReason = document.getElementById('cancelRejectReason');
 
   // Logout elements
   const logoutBtn = document.getElementById('logoutBtn');
@@ -359,27 +364,28 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   // Update Request Status Function - FIXED VERSION
   // -------------------------
-  async function updateRequestStatus(requestId, newStatus) {
+  // Allow passing an optional `extra` object (e.g. { rejectionReason }) so callers can provide a custom reason
+  async function updateRequestStatus(requestId, newStatus, extra = {}) {
     try {
       console.log(`Updating request ${requestId} to status: ${newStatus}`);
-      
+
+      const payload = {
+        status: newStatus,
+        // include any other fields the caller explicitly provided
+        ...extra
+      }
+
+      // For server-side bookkeeping include timestamps for some statuses
+      if (newStatus === 'Rejected' && !payload.rejectedAt) payload.rejectedAt = new Date().toISOString()
+      if (newStatus === 'Accepted' && !payload.acceptedAt) payload.acceptedAt = new Date().toISOString()
+      if (newStatus === 'Cancelled' && !payload.cancelledAt) payload.cancelledAt = new Date().toISOString()
+
       const response = await fetch(`${REQUESTS_ENDPOINT}/${requestId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          status: newStatus,
-          // Add timestamps and reasons for certain statuses
-          ...(newStatus === "Rejected" && { 
-            rejectionReason: "Rejected by admin",
-            rejectedAt: new Date().toISOString()
-          }),
-          ...(newStatus === "Cancelled" && { 
-            cancellationReason: "Auto-cancelled: Past submission date",
-            cancelledAt: new Date().toISOString()
-          })
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
@@ -800,6 +806,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // Ensure reject reason panel is closed when opening modal
+    try { closeRejectPanel(); } catch (e) { /* ignore */ }
+
     openModal(detailsModal);
 
     // ensure focus goes into the modal for accessibility/visibility
@@ -908,44 +917,93 @@ document.addEventListener("DOMContentLoaded", () => {
     backBtn.addEventListener('click', () => {
       currentRequestId = null;
       closeModal(detailsModal);
+      try { closeRejectPanel(); } catch (e) { /* ignore */ }
     });
   }
 
   // -------------------------
   // Handle Reject Action - FIXED VERSION
   // -------------------------
-  async function handleReject(id) {
+  // Handle Reject action; `reason` must be provided (from modal textarea)
+  async function handleReject(id, reason) {
     const item = queueData.find(item => item.id === id);
 
-    if (item) {
-      if (!confirm(`Are you sure you want to reject Queue #${item.queueNumber}?`)) {
-        return;
-      }
+    if (!item) return;
 
-      try {
-        console.log(`Rejecting request: ${item.requestId}`);
-        
-        // Update status in backend for the entire request to "Rejected"
-        const updatedRequest = await updateRequestStatus(item.requestId, "Rejected");
-        
-        if (updatedRequest && updatedRequest.status === "Rejected") {
-          // Show confirmation message
-          alert(`✅ Request Queue #${item.queueNumber} has been rejected.`);
-          
-          // Close the modal
-          closeModal(detailsModal);
-          
-          // Refresh the data to reflect changes
-          await initialize();
-          
-          console.log(`✓ Request ${item.requestId} successfully rejected.`);
-        } else {
-          throw new Error("Failed to update status in database");
+    // basic validation
+    if (typeof reason !== 'string') {
+      console.warn('Reject reason must be a string');
+      return;
+    }
+
+    const trimmed = reason.trim();
+    if (trimmed.length === 0) {
+      // allow empty reason if admin confirms
+      if (!confirm('Reject without a reason?')) return;
+    }
+
+    try {
+      // Update status in backend for the entire request to "Rejected" including the reason
+      const updatedRequest = await updateRequestStatus(item.requestId, 'Rejected', { rejectionReason: reason });
+
+      if (updatedRequest && updatedRequest.status === 'Rejected') {
+        // Close the reject panel and the modal
+        closeRejectPanel();
+        closeModal(detailsModal);
+
+        // Show confirmation message and refund info if present
+        let msg = `✅ Request Queue #${item.queueNumber} has been rejected.`;
+        if (updatedRequest.refunded) {
+          msg += ` ${updatedRequest.refundedAmount} tokens were returned to the user's account.`;
+          if (updatedRequest.newBalance !== undefined) msg += ` New balance: ${updatedRequest.newBalance} tokens.`;
         }
-      } catch (error) {
-        alert("❌ Failed to reject request. Please try again.");
-        console.error("Error rejecting request:", error);
+        alert(msg);
+
+        // Refresh the data to reflect changes
+        await initialize();
+
+        console.log(`✓ Request ${item.requestId} successfully rejected.`);
+      } else {
+        throw new Error('Failed to update status in database');
       }
+    } catch (error) {
+      alert('❌ Failed to reject request. Please try again.');
+      console.error('Error rejecting request:', error);
+    }
+  }
+
+  // Open/close helpers for the reject reason panel
+  function openRejectPanel() {
+    if (!rejectReasonPanel || !rejectReasonInput) return;
+    rejectReasonPanel.classList.remove('visually-hidden');
+    rejectReasonPanel.setAttribute('aria-hidden', 'false');
+    // hide main action buttons while typing
+    if (acceptBtn) acceptBtn.style.display = 'none';
+    if (rejectBtn) rejectBtn.style.display = 'none';
+    rejectReasonInput.value = '';
+    // focus and scroll the textarea into view inside the modal
+    setTimeout(() => {
+      try {
+        rejectReasonInput.focus();
+        rejectReasonInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (e) {
+        try { rejectReasonInput.focus(); } catch (err) {}
+      }
+    }, 50);
+  }
+
+  function closeRejectPanel() {
+    if (!rejectReasonPanel) return;
+    rejectReasonPanel.classList.add('visually-hidden');
+    rejectReasonPanel.setAttribute('aria-hidden', 'true');
+    // restore buttons based on current item status
+    const item = queueData.find(i => i.id === currentRequestId);
+    if (item && item.details && item.details.status === 'Pending') {
+      if (acceptBtn) acceptBtn.style.display = 'flex';
+      if (rejectBtn) rejectBtn.style.display = 'flex';
+    } else {
+      if (acceptBtn) acceptBtn.style.display = 'none';
+      if (rejectBtn) rejectBtn.style.display = 'none';
     }
   }
 
@@ -1000,7 +1058,23 @@ document.addEventListener("DOMContentLoaded", () => {
   // Add event listeners to action buttons
   if (rejectBtn) {
     rejectBtn.addEventListener('click', function () {
-      if (currentRequestId) handleReject(currentRequestId);
+      if (!currentRequestId) return;
+      openRejectPanel();
+    });
+  }
+
+  // Submit / Cancel for the inline reject reason panel
+  if (submitRejectReason) {
+    submitRejectReason.addEventListener('click', async function () {
+      if (!currentRequestId) return;
+      const reason = (rejectReasonInput && rejectReasonInput.value) ? rejectReasonInput.value : '';
+      await handleReject(currentRequestId, reason);
+    });
+  }
+
+  if (cancelRejectReason) {
+    cancelRejectReason.addEventListener('click', function () {
+      closeRejectPanel();
     });
   }
 
@@ -1041,6 +1115,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (modal) {
         currentRequestId = null;
         closeModal(modal);
+        if (modal.id === 'detailsModal') try { closeRejectPanel(); } catch (e) {}
       }
     });
   });
@@ -1051,6 +1126,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (detailsModal && detailsModal.classList.contains('open')) {
         currentRequestId = null;
         closeModal(detailsModal);
+        try { closeRejectPanel(); } catch (err) {}
       }
       if (logoutModal && logoutModal.classList.contains('open')) {
         closeModal(logoutModal);

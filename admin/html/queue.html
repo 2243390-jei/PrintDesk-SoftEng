@@ -181,6 +181,16 @@
           </div>
         </div>
 
+        <!-- Rejection reason panel (hidden by default). Opened when admin clicks Reject -->
+        <div id="rejectReasonPanel" class="reject-reason-panel visually-hidden" aria-hidden="true" style="margin-top:12px;">
+          <div style="font-weight:700; margin-bottom:6px;">Rejection reason</div>
+          <textarea id="rejectReasonInput" placeholder="Type the reason for rejection (required)" rows="4" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:14px;"></textarea>
+          <div style="display:flex; gap:8px; margin-top:8px; justify-content:center;">
+            <button id="submitRejectReason" class="accept-btn">Submit reason</button>
+            <button id="cancelRejectReason" class="reject-btn">Cancel</button>
+          </div>
+        </div>
+
         <div class="action-buttons">
           <!-- Accept must be left, Reject right (swapped order) -->
           <button class="accept-btn" id="acceptBtn">
