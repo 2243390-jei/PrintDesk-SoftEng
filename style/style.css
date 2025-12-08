@@ -1503,3 +1503,56 @@ body.history-body {
     background-color: #ac2925; /* Even Darker Danger Color */
     transform: scale(0.95);
 }
+
+/* ================================
+   MOBILE RESPONSIVE DESIGN
+   ================================ */
+@media (max-width: 768px) {
+  body {
+    height: auto;
+    padding: 20px 0;
+    display: block;
+  }
+
+  .container {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    margin-top: 30px;
+    text-align: center;
+  }
+
+  .left {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .logo {
+    width: 200px;
+  }
+
+  /* More space left & right */
+  .login-box {
+    width: 90%;
+    max-width: 380px;
+    margin: 20px auto;
+    padding: 2rem 2.2rem; 
+    box-sizing: border-box;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  .logo {
+    width: 160px;
+  }
+
+  .login-box {
+    padding: 1.8rem 2.5rem; /* more spacing for small screens */
+  }
+
+  .login-box h2 {
+    font-size: 1.3rem;
+  }
+}
