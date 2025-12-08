@@ -50,6 +50,15 @@
     return `${year}-${month}-${day}T${hours}:${minutes}`
   }
 
+  // Format date as YYYY-MM-DD for input[type="date"]
+  function formatDateYYYYMMDD(date) {
+    if (!date || !(date instanceof Date)) return ''
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   // ======= Fetch with timeout =======
   async function fetchWithTimeout(resource, options = {}) {
     const { timeout = 8000 } = options
@@ -424,7 +433,7 @@
     const deleteBtn = e.target.closest(".btn-delete")
     if (deleteBtn) {
       const id = deleteBtn.dataset.id
-      if (confirm("Are you sure you want to delete this print request?")) deleteRequest(id)
+      if (confirm("Are you sure you want to cancel this print request?")) cancelRequest(id)
     }
   })
 
@@ -444,18 +453,207 @@
     if (saveBtn) saveBtn.style.display = 'inline-block'
     const deleteBtn = modal.querySelector('.btn-delete')
     if (deleteBtn) deleteBtn.style.display = 'none'
+    
+    // Setup pickup date validation and show token recalculation
+    const pickupInput = modal.querySelector('input[data-field="pickupDateTime"]')
+    if (pickupInput) {
+      setupPickupDateRestrictions(pickupInput)
+      pickupInput.addEventListener('change', () => {
+        updateTokenDisplayOnEdit(requestId)
+        updateQueueInfoInModal(pickupInput.value, calculateCurrentEditTokens(requestId))
+      })
+    }
+    
+    // Add change listeners to paper/copies fields for token recalculation
+    const paperTypeSelect = modal.querySelector('select[data-field="paperType"]')
+    const copiesInput = modal.querySelector('input[data-field="copies"]')
+    if (paperTypeSelect) paperTypeSelect.addEventListener('change', () => updateTokenDisplayOnEdit(requestId))
+    if (copiesInput) copiesInput.addEventListener('change', () => updateTokenDisplayOnEdit(requestId))
   }
 
-  async function deleteRequest(id) {
+  function setupPickupDateRestrictions(pickupInput) {
+    if (!pickupInput) return
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    let minDate = new Date(today)
+    const minutesNow = now.getHours() * 60 + now.getMinutes()
+    const start = 7 * 60 + 30 // 7:30 AM
+    const end = 17 * 60 // 5:00 PM
+
+    // If today is Sunday, move to Monday
+    if (minDate.getDay() === 0) {
+      minDate.setDate(minDate.getDate() + 1)
+    } else {
+      // If today but outside allowed window, disallow today
+      if (minutesNow < start || minutesNow > end) {
+        minDate.setDate(minDate.getDate() + 1)
+      }
+      // If that moves to Sunday, skip to Monday
+      if (minDate.getDay() === 0) minDate.setDate(minDate.getDate() + 1)
+    }
+
+    const maxDate = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+
+    pickupInput.min = formatDateYYYYMMDD(minDate)
+    pickupInput.max = formatDateYYYYMMDD(maxDate)
+
+    pickupInput.addEventListener('change', () => {
+      if (!pickupInput.value) return
+      const selected = new Date(pickupInput.value + 'T00:00:00')
+      const selectedDay = selected.getDay()
+      
+      // Block Sundays
+      if (selectedDay === 0) {
+        alert('Sundays are not available for pickup. Please select another date.')
+        pickupInput.value = ''
+        return
+      }
+      
+      // Validate within range
+      const minDateCheck = new Date(pickupInput.min + 'T00:00:00')
+      const maxDateCheck = new Date(pickupInput.max + 'T00:00:00')
+      if (selected < minDateCheck || selected > maxDateCheck) {
+        alert('Pickup date must be within 7 days from now.')
+        pickupInput.value = ''
+        return
+      }
+    })
+  }
+
+  function calculateCurrentEditTokens(requestId) {
+    const modal = document.getElementById("requestModal")
+    if (!modal || !isEditMode) return 0
+    
+    const paperTypeSelect = modal.querySelector('select[data-field="paperType"]')
+    const copiesInput = modal.querySelector('input[data-field="copies"]')
+    
+    const paperType = paperTypeSelect?.value || "Black & White"
+    const copies = Number.parseInt(copiesInput?.value) || 1
+    
+    if (!currentDocuments || currentDocuments.length === 0) return 0
+    
+    let totalTokens = 0
+    currentDocuments.forEach(doc => {
+      const pageCount = doc.pageCount || 0
+      const isImagePrint = doc.filePath && (doc.filePath.includes('.jpg') || doc.filePath.includes('.jpeg') || doc.filePath.includes('.png'))
+      
+      let tokensPerPage = 0
+      if (paperType === "Black & White") {
+        tokensPerPage = isImagePrint ? 10 : 1
+      } else if (paperType === "Colored") {
+        tokensPerPage = isImagePrint ? 15 : 10
+      }
+      
+      totalTokens += tokensPerPage * pageCount * copies
+    })
+    
+    return totalTokens
+  }
+
+  function updateTokenDisplayOnEdit(requestId) {
+    const modal = document.getElementById("requestModal")
+    if (!modal || !isEditMode) return
+    
+    const paperTypeSelect = modal.querySelector('select[data-field="paperType"]')
+    const copiesInput = modal.querySelector('input[data-field="copies"]')
+    const paperSize = modal.querySelector('select[data-field="paperSize"]')?.value
+    const paperSide = modal.querySelector('select[data-field="paperSide"]')?.value
+    
+    const paperType = paperTypeSelect?.value || "Black & White"
+    const copies = Number.parseInt(copiesInput?.value) || 1
+    
+    if (!currentDocuments || currentDocuments.length === 0) return
+    
+    let newTokensDisplay = modal.querySelector('.edit-tokens-display')
+    if (!newTokensDisplay) {
+      newTokensDisplay = document.createElement('div')
+      newTokensDisplay.className = 'edit-tokens-display'
+      newTokensDisplay.style.cssText = 'margin-top:12px;padding:10px 12px;background:#f0f8ff;border-left:3px solid #3d2ee7;border-radius:4px;color:#333;font-weight:bold'
+      const detailsSection = modal.querySelector('.modal-section')
+      if (detailsSection) detailsSection.appendChild(newTokensDisplay)
+    }
+    
+    // Recalculate tokens based on document properties
+    let totalNewTokens = 0
+    currentDocuments.forEach(doc => {
+      const pageCount = doc.pageCount || 0
+      const isImagePrint = doc.filePath && (doc.filePath.includes('.jpg') || doc.filePath.includes('.jpeg') || doc.filePath.includes('.png'))
+      
+      let tokensPerPage = 0
+      if (paperType === "Black & White") {
+        tokensPerPage = isImagePrint ? 10 : 1
+      } else if (paperType === "Colored") {
+        tokensPerPage = isImagePrint ? 15 : 10
+      }
+      
+      const docTokens = tokensPerPage * pageCount * copies
+      totalNewTokens += docTokens
+    })
+    
+      newTokensDisplay.textContent = `🪙 Tokens with new settings: ${totalNewTokens}`
+      // also show remaining tokens after this edit (fetch user's balance)
+      updateRemainingTokensInModal(totalNewTokens)
+  }
+
+    async function updateRemainingTokensInModal(totalTokensForRequest) {
+      // similar to submission.js: fetch user balance and display remaining after transaction
+      if (!currentUserEmail) return
+      let remainingDisplay = document.getElementById('editRemainingTokens')
+      if (!remainingDisplay) {
+        remainingDisplay = document.createElement('div')
+        remainingDisplay.id = 'editRemainingTokens'
+        remainingDisplay.style.cssText = 'margin-top:10px;padding:10px 15px;border-radius:8px;font-weight:bold;text-align:right'
+        const modal = document.getElementById('requestModal')
+        const container = modal.querySelector('.modal-section')
+        if (container) container.appendChild(remainingDisplay)
+      }
+
+      try {
+        const resp = await apiFetch(`/users/${encodeURIComponent(currentUserEmail)}`)
+        if (!resp.ok) {
+          remainingDisplay.style.background = '#fff7e6'
+          remainingDisplay.style.color = '#8a6d3b'
+          remainingDisplay.textContent = `⚠️ Could not fetch token balance (status ${resp.status})`
+          return
+        }
+        const user = await resp.json()
+        const userBalance = Number(user.tokenBalance || 0)
+        const remaining = userBalance - Number(totalTokensForRequest || 0)
+
+        if (remaining >= 0) {
+          remainingDisplay.style.background = '#f0fff0'
+          remainingDisplay.style.color = '#2e7d32'
+        } else {
+          remainingDisplay.style.background = '#fff0f0'
+          remainingDisplay.style.color = '#c62828'
+        }
+        remainingDisplay.textContent = `🪙 Remaining Tokens After This Edit: ${remaining}`
+      } catch (err) {
+        console.error('Failed to fetch token balance for remaining display:', err)
+      }
+    }
+
+  async function cancelRequest(id) {
     try {
-      const res = await apiFetch(`/requests/${id}`, { method: "DELETE" })
+      const res = await apiFetch(`/requests/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Cancelled" })
+      })
       const result = await res.json()
       if (res.ok) {
-        alert("Print request deleted successfully")
+        // If server included refund info, show it in the success message
+        let msg = "Print request cancelled successfully."
+        if (result && (result.refunded === true || result.refundedAmount)) {
+          const amt = result.refundedAmount || 0
+          msg += ` ${amt} token${amt !== 1 ? 's' : ''} returned to your account.`
+          if (result.newBalance !== undefined) msg += ` New balance: ${result.newBalance} tokens.`
+        }
+        alert(msg)
         const modal = document.getElementById("requestModal"); if (modal) modal.style.display = "none"
         initialize()
       } else {
-        alert("Error deleting request: " + result.error)
+        alert("Error cancelling request: " + result.error)
       }
     } catch (err) {
       alert("⚠️ Error: " + err.message)
@@ -504,8 +702,8 @@
         <input type="number" class="editable-field" data-field="copies" min="1" disabled style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background-color:#f5f5f5;" />
       </div>
       <div class="detail-group">
-        <label class="detail-label">Pickup Date & Time</label>
-        <input type="datetime-local" class="editable-field" data-field="pickupDateTime" disabled style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background-color:#f5f5f5;" />
+        <label class="detail-label">Pickup Date</label>
+        <input type="date" class="editable-field" data-field="pickupDateTime" disabled style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;background-color:#f5f5f5;" />
       </div>
     `
       : `
@@ -547,6 +745,7 @@
 
           ${detailsHtml}
           <div class="detail-group"><label class="detail-label">Number of Documents</label><div class="detail-input">${currentDocuments.length}</div></div>
+          ${isPending ? `<div id="queueInfoDisplay" style="margin-top:12px;padding:10px 12px;background:#f8f9ff;border-left:3px solid #3d2ee7;border-radius:4px;color:#1e1362;font-weight:bold">Loading queue info...</div>` : ''}
         </div>
 
         <div class="modal-section documents-section">
@@ -556,19 +755,19 @@
           </div>
         </div>
 
-        <div class="form-actions" style="margin-top:12px;display:flex;gap:8px;align-items:center;">
-          ${isPending ? `
-            <button type="button" class="btn btn-primary btn-edit" data-id="${req._id}">Edit Request</button>
-            <button type="button" class="btn btn-primary btn-save" data-id="${req._id}" style="display:none">Save Changes</button>
-            <button type="button" class="btn btn-delete" data-id="${req._id}">Delete Request</button>
-          ` : isAcceptedOrCompleted ? `` : `<button type="button" class="btn btn-delete" data-id="${req._id}">Delete Request</button>`}
-          <button type="button" class="btn btn-secondary request-modal-close">Close</button>
-        </div>
+      <div class="form-actions" style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+        ${isPending ? `
+          <button type="button" class="btn btn-primary btn-edit" data-id="${req._id}">Edit Request</button>
+          <button type="button" class="btn btn-primary btn-save" data-id="${req._id}" style="display:none">Save Changes</button>
+          <button type="button" class="btn btn-delete" data-id="${req._id}">Cancel Request</button>
+        ` : isAcceptedOrCompleted ? `` : `<button type="button" class="btn btn-delete" data-id="${req._id}">Cancel Request</button>`}
+        <button type="button" class="btn btn-secondary request-modal-close">Close</button>
+      </div>
       </div>
     </div>
     `
 
-    // set editable field values if pending
+    // set editable field values
     if (isPending && currentDocuments.length > 0) {
       const firstDoc = currentDocuments[0]
       const paperSizeSelect = modal.querySelector('select[data-field="paperSize"]')
@@ -585,13 +784,33 @@
       }
       if (copiesInput) copiesInput.value = firstDoc.numberOfCopies || 1
       if (pickupInput && req.pickupDateTime) {
-        pickupInput.value = toInputDatetimeLocal(req.pickupDateTime)
+        // Convert to date-only format (YYYY-MM-DD) for type="date" input
+        let dateStr = ''
+        if (req.pickupDateTime instanceof Date) {
+          dateStr = req.pickupDateTime.toISOString().split('T')[0]
+        } else if (typeof req.pickupDateTime === 'string') {
+          // Handle ISO date strings like "2025-12-09" or "2025-12-09T..."
+          dateStr = req.pickupDateTime.includes('T') 
+            ? req.pickupDateTime.split('T')[0] 
+            : req.pickupDateTime
+        }
+        if (dateStr) {
+          pickupInput.value = dateStr
+          console.log('Set pickup date:', dateStr, 'from:', req.pickupDateTime)
+        }
       }
     }
 
     modal.style.display = "flex"
     modal.style.alignItems = "flex-start"
     modal.style.justifyContent = "center"
+    
+    // Load queue info if pending
+    if (isPending && req.pickupDateTime) {
+      setTimeout(() => {
+        updateQueueInfoInModal(req.pickupDateTime, req.totalTokens || calculateTotalTokens(req))
+      }, 100)
+    }
   }
 
   function getDocumentPreview(doc) {
@@ -633,11 +852,31 @@
       const copies = modal.querySelector('input[data-field="copies"]')?.value
       const pickupDateTime = modal.querySelector('input[data-field="pickupDateTime"]')?.value
 
-      const updates = { pickupDateTime, documents: currentDocuments }
-      if (paperSize) updates.paperSize = paperSize
-      if (paperType) updates.paperType = paperType
-      if (paperSide) updates.paperSide = paperSide
-      if (copies) updates.copies = Number.parseInt(copies)
+      // Update the documents array with edited values before sending
+      const updatedDocs = JSON.parse(JSON.stringify(currentDocuments))
+      if (updatedDocs.length > 0) {
+        const firstDoc = updatedDocs[0]
+        if (paperSize) firstDoc.paperSize = paperSize
+        if (paperType) firstDoc.printType = paperType
+        if (paperSide) firstDoc.printingSide = paperSide
+        if (copies) firstDoc.numberOfCopies = Number.parseInt(copies)
+        
+        // Recalculate tokens with new settings
+        const pageCount = firstDoc.pageCount || 0
+        const isImagePrint = firstDoc.filePath && (firstDoc.filePath.includes('.jpg') || firstDoc.filePath.includes('.jpeg') || firstDoc.filePath.includes('.png'))
+        
+        let tokensPerPage = 0
+        if (paperType === "Black & White") {
+          tokensPerPage = isImagePrint ? 10 : 1
+        } else if (paperType === "Colored") {
+          tokensPerPage = isImagePrint ? 15 : 10
+        }
+        
+        firstDoc.tokensPerPage = tokensPerPage
+        firstDoc.totalTokens = tokensPerPage * pageCount * Number.parseInt(copies)
+      }
+
+      const updates = { pickupDateTime, documents: updatedDocs }
 
       const res = await apiFetch(`/requests/${id}`, {
         method: "PATCH",
@@ -718,6 +957,61 @@
 
     filteredRequests = result;
     renderCards(filteredRequests);
+  }
+
+  // ======= Fetch pending count and display queue info in modal =======
+  async function updateQueueInfoInModal(pickupDateRaw, totalTokensForRequest) {
+    const pickupDateOnly = String(pickupDateRaw).substring(0, 10)
+    if (!pickupDateOnly) return
+
+    let queueDisplay = document.getElementById('queueInfoDisplay')
+    if (!queueDisplay) {
+      queueDisplay = document.createElement('div')
+      queueDisplay.id = 'queueInfoDisplay'
+      queueDisplay.style.cssText = 'margin-top:12px;padding:10px 12px;background:#f8f9ff;border-left:3px solid #3d2ee7;border-radius:4px;color:#1e1362;font-weight:bold'
+      const modal = document.getElementById('requestModal')
+      const detailsSection = modal.querySelector('.modal-section')
+      if (detailsSection && detailsSection.parentNode) {
+        detailsSection.parentNode.insertBefore(queueDisplay, detailsSection.nextSibling)
+      }
+    }
+
+    try {
+      const resp = await apiFetch(`/requests/pendingCount?pickupDate=${encodeURIComponent(pickupDateOnly)}`)
+      if (!resp.ok) {
+        queueDisplay.style.background = '#fff7e6'
+        queueDisplay.style.color = '#8a6d3b'
+        queueDisplay.textContent = `⚠️ Could not fetch queue info (status ${resp.status})`
+        return
+      }
+      const j = await resp.json()
+      const count = Number(j.count || 0)
+
+      const today = new Date()
+      const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+      const sel = new Date(pickupDateOnly + 'T00:00:00')
+      const isFuture = sel.setHours(0, 0, 0, 0) > todayOnly.setHours(0, 0, 0, 0)
+
+      if (isFuture) {
+        queueDisplay.style.background = count >= 20 ? '#fff0f0' : '#f0fff0'
+        queueDisplay.style.color = count >= 20 ? '#c62828' : '#2e7d32'
+        const pos = count + 1
+        queueDisplay.textContent = `📅 Pickup ${pickupDateOnly}: Your Line in Queue #${pos}`
+        if (count >= 20) {
+          queueDisplay.textContent += ' — Reservation limit reached (20)'
+        }
+      } else {
+        queueDisplay.style.background = '#f8f9ff'
+        queueDisplay.style.color = '#1e1362'
+        const pos = count + 1
+        queueDisplay.textContent = `📅 Pickup ${pickupDateOnly} — ${count} pending, you would be #${pos}`
+      }
+    } catch (err) {
+      console.warn('updateQueueInfoInModal error', err)
+      queueDisplay.style.background = '#fff7e6'
+      queueDisplay.style.color = '#8a6d3b'
+      queueDisplay.textContent = '⚠️ Error loading queue info'
+    }
   }
 
   // ======= utility: token calculation =======
