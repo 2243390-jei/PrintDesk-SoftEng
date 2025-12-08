@@ -661,8 +661,8 @@
 
 /* Additional mobile rules to match submission/home header behavior */
 @media (max-width: 768px) {
-  /* Show hamburger and hide center nav/profile on small screens for history page */
-  .history-body nav { display: none !important; }
+  /* Show hamburger and hide the desktop (header) nav on small screens for history page */
+  .history-body .navbar nav { display: none !important; }
   .history-body .profile-icon { display: none !important; }
 
   /* Position and size logo similar to submission/home mobile */
@@ -703,31 +703,11 @@
   }
 
   /* Ensure mobile sheet panel behaves on small screens */
-  .history-body .mobile-sheet .sheet-panel { height: 85vh; }
+  /* mobile-sheet panel height is handled globally in `style/style.css` */
 }
 
-/* Mobile sheet + mobile-nav styles to match submission design (mobile-only) */
-@media (max-width: 768px) {
-  .history-body .mobile-sheet { position: fixed; inset: 0; z-index: 1400; pointer-events: none; }
-  .history-body .mobile-sheet .sheet-overlay { position: absolute; inset: 0; background: rgba(6,10,17,0.35); opacity: 0; transition: opacity 0.18s ease; pointer-events: none; }
-  .history-body .mobile-sheet .sheet-panel { position: absolute; left: 0; right: 0; bottom: 0; height: 0; transform: translateY(100%); transition: transform 0.28s ease; background: #fff; box-shadow: 0 -12px 40px rgba(2,6,23,0.12); border-top-left-radius: 14px; border-top-right-radius: 14px; pointer-events: none; overflow: hidden; }
-  .history-body .mobile-sheet .sheet-panel .sheet-handle { width: 44px; height: 6px; background: #e6e6f0; border-radius: 6px; margin: 10px auto; }
-  .history-body .mobile-sheet .sheet-inner { padding: 12px 14px; max-height: 85vh; overflow: auto; }
-  .history-body .mobile-sheet.open .sheet-overlay { opacity: 1; pointer-events: auto; }
-  .history-body .mobile-sheet.open .sheet-panel { transform: translateY(0); height: 85vh; pointer-events: auto; }
-
-  .history-body .sheet-header { display:flex; gap:12px; align-items:center; padding-bottom: 8px; border-bottom: 1px solid #f3f3f3; }
-  .history-body .mobile-profile { display:flex; gap:12px; align-items:center; }
-  .history-body .mobile-profile img { width:64px; height:64px; object-fit:cover; border-radius:12px; border: 1px solid #f0f0f5; }
-  .history-body .mobile-profile-info h3 { margin:0; font-size:1rem; color:#1e1362; }
-  .history-body .mobile-profile-info p { margin:0; color:#64748b; font-size:0.9rem; }
-
-  .history-body .mobile-nav ul { list-style:none; padding: 12px 0 0 0; margin:0; display:flex; flex-direction:column; gap:8px; }
-  .history-body .mobile-nav a { display:block; padding:12px 14px; border-radius:10px; color:#1e1362; text-decoration:none; font-weight:700; }
-  .history-body .mobile-nav a.active { background:#f3f4ff; }
-
-  /* Ensure hamburger is visible and tappable */
-  .history-body .hamburger { display:inline-flex !important; z-index:2000; pointer-events:auto; }
-}
+/* history page relies on the global mobile-sheet/mobile-nav styles in `style/style.css`.
+   Page-specific overrides (avatar size, name size, and nav link weight) are kept above.
+   This removes duplicated rules so all pages share a single mobile-sheet source of truth. */
 
 
