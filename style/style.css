@@ -244,6 +244,20 @@ body.home-body {
   transform: none;
 }
 
+/* Ensure submission page logo aligns left like home page */
+.submission-body .navbar .logo {
+  position: relative;
+  margin-left: 12px;
+  top: auto;
+  transform: none;
+}
+.submission-body .navbar .logo img {
+  height: 70px;
+  width: auto;
+  margin: 0;
+  display: block;
+}
+
 .home-body .navbar .logo img {
   height: 70px;
   width: auto;
@@ -268,6 +282,24 @@ body.home-body {
   transition: transform 0.18s ease, background-color 0.18s ease;
 }
 
+/* Match hamburger appearance for submission page */
+.submission-body .hamburger {
+  display: none; /* hidden on desktop by default; shown on mobile via media query */
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 76px;
+  height: 76px;
+  padding: 12px;
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  z-index: 1200;
+  transition: transform 0.18s ease, background-color 0.18s ease;
+}
+
 .home-body .hamburger .bar {
   width: 44px; /* wider bars to match bigger button */
   height: 5px; /* thicker bars for visibility */
@@ -278,6 +310,15 @@ body.home-body {
 
 /* If hamburger uses a text icon (☰) ensure it is bold and legible */
 .home-body .hamburger .hamburger-icon {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: #1e1362;
+  display: inline-block;
+}
+
+/* Bold and sized hamburger icon for submission page */
+.submission-body .hamburger .hamburger-icon {
   font-size: 22px;
   font-weight: 700;
   line-height: 1;
@@ -1815,11 +1856,17 @@ body.history-body {
   .home-body .hamburger { display: inline-flex !important; }
   .home-body .navbar .profile-icon { display: none !important; }
 
+  /* show submission hamburger on mobile; hide profile icon on mobile */
+  .submission-body .hamburger { display: inline-flex !important; }
+  .submission-body .navbar .profile-icon { display: none !important; }
+
 
 /* Desktop: ensure hamburger is hidden and profile icon visible at right */
 @media (min-width: 769px) {
   .home-body .hamburger { display: none !important; }
   .home-body .navbar .profile-icon { display: block !important; position: relative !important; right: auto !important; margin-right: 12px !important; }
+  .submission-body .hamburger { display: none !important; }
+  .submission-body .navbar .profile-icon { display: block !important; position: relative !important; right: auto !important; margin-right: 12px !important; }
 }
   /* reduce header horizontal padding to avoid horizontal overflow on small devices */
   .navbar { padding: 8px 12px; }
@@ -1830,6 +1877,94 @@ body.history-body {
   /* make sure main content uses full width with comfortable padding */
   .home-body .hero, .print-values-container, .step-inner, .step-bottom-inner, .policy-details {
     padding-left: 16px; padding-right: 16px;
+  }
+
+  /* Submission page specific mobile tweaks */
+  .submission-body .navbar {
+    padding: 8px 12px;
+    height: 64px;
+  }
+
+  .submission-body .navbar .logo img {
+    height: 56px;
+    width: auto;
+  }
+
+  .submission-body .navbar nav { display: none; }
+  .submission-body .hamburger { display: inline-flex !important; }
+  .submission-body .navbar .profile-icon { display: none; }
+
+  .submission-body .print-hero {
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 12px;
+  }
+
+  .submission-body .hero-text h1 { font-size: 1.6rem; text-align: center; }
+  .submission-body .hero-text p { font-size: 0.95rem; text-align: center; }
+
+  .submission-body .hero-image img { width: 100%; max-height: 180px; object-fit: contain; }
+
+  .submission-body .print-form-section { padding: 14px 12px 28px 12px; }
+  .submission-body .print-form-wrapper { width: 100%; padding: 14px; }
+
+  .submission-body .form-row { flex-direction: column; gap: 10px; }
+  .submission-body .form-group { width: 100%; }
+  .submission-body .form-group input,
+  .submission-body .form-group select,
+  .submission-body .form-group textarea { width: 100%; }
+
+  .submission-body #printJobs .print-job { padding: 12px; }
+  .submission-body .drop-zone { padding: 18px; min-height: 90px; }
+
+  .submission-body .form-buttons { display: flex; flex-direction: column-reverse; gap: 10px; }
+  .submission-body .form-buttons .submit-btn,
+  .submission-body .form-buttons .reset-btn { width: 100%; }
+
+  /* Ensure buttons align and fit within the print-form-wrapper on mobile */
+  .submission-body .form-buttons {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0;
+    align-items: stretch; /* make children stretch to container width */
+    margin-top: 18px;
+  }
+
+  .submission-body .form-buttons .reset-btn,
+  .submission-body .form-buttons .submit-btn {
+    width: 100%;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    font-size: 1rem;
+  }
+
+  .submission-body .add-job-btn { padding: 12px 14px; font-size: 1.05rem; }
+
+  .submission-body .modal .modal-content { width: calc(100% - 28px); margin: 12px; }
+  .submission-body #filePreviewContent { max-height: 60vh; overflow: auto; }
+
+  /* Make the confirm checkbox and its label inline and vertically centered on mobile */
+  .submission-body .confirm-group label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+  }
+
+  .submission-body .confirm-group input[type="checkbox"] {
+    width: auto;
+    height: auto;
+    margin: 0;
+    transform: scale(1.05);
+  }
+
+  /* Justify label text for multi-line labels on submission page (mobile) */
+  .submission-body .form-group label,
+  .submission-body .print-form-wrapper .form-section-title {
+    text-align: justify;
+    text-justify: inter-word;
+    width: 100%;
   }
 
   /* Mobile layout tweaks for home page content */
@@ -1846,6 +1981,17 @@ body.history-body {
 
   .home-body .hero-text h1 {
     font-size: 2rem;
+    text-align: center;
+  }
+
+  /* Center the Print Faster section title + paragraph on mobile only */
+  .print-faster-title,
+  .print-faster-text {
+    text-align: center;
+  }
+
+  /* Center the step-by-step section title on mobile only */
+  .step-by-step-top-title {
     text-align: center;
   }
 
