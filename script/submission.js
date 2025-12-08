@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const successNewSubmissionBtn = document.getElementById("successNewSubmissionBtn")
   const semesterInput = document.getElementById("semesterInput")
   const academicYearInput = document.getElementById("academicYearInput")
+  const submitBtn = document.getElementById("submitBtn") // Added for submit button control
 
 
   /* =========================
@@ -98,6 +99,87 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
+     Form Validation for Submit Button
+     ========================= */
+  function validateFormForSubmitButton() {
+    if (!submitBtn) return
+    
+    // Check all required fields
+    const fullName = document.getElementById("fullNameInput")?.value || ""
+    const email = document.getElementById("emailInput")?.value || ""
+    const course = document.getElementById("courseInput")?.value || ""
+    const year = document.getElementById("yearSelect")?.value || ""
+    const semester = semesterInput?.value || ""
+    const academicYear = academicYearInput?.value || ""
+    const pickup = pickupDateTime?.value || ""
+    const confirmed = confirmCheckbox?.checked || false
+    
+    // Check print jobs
+    let jobsValid = true
+    let hasValidFiles = false
+    
+    document.querySelectorAll(".print-job").forEach((job, i) => {
+        const jobNumber = i + 1
+        const fileInput = job.querySelector(".drop-zone-input")
+        const file = fileInput?.files?.[0]
+        const pageCountSpan = job.querySelector(".page-count span")
+        const pageCount = Number.parseInt(pageCountSpan?.textContent) || 0
+        
+        // Check if file exists and is valid
+        if (file) {
+            hasValidFiles = true
+            if (!isValidFile(file)) {
+                jobsValid = false
+            }
+            if (pageCount === 0) {
+                jobsValid = false // File not processed yet
+            }
+        } else {
+            jobsValid = false // No file attached
+        }
+        
+        // Check required job fields
+        const copies = job.querySelector(`input[name="copies_${jobNumber}"]`)?.value || ""
+        const paperSize = job.querySelector(`select[name="paper_size_${jobNumber}"]`)?.value || ""
+        const paperSide = job.querySelector(`select[name="paper_side_${jobNumber}"]`)?.value || ""
+        const paperType = job.querySelector(`select[name="paper_type_${jobNumber}"]`)?.value || ""
+        
+        if (!copies || !paperSize || !paperSide || !paperType) {
+            jobsValid = false
+        }
+    })
+    
+    // All validations
+    const isFormValid = fullName.trim() !== "" && 
+                       email.trim() !== "" && 
+                       course.trim() !== "" && 
+                       year !== "" && 
+                       semester !== "" && 
+                       academicYear !== "" && 
+                       pickup !== "" && 
+                       confirmed && 
+                       jobsValid && 
+                       hasValidFiles
+    
+    // Update submit button
+    if (isFormValid) {
+        submitBtn.disabled = false
+        submitBtn.style.backgroundColor = "#1e1362"
+        submitBtn.style.cursor = "pointer"
+        submitBtn.style.color = "#ffffff"
+        submitBtn.style.opacity = "1"
+    } else {
+        submitBtn.disabled = true
+        submitBtn.style.backgroundColor = "#cccccc"
+        submitBtn.style.cursor = "not-allowed"
+        submitBtn.style.color = "#666666"
+        submitBtn.style.opacity = "0.7"
+    }
+    
+    return isFormValid
+  }
+
+  /* =========================
      Helpers: file validation
      ========================= */
   function getExtension(name) {
@@ -158,6 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (successNewSubmissionBtn) successNewSubmissionBtn.addEventListener("click", () => {
     clearStoredSuccess()
     closeSuccessModal()
+    validateFormForSubmitButton() // Re-validate after new submission
   })
 
   /* =========================
@@ -273,6 +356,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (yearSelect) { yearSelect.value = currentYear }
     if (courseInput) { courseInput.value = currentCourse }
     setSemesterAndAcademicYear()
+    
+    // Re-validate form after reset
+    validateFormForSubmitButton()
   }
 
   function restoreFormState() {
@@ -390,10 +476,7 @@ document.addEventListener("DOMContentLoaded", () => {
         modalEl.style.display = 'block'
         document.body.classList.add('modal-open')
       }
-console.log('showStoredSuccessIfAny called');
-console.log('Raw localStorage data:', raw);
-console.log('Found successDetails element:', !!detailsEl);
-console.log('Found successModal element:', !!modalEl);
+
       if (!detailsEl || !modalEl) {
         // If the elements aren't present yet (intermittent race), retry a few times
         let tries = 0
@@ -495,8 +578,14 @@ console.log('Found successModal element:', !!modalEl);
     initializeDropZone(newJob.querySelector(".drop-zone"))
 
     newJob.querySelectorAll('select, input[type="number"], textarea').forEach(el => {
-      el.addEventListener("change", saveFormState)
-      el.addEventListener("input", saveFormState)
+      el.addEventListener("change", () => {
+        saveFormState()
+        validateFormForSubmitButton()
+      })
+      el.addEventListener("input", () => {
+        saveFormState()
+        validateFormForSubmitButton()
+      })
     })
 
     newJob.querySelector(".remove-job-btn").addEventListener("click", (e) => {
@@ -504,6 +593,7 @@ console.log('Found successModal element:', !!modalEl);
       newJob.remove()
       updateTotalTokens()
       saveFormState()
+      validateFormForSubmitButton()
     })
   }
 
@@ -710,6 +800,7 @@ console.log('Found successModal element:', !!modalEl);
           if (pageCountSpan) pageCountSpan.textContent = "0"
           calculateTokens(jobElement)
           saveFormState()
+          validateFormForSubmitButton() // Added validation
           return
         }
 
@@ -717,6 +808,7 @@ console.log('Found successModal element:', !!modalEl);
         showFilePreview(filePreview, formattedName, file.size, pageCountSpan, file, input.name, jobElement)
         countPages(file, pageCountSpan, jobElement)
         saveFormState()
+        validateFormForSubmitButton() // Added validation
       }
     }
 
@@ -922,6 +1014,7 @@ console.log('Found successModal element:', !!modalEl);
     pageCountSpan.textContent = "0"
     calculateTokens(jobElement)
     saveFormState()
+    validateFormForSubmitButton() // Added validation
   }
 
   async function countPages(file, pageCountSpan, jobElement) {
@@ -965,6 +1058,7 @@ console.log('Found successModal element:', !!modalEl);
     }
     calculateTokens(jobElement)
     saveFormState()
+    validateFormForSubmitButton() // Added validation
   }
 
   // Helper function to read file as text
@@ -1113,6 +1207,9 @@ console.log('Found successModal element:', !!modalEl);
       storeSuccess(result, sentMeta)
       localStorage.removeItem(FORM_STATE_KEY)
       resetJobsAfterSubmit()
+      
+      // Re-validate submit button after reset
+      setTimeout(validateFormForSubmitButton, 100)
 
     } catch (err) {
       showErrorModal("⚠️ Error submitting form: " + err.message)
@@ -1166,7 +1263,10 @@ console.log('Found successModal element:', !!modalEl);
     pickupDateTime.max = formatDateYYYYMMDD(maxDate)
 
     pickupDateTime.removeEventListener('change', validatePickupDate)
-    pickupDateTime.addEventListener('change', validatePickupDate)
+    pickupDateTime.addEventListener('change', () => {
+      validatePickupDate()
+      validateFormForSubmitButton() // Added validation
+    })
   }
 
   function validatePickupDate() {
@@ -1290,7 +1390,10 @@ console.log('Found successModal element:', !!modalEl);
     else sel.value = `AY ${currentAyStart}-${currentAyStart + 1}`
 
     // save when changed
-    sel.addEventListener('change', saveFormState)
+    sel.addEventListener('change', () => {
+      saveFormState()
+      validateFormForSubmitButton() // Added validation
+    })
   }
 
   function loadUserData() {
@@ -1311,6 +1414,7 @@ console.log('Found successModal element:', !!modalEl);
             if (year) document.getElementById("yearSelect").value = year
           }
           saveFormState()
+          validateFormForSubmitButton() // Added validation
         })
         .catch((err) => console.error("Failed to fetch user:", err))
     }
@@ -1325,6 +1429,7 @@ console.log('Found successModal element:', !!modalEl);
     addPrintJobBtn.addEventListener("click", () => {
       addPrintJobProgrammatic()
       saveFormState()
+      validateFormForSubmitButton() // Added validation
     })
   }
 
@@ -1335,6 +1440,7 @@ console.log('Found successModal element:', !!modalEl);
       job.remove()
       updateTotalTokens()
       saveFormState()
+      validateFormForSubmitButton() // Added validation
     }
   })
 
@@ -1344,6 +1450,7 @@ console.log('Found successModal element:', !!modalEl);
       calculateTokens(job)
     }
     saveFormState()
+    validateFormForSubmitButton() // Added validation
   })
 
   const firstDropZone = document.querySelector(".drop-zone")
@@ -1354,8 +1461,14 @@ console.log('Found successModal element:', !!modalEl);
     const firstJob = document.querySelector(".print-job")
     if (firstJob) {
       firstJob.querySelectorAll('select, input[type="number"], textarea').forEach(element => {
-        element.addEventListener('change', () => calculateTokens(firstJob))
-        element.addEventListener('input', saveFormState)
+        element.addEventListener('change', () => {
+          calculateTokens(firstJob)
+          validateFormForSubmitButton() // Added validation
+        })
+        element.addEventListener('input', () => {
+          saveFormState()
+          validateFormForSubmitButton() // Added validation
+        })
       })
     }
   }
@@ -1409,6 +1522,7 @@ console.log('Found successModal element:', !!modalEl);
       document.getElementById("emailInput").readOnly = true
 
       saveFormState()
+      validateFormForSubmitButton() // Added validation
     })
   }
 
@@ -1509,12 +1623,33 @@ console.log('Found successModal element:', !!modalEl);
     academicYearInput.disabled = true;
   }
 
+  // Initialize form validation
   restoreFormState()
   showStoredSuccessIfAny()
+  validateFormForSubmitButton() // Initial validation
 
-  form.querySelectorAll("input, textarea, select").forEach(el => {
-    el.addEventListener("change", saveFormState)
-    el.addEventListener("input", saveFormState)
+  // Add event listeners for form validation
+  form.querySelectorAll("input:not([type='file']), textarea, select").forEach(el => {
+    el.addEventListener("change", () => {
+      saveFormState()
+      validateFormForSubmitButton()
+    })
+    el.addEventListener("input", () => {
+      saveFormState()
+      validateFormForSubmitButton()
+    })
+  })
+
+  // Specifically listen for checkbox changes
+  if (confirmCheckbox) {
+    confirmCheckbox.addEventListener("change", validateFormForSubmitButton)
+  }
+
+  // Listen for file changes in drop zones
+  document.addEventListener("change", (e) => {
+    if (e.target.classList.contains("drop-zone-input")) {
+      setTimeout(validateFormForSubmitButton, 100) // Small delay for file processing
+    }
   })
 
   document.querySelectorAll(".print-job").forEach(job => calculateTokens(job))
