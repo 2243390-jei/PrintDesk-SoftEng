@@ -24,9 +24,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   // State
   // -------------------------
-  let users = [];
-  let filteredUsers = [];
-  let currentScheduledReset = null;
+  let users = []
+  let filteredUsers = []
+  let currentScheduledReset = null
+  let currentPage = 1
+  const ROWS_PER_PAGE = 10 // Pagination rows per page
 
   // API endpoints - will be set dynamically
   let API_BASE = "http://localhost:3000"; // fallback
@@ -252,6 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(`${RESET_TOKENS_ENDPOINT}/scheduled`);
       if (!response.ok) {
         if (response.status === 404) {
+          console.log("No scheduled reset found (404 — endpoint may not exist)");
           return null; // No scheduled reset
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -262,7 +265,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return result;
       
     } catch (error) {
-      console.error("Error getting scheduled reset:", error);
+      // Silently handle endpoint errors (endpoint may not exist)
+      console.warn("Could not fetch scheduled reset:", error.message);
       return null;
     }
   }
