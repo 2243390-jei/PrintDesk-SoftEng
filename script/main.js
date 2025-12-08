@@ -6,10 +6,11 @@ let currentUserEmail = sessionStorage.getItem("userEmail") || null;
 let socket = null;
 let currentUserId = null;
 
-// Initialize Socket.IO connection
-function initializeSocket() {
+// Initialize Socket.IO connection with dynamic endpoint
+async function initializeSocket() {
   if (typeof io !== 'undefined') {
-    socket = io('http://localhost:3000', {
+    const endpoint = await getApiEndpoint()
+    socket = io(endpoint, {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -42,7 +43,9 @@ function setupNotificationListener(userId) {
 }
 
 // --- Handle manual login ---
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  // Ensure API endpoint is loaded before running client initialization
+  await getApiEndpoint();
   const loginForm = document.getElementById("loginForm");
 
   if (loginForm) {
@@ -53,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const password = document.getElementById("password").value.trim();
 
       try {
-        const res = await fetch("http://localhost:3000/login", {
+        const res = await apiFetch("/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
@@ -150,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // =========================
 async function fetchAndDisplayUser(email) {
   try {
-    const res = await fetch(`http://localhost:3000/users/${encodeURIComponent(email)}`);
+    const res = await apiFetch(`/users/${encodeURIComponent(email)}`);
     if (!res.ok) throw new Error("User not found");
     const user = await res.json();
 
@@ -213,7 +216,7 @@ function updateNotifications(notifications = [], userId) {
       // If notification has id and userId, try to delete on server
       if (n._id && userId) {
         try {
-          await fetch(`http://localhost:3000/users/${userId}/notifications/${n._id}/read`, { method: 'PATCH' });
+          await apiFetch(`/users/${userId}/notifications/${n._id}/read`, { method: 'PATCH' });
         } catch (err) {
           console.error('Failed to delete notification:', err);
         }
@@ -321,7 +324,7 @@ async function handleGoogleLogin(response) {
   const data = JSON.parse(atob(response.credential.split(".")[1]));
 
   try {
-    const res = await fetch("http://localhost:3000/google-login", {
+    const res = await apiFetch("/google-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

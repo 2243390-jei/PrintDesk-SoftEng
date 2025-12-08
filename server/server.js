@@ -2,8 +2,8 @@
 const app = require('./app')
 const http = require('http')
 const socketIO = require('socket.io')
+const { loadConfig, promptForConfig } = require('./config/host')
 
-const PORT = process.env.PORT || 3000
 const server = http.createServer(app)
 
 // Initialize Socket.IO with CORS enabled
@@ -26,7 +26,27 @@ io.on('connection', (socket) => {
   
 })
 
-server.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`))
+// Load or prompt for host configuration
+;(async () => {
+  // Check if --configure flag was passed
+  const shouldConfigure = process.argv.includes('--configure')
+  let config = loadConfig()
+
+  if (shouldConfigure) {
+    config = await promptForConfig()
+  }
+
+  const PORT = config.port
+  const HOST = config.host // Will be '0.0.0.0' to listen on all interfaces
+
+  server.listen(PORT, HOST, () => {
+    console.log(`\n✅ Server running`)
+    console.log(`   Access from this machine: http://localhost:${PORT}`)
+    console.log(`   Access from other devices: ${config.publicUrl}`)
+    console.log(`   (Run with --configure flag to change endpoint)\n`)
+  })
+})()
+
 
 // Handle server errors (e.g. port already in use)
 server.on('error', (err) => {

@@ -65,11 +65,20 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentDocuments = []; // Array of all documents for current request
   let currentDocumentIndex = 0; // Current document index
 
-  // API endpoints
-  const API_BASE = "http://localhost:3000";
-  const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+  // API endpoints - will be set dynamically
+  let API_BASE = "http://localhost:3000"; // fallback
+  let REQUESTS_ENDPOINT = `${API_BASE}/requests`;
 
   if (curYear) curYear.textContent = new Date().getFullYear();
+
+  // Load endpoint and initialize
+  (async () => {
+    API_BASE = await getApiEndpoint();
+    REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+    await initialize();
+    // Set up periodic queue count updates (every 30 seconds)
+    setInterval(updateQueueCount, 30000);
+  })();
 
   // -------------------------
   function openModal(modal) {
@@ -1004,12 +1013,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   }
-
-  // Start the application
-  initialize();
-
-  // Set up periodic queue count updates (every 30 seconds)
-  setInterval(updateQueueCount, 30000);
 
   // expose for debugging
   window.__printRecordDemo = {

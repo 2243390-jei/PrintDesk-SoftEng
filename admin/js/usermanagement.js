@@ -54,12 +54,22 @@ document.addEventListener("DOMContentLoaded", () => {
   let editingEmail = null;
   let deletingEmail = null;
 
-  // API endpoints
-  const API_BASE = "http://localhost:3000";
-  const USERS_ENDPOINT = `${API_BASE}/users`;
-  const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+  // API endpoints - will be set dynamically
+  let API_BASE = "http://localhost:3000"; // fallback
+  let USERS_ENDPOINT = `${API_BASE}/users`;
+  let REQUESTS_ENDPOINT = `${API_BASE}/requests`;
 
   if (curYear) curYear.textContent = new Date().getFullYear();
+
+  // Load endpoint and initialize
+  (async () => {
+    API_BASE = await getApiEndpoint();
+    USERS_ENDPOINT = `${API_BASE}/users`;
+    REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+    await initialize();
+    // Set up periodic queue count updates (every 30 seconds)
+    setInterval(updateQueueCount, 30000);
+  })();
 
   // -------------------------
   // Utility helpers
@@ -678,10 +688,4 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   }
-
-  // Start the application
-  initialize();
-
-  // Set up periodic queue count updates (every 30 seconds)
-  setInterval(updateQueueCount, 30000);
 });

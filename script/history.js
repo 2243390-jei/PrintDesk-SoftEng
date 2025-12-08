@@ -1,5 +1,5 @@
 ; (() => {
-  const API_URL = "http://localhost:3000/requests"
+  // API_URL will be built dynamically using apiFetch
   let allRequests = []
   let filteredRequests = []
   let previousFilteredRequests = []
@@ -118,7 +118,7 @@
         <button class="filter-btn">Completed</button>
         <button class="filter-btn">Cancelled</button>
         <button class="filter-btn">Rejected</button>
-        button class="filter-btn">Accepted</button>
+        <button class="filter-btn">Accepted</button>
       `
       filterWrapper.appendChild(fb)
     }
@@ -217,7 +217,7 @@
 
   async function checkForUpdates() {
     try {
-      const resp = await fetchWithTimeout(API_URL)
+      const resp = await fetchWithTimeout(await getApiUrl(`/requests`))
       const data = await resp.json()
       const newAllRequests = Array.isArray(data) ? data : []
 
@@ -243,6 +243,9 @@
 
   // ======= Initialization =======
   document.addEventListener("DOMContentLoaded", async () => {
+    // Ensure API endpoint is loaded before any API calls
+    await getApiEndpoint();
+    
     const logoRefresh = document.getElementById("logoRefresh")
     if (logoRefresh) logoRefresh.addEventListener("click", () => location.reload())
 
@@ -265,7 +268,7 @@
     }
 
     try {
-      const resp = await fetchWithTimeout(API_URL)
+      const resp = await fetchWithTimeout(await getApiUrl(`/requests`))
       const data = await resp.json()
       allRequests = Array.isArray(data) ? data : []
       populateAcademicYearFilter()
@@ -445,7 +448,7 @@
 
   async function deleteRequest(id) {
     try {
-      const res = await fetch(`http://localhost:3000/requests/${id}`, { method: "DELETE" })
+      const res = await apiFetch(`/requests/${id}`, { method: "DELETE" })
       const result = await res.json()
       if (res.ok) {
         alert("Print request deleted successfully")
@@ -636,7 +639,7 @@
       if (paperSide) updates.paperSide = paperSide
       if (copies) updates.copies = Number.parseInt(copies)
 
-      const res = await fetch(`http://localhost:3000/requests/${id}`, {
+      const res = await apiFetch(`/requests/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),

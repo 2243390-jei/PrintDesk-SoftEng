@@ -23,17 +23,23 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentSemester = 'All';
   let currentTerm = 'All';
   let currentTimeRange = 'All';
-  const API_BASE = "http://localhost:3000";
-  const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+  let API_BASE = "http://localhost:3000"; // fallback
+  let REQUESTS_ENDPOINT = `${API_BASE}/requests`;
 
   // Modal elements
   const logoutModal = document.getElementById('logoutModal');
   const cancelLogout = document.getElementById('cancelLogout');
   const confirmLogout = document.getElementById('confirmLogout');
 
-  // init
+  // init - wait for API_BASE to load first
   if (curYear) curYear.textContent = new Date().getFullYear();
-  initialize();
+  
+  // Load endpoint and initialize
+  (async () => {
+    API_BASE = await getApiEndpoint();
+    REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+    await initialize();
+  })();
 
   // -------------------------
   // Initialize everything

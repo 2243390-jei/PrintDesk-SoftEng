@@ -46,9 +46,16 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   let currentRequestId = null;
   
-  // API endpoints
-  const API_BASE = "http://localhost:3000";
-  const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+  // API endpoints - will be set dynamically
+  let API_BASE = "http://localhost:3000"; // fallback
+  let REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+
+  // Load endpoint and initialize
+  (async () => {
+    API_BASE = await getApiEndpoint();
+    REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+    await initialize();
+  })();
 
   // -------------------------
   // Utility helpers
@@ -1106,8 +1113,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (queueBody) queueBody.innerHTML = "<tr><td colspan='7'>Error loading print requests</td></tr>";
     }
   }
-
-  initialize();
 
   // Expose some helpers to console for quick testing (optional)
   window.__queueDemo = {
