@@ -1850,6 +1850,8 @@ body.history-body {
   .hamburger { display: inline-flex; position: absolute; right: 12px; top: 18px; }
   .navbar nav { display: none; }
   .navbar .logo img { height: 56px; max-width: 65%; }
+  /* Ensure home page logo matches submission mobile size */
+  .home-body .navbar .logo img { height: 56px; }
   .profile-icon { display: none; }
 
   /* show home hamburger on mobile; hide profile icon on mobile */
@@ -1860,6 +1862,10 @@ body.history-body {
   .submission-body .hamburger { display: inline-flex !important; }
   .submission-body .navbar .profile-icon { display: none !important; }
 
+  /* show history hamburger on mobile; hide profile icon on mobile */
+  .history-body .hamburger { display: inline-flex !important; }
+  .history-body .navbar .profile-icon { display: none !important; }
+
 
 /* Desktop: ensure hamburger is hidden and profile icon visible at right */
 @media (min-width: 769px) {
@@ -1867,6 +1873,8 @@ body.history-body {
   .home-body .navbar .profile-icon { display: block !important; position: relative !important; right: auto !important; margin-right: 12px !important; }
   .submission-body .hamburger { display: none !important; }
   .submission-body .navbar .profile-icon { display: block !important; position: relative !important; right: auto !important; margin-right: 12px !important; }
+  .history-body .hamburger { display: none !important; }
+  .history-body .navbar .profile-icon { display: block !important; position: relative !important; right: auto !important; margin-right: 12px !important; }
 }
   /* reduce header horizontal padding to avoid horizontal overflow on small devices */
   .navbar { padding: 8px 12px; }
@@ -1888,6 +1896,13 @@ body.history-body {
   .submission-body .navbar .logo img {
     height: 56px;
     width: auto;
+  }
+
+  /* enforce matching logo height across student pages on mobile */
+  .home-body .navbar .logo img,
+  .submission-body .navbar .logo img {
+    height: 56px !important;
+    max-width: 65%;
   }
 
   .submission-body .navbar nav { display: none; }

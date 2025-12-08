@@ -29,10 +29,45 @@
       </ul>
     </nav>
 
+    <button id="hamburgerBtn" class="hamburger" aria-label="Open menu">
+      <span class="hamburger-icon" aria-hidden="true">☰</span>
+    </button>
+
     <div class="profile-icon">
       <img id="nav-profile-pic" src="../images/student_img/profile.png" alt="Profile" />
     </div>
   </header>
+
+  <!-- Mobile Bottom Sheet (profile + nav) -->
+  <div id="mobileSheet" class="mobile-sheet" aria-hidden="true">
+    <div class="sheet-overlay" id="sheetOverlay"></div>
+    <div class="sheet-panel" role="dialog" aria-modal="true">
+      <div class="sheet-handle" id="sheetHandle"></div>
+      <div class="sheet-inner">
+        <div class="sheet-header">
+          <div class="mobile-profile">
+            <img id="mobile-profile-pic" src="../images/student_img/profile.png" alt="Profile" />
+            <div class="mobile-profile-info">
+              <h3 id="mobileStudentName">Student Name</h3>
+              <p id="mobileStudentId">Student ID</p>
+            </div>
+          </div>
+
+          <nav class="mobile-nav">
+            <ul>
+              <li><a href="home.html">Home</a></li>
+              <li><a href="submission.html">Submission</a></li>
+              <li><a href="history.html" class="active">History</a></li>
+            </ul>
+          </nav>
+        </div>
+
+        <div class="sheet-body">
+          <!-- additional sheet content can go here; kept scrollable -->
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- HISTORY FILTER SECTION -->
   <section class="history-filter-section">
