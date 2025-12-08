@@ -817,7 +817,8 @@
     const filename = doc.documentTitle || (doc.filePath ? doc.filePath.split("/").pop() : "Document")
     const ext = filename.split(".").pop().toLowerCase()
     const link = doc.filePath ? `${doc.filePath}` : "#"
-    if (["pdf", "jpg", "jpeg", "png", "gif"].includes(ext)) {
+    const previewable = ["pdf", "jpg", "jpeg", "png", "gif"]
+    if (previewable.includes(ext)) {
       return `
         <div class="doc-preview-container" style="display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:8px;background:#fafafa">
           <div style="flex-shrink:0;max-height:400px;overflow:auto;border:1px solid #ddd;border-radius:4px;background:white">
@@ -826,7 +827,10 @@
           <div>
             <div class="doc-name" style="font-weight:600;color:#1e1362;margin-bottom:4px">${filename}</div>
             <div style="font-size:0.85rem;color:#64748b;margin-bottom:8px">Pages: ${doc.pageCount ?? "-"} • Copies: ${doc.numberOfCopies ?? "-"} • Tokens/page: ${doc.tokensPerPage ?? "-"}</div>
-            <a href="${link}" target="_blank" style="display:inline-block;color:#3d2ee7;text-decoration:none;font-size:0.9rem;font-weight:500">View Full Size ↗</a>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button type="button" class="doc-preview-btn" data-link="${link}" data-ext="${ext}" style="background:#3d2ee7;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer">Preview</button>
+              <a href="${link}" target="_blank" style="display:inline-block;color:#3d2ee7;text-decoration:none;font-size:0.9rem;font-weight:500">Open ↗</a>
+            </div>
           </div>
           <div style="font-weight:600;color:#1e1362;text-align:right">${doc.totalTokens ?? 0} tokens</div>
         </div>`
@@ -837,10 +841,76 @@
         <div style="flex:1;min-width:0">
           <div class="doc-name" style="font-weight:600;color:#1e1362;margin-bottom:4px">${filename}</div>
           <div style="font-size:0.85rem;color:#64748b;margin-bottom:8px">Pages: ${doc.pageCount ?? "-"} • Copies: ${doc.numberOfCopies ?? "-"} • Tokens/page: ${doc.tokensPerPage ?? "-"}</div>
-          <a href="${link}" target="_blank" style="display:inline-block;color:#3d2ee7;text-decoration:none;font-size:0.9rem;font-weight:500">Download ↗</a>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button type="button" class="doc-cannot-preview" data-link="${link}" style="background:#f3f4f6;color:#334155;border:1px solid #e2e8f0;padding:8px 12px;border-radius:8px;cursor:pointer">Can't Preview</button>
+            <a href="${link}" target="_blank" style="display:inline-block;color:#3d2ee7;text-decoration:none;font-size:0.9rem;font-weight:500">Download ↗</a>
+          </div>
         </div>
         <div style="font-weight:600;color:#1e1362;text-align:right">${doc.totalTokens ?? 0} tokens</div>
       </div>`
+  }
+
+  // click delegation for document preview buttons
+  document.body.addEventListener('click', (e) => {
+    const p = e.target.closest('.doc-preview-btn')
+    if (p) {
+      const link = p.dataset.link
+      const ext = p.dataset.ext
+      openFilePreview(link, ext)
+      return
+    }
+    const cant = e.target.closest('.doc-cannot-preview')
+    if (cant) {
+      alert("We're sorry, but for some reason we can't open this for you.")
+      return
+    }
+  })
+
+  function openFilePreview(link, ext) {
+    if (!link) return alert("No file available to preview.")
+    ensureFilePreviewModal()
+    const modal = document.getElementById('filePreviewModal')
+    const content = modal.querySelector('.file-preview-content')
+    content.innerHTML = ''
+    const previewable = ['pdf', 'jpg', 'jpeg', 'png', 'gif']
+    if (previewable.includes(ext)) {
+      if (ext === 'pdf') {
+        const iframe = document.createElement('iframe')
+        iframe.src = link
+        iframe.style.width = '100%'
+        iframe.style.height = '80vh'
+        iframe.style.border = 'none'
+        content.appendChild(iframe)
+      } else {
+        const img = document.createElement('img')
+        img.src = link
+        img.alt = 'Preview'
+        img.style.maxWidth = '100%'
+        img.style.height = 'auto'
+        img.style.display = 'block'
+        content.appendChild(img)
+      }
+    } else {
+      content.innerHTML = `<div style="padding:18px;font-size:16px;color:#334155">We're sorry, but for some reason we can't open this for you.</div>`
+    }
+    modal.style.display = 'flex'
+  }
+
+  function ensureFilePreviewModal() {
+    let modal = document.getElementById('filePreviewModal')
+    if (modal) return
+    modal = document.createElement('div')
+    modal.id = 'filePreviewModal'
+    modal.className = 'modal'
+    modal.style.cssText = 'display:none;align-items:center;justify-content:center;padding:12px'
+    modal.innerHTML = `
+      <div class="modal-content" style="width:100%;max-width:900px;max-height:90vh;overflow:auto;padding:12px;">
+        <button class="close-modal" style="position:absolute;right:12px;top:12px;background:#f1f5f9;border:1px solid #e2e8f0;padding:8px;border-radius:8px;cursor:pointer">×</button>
+        <div class="file-preview-content"></div>
+      </div>`
+    document.body.appendChild(modal)
+    modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.style.display = 'none' })
+    modal.querySelector('.close-modal').addEventListener('click', () => { modal.style.display = 'none' })
   }
 
   async function saveRequestChanges(id) {
