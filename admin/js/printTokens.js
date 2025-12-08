@@ -28,17 +28,24 @@ document.addEventListener("DOMContentLoaded", () => {
   let filteredUsers = [];
   let currentScheduledReset = null;
 
-  // Pagination state
-  const ROWS_PER_PAGE = 5;
-  let currentPage = 1;
+  // API endpoints - will be set dynamically
+  let API_BASE = "http://localhost:3000"; // fallback
+  let USERS_ENDPOINT = `${API_BASE}/users`;
+  let REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+  let RESET_TOKENS_ENDPOINT = `${API_BASE}/reset-tokens`;
+  let RESET_TOKENS_CANCEL_ENDPOINT = `${API_BASE}/cancel-reset`;
+  let RESET_TOKENS_EXECUTE_ENDPOINT = `${API_BASE}/reset-tokens/execute`;
 
-  // API endpoints
-  const API_BASE = "http://localhost:3000";
-  const USERS_ENDPOINT = `${API_BASE}/users`;
-  const REQUESTS_ENDPOINT = `${API_BASE}/requests`;
-  const RESET_TOKENS_ENDPOINT = `${API_BASE}/reset-tokens`;
-  const RESET_TOKENS_CANCEL_ENDPOINT = `${API_BASE}/cancel-reset`;
-  const RESET_TOKENS_EXECUTE_ENDPOINT = `${API_BASE}/reset-tokens/execute`;
+  // Load dynamic API endpoint
+  (async () => {
+    API_BASE = await getApiEndpoint();
+    USERS_ENDPOINT = `${API_BASE}/users`;
+    REQUESTS_ENDPOINT = `${API_BASE}/requests`;
+    RESET_TOKENS_ENDPOINT = `${API_BASE}/reset-tokens`;
+    RESET_TOKENS_CANCEL_ENDPOINT = `${API_BASE}/cancel-reset`;
+    RESET_TOKENS_EXECUTE_ENDPOINT = `${API_BASE}/reset-tokens/execute`;
+    await initialize();
+  })();
 
   // Set footer year if element exists
   if (curYear) curYear.textContent = new Date().getFullYear();
@@ -866,8 +873,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Start the application
-  initialize();
+  // Application initialized in async IIFE above
 
   // Expose helpers to console for debugging
   window.__tokensDemo = {

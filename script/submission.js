@@ -1,4 +1,6 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  // Ensure API endpoint is loaded before any API calls on the submission page
+  await getApiEndpoint();
   
   /* =========================
      DOM refs
@@ -565,6 +567,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <span>Drag & Drop files here</span>
           <input type="file" name="documents" class="drop-zone-input" required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt" />
         </div>
+        
         <div class="page-count" style="margin-top: 8px; color: #666;">Pages: <span>0</span></div>
         <div class="file-preview" style="margin-top: 12px; display: none;"></div>
       </div>
@@ -662,7 +665,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (pickupVal) updateQueueInfo(pickupVal, total)
 
     if (currentUserEmail) {
-      fetch(`http://localhost:3000/users/${encodeURIComponent(currentUserEmail)}`)
+      apiFetch(`/users/${encodeURIComponent(currentUserEmail)}`)
         .then((res) => res.json())
         .then((user) => {
           const userBalance = user.tokenBalance ?? 0
@@ -710,7 +713,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const resp = await fetch(`http://localhost:3000/requests/pendingCount?pickupDate=${encodeURIComponent(pickupDateOnly)}`)
+      const resp = await apiFetch(`/requests/pendingCount?pickupDate=${encodeURIComponent(pickupDateOnly)}`)
       if (!resp.ok) {
         queueDisplay.style.background = '#fff7e6'
         queueDisplay.style.color = '#8a6d3b'
@@ -819,7 +822,10 @@ document.addEventListener("DOMContentLoaded", () => {
     newFileInput.addEventListener("change", handleFileChange)
 
     dropZone.addEventListener("click", (e) => {
-      if (e.target === dropZone || !e.target.closest(".file-action-btn")) {
+      // Only open file picker when user clicks the drop zone background 
+      const clickedInput = e.target.closest('.drop-zone-input')
+      const clickedAction = e.target.closest('.file-action-btn')
+      if (!clickedInput && !clickedAction) {
         newFileInput.click()
       }
     })
@@ -1153,7 +1159,7 @@ document.addEventListener("DOMContentLoaded", () => {
       let clientQueuePosition = null
       if (pickupDateOnly) {
         try {
-          const pendingRes = await fetch(`http://localhost:3000/requests/pendingCount?pickupDate=${encodeURIComponent(pickupDateOnly)}`)
+          const pendingRes = await apiFetch(`/requests/pendingCount?pickupDate=${encodeURIComponent(pickupDateOnly)}`)
           if (pendingRes.ok) {
             const pendingJson = await pendingRes.json()
             const count = Number(pendingJson.count || 0)
@@ -1180,7 +1186,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      const res = await fetch("http://localhost:3000/submit", {
+      const res = await apiFetch("/submit", {
         method: "POST",
         body: formData,
       })
@@ -1210,6 +1216,9 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // Re-validate submit button after reset
       setTimeout(validateFormForSubmitButton, 100)
+
+      // Show the success modal immediately (stored data will be used)
+      try { showStoredSuccessIfAny() } catch (e) { console.warn('Failed to show success modal immediately', e) }
 
     } catch (err) {
       showErrorModal("⚠️ Error submitting form: " + err.message)
@@ -1398,7 +1407,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function loadUserData() {
     if (currentUserEmail) {
-      fetch(`http://localhost:3000/users/${encodeURIComponent(currentUserEmail)}`)
+      apiFetch(`/users/${encodeURIComponent(currentUserEmail)}`)
         .then((res) => res.json())
         .then((user) => {
           const fullNameInput = document.getElementById("fullNameInput")

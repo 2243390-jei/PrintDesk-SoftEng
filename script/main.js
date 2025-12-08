@@ -6,10 +6,11 @@ let currentUserEmail = sessionStorage.getItem("userEmail") || null;
 let socket = null;
 let currentUserId = null;
 
-// Initialize Socket.IO connection
-function initializeSocket() {
+// Initialize Socket.IO connection with dynamic endpoint
+async function initializeSocket() {
   if (typeof io !== 'undefined') {
-    socket = io('http://localhost:3000', {
+    const endpoint = await getApiEndpoint()
+    socket = io(endpoint, {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -42,7 +43,9 @@ function setupNotificationListener(userId) {
 }
 
 // --- Handle manual login ---
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  // Ensure API endpoint is loaded before running client initialization
+  await getApiEndpoint();
   const loginForm = document.getElementById("loginForm");
 
   if (loginForm) {
@@ -53,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const password = document.getElementById("password").value.trim();
 
       try {
-        const res = await fetch("http://localhost:3000/login", {
+        const res = await apiFetch("/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
@@ -81,6 +84,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const navbarProfilePic = document.getElementById("nav-profile-pic");
   const modal = document.getElementById("profileModal");
   const closeModal = document.querySelector(".profile-modal-close");
+
+  // Mobile sheet controls
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const mobileSheet = document.getElementById('mobileSheet');
+  const sheetOverlay = document.getElementById('sheetOverlay');
+  const sheetHandle = document.getElementById('sheetHandle');
 
   if (navbarProfilePic) {
     // Add badge for unread notifications
@@ -117,6 +126,40 @@ document.addEventListener("DOMContentLoaded", () => {
       await fetchAndDisplayUser(currentUserEmail);
     });
 
+    // Hamburger toggles mobile bottom sheet (mobile view)
+    if (hamburgerBtn && mobileSheet) {
+      hamburgerBtn.addEventListener('click', async () => {
+        // If sheet is already open, close it
+        if (mobileSheet.classList.contains('open')) {
+          closeMobileSheet();
+          hamburgerBtn.classList.remove('is-open');
+          return;
+        }
+
+        // Open sheet path
+        if (!currentUserEmail) {
+          // allow nav-only open even when not logged in
+          mobileSheet.classList.add('open');
+          mobileSheet.setAttribute('aria-hidden', 'false');
+          hamburgerBtn.classList.add('is-open');
+          return;
+        }
+
+        await fetchAndDisplayUser(currentUserEmail);
+        mobileSheet.classList.add('open');
+        mobileSheet.setAttribute('aria-hidden', 'false');
+        hamburgerBtn.classList.add('is-open');
+      });
+
+      if (sheetOverlay) sheetOverlay.addEventListener('click', () => { closeMobileSheet(); hamburgerBtn.classList.remove('is-open'); });
+      if (sheetHandle) sheetHandle.addEventListener('click', () => { closeMobileSheet(); hamburgerBtn.classList.remove('is-open'); });
+
+      // close on Escape
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { closeMobileSheet(); if (hamburgerBtn) hamburgerBtn.classList.remove('is-open'); }
+      });
+    }
+
     if (closeModal) {
       closeModal.addEventListener("click", () => {
         modal.style.display = "none";
@@ -150,7 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // =========================
 async function fetchAndDisplayUser(email) {
   try {
-    const res = await fetch(`http://localhost:3000/users/${encodeURIComponent(email)}`);
+    const res = await apiFetch(`/users/${encodeURIComponent(email)}`);
     if (!res.ok) throw new Error("User not found");
     const user = await res.json();
 
@@ -213,7 +256,7 @@ function updateNotifications(notifications = [], userId) {
       // If notification has id and userId, try to delete on server
       if (n._id && userId) {
         try {
-          await fetch(`http://localhost:3000/users/${userId}/notifications/${n._id}/read`, { method: 'PATCH' });
+          await apiFetch(`/users/${userId}/notifications/${n._id}/read`, { method: 'PATCH' });
         } catch (err) {
           console.error('Failed to delete notification:', err);
         }
@@ -250,6 +293,12 @@ function updateProfileModal(name, email, tokens, role, picture) {
     profilePic.src = picture;
     profilePic.style.borderRadius = "50%";
   }
+
+  // Also update mobile sheet if present
+  const mName = document.getElementById('mobileStudentName');
+  const mId = document.getElementById('mobileStudentId');
+  if (mName) mName.textContent = name || 'Unknown User';
+  if (mId) mId.textContent = email || 'N/A';
 }
 
 function updateNavbarProfilePic(picture) {
@@ -263,6 +312,17 @@ function updateNavbarProfilePic(picture) {
     navbarProfilePic.src = "../images/student_img/profile.png";
   }
   navbarProfilePic.style.borderRadius = "50%";
+
+  // mobile sheet profile pic
+  const mPic = document.getElementById('mobile-profile-pic');
+  if (mPic) mPic.src = navbarProfilePic.src;
+}
+
+function closeMobileSheet() {
+  const mobileSheet = document.getElementById('mobileSheet');
+  if (!mobileSheet) return;
+  mobileSheet.classList.remove('open');
+  mobileSheet.setAttribute('aria-hidden', 'true');
 }
 
 function updateTokenProgress(currentTokens = 0) {
@@ -321,7 +381,7 @@ async function handleGoogleLogin(response) {
   const data = JSON.parse(atob(response.credential.split(".")[1]));
 
   try {
-    const res = await fetch("http://localhost:3000/google-login", {
+    const res = await apiFetch("/google-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
