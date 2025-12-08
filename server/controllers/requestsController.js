@@ -42,7 +42,8 @@ const updateRequest = async (req, res) => {
     }
 
   // Allow admin to send a rejection reason when changing status to 'Rejected'
-  const allowedFields = ['status', 'pickupDateTime', 'semester', 'academicYear', 'rejectionReason']
+  // Also allow editing of document fields and pickup date for pending requests
+  const allowedFields = ['status', 'pickupDateTime', 'semester', 'academicYear', 'rejectionReason', 'documents', 'paperSize', 'paperType', 'paperSide', 'copies']
     const updates = {}
     for (const field of allowedFields) if (req.body[field] !== undefined) updates[field] = req.body[field]
 
@@ -84,11 +85,53 @@ const updateRequest = async (req, res) => {
 
     const updatedRequest = await PrintRequest.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true })
 
-    // If status changed and the request was previously pending, refund tokens when rejected
+    // Handle token adjustment if documents or print settings changed (only for pending requests)
+    let tokenAdjustment = 0
+    if (currentRequest.status === 'Pending' && (updates.documents || updates.paperSize || updates.paperType || updates.paperSide || updates.copies)) {
+      try {
+        // Calculate old token cost
+        const oldTotalTokens = Number(currentRequest.totalTokens || 0)
+        
+        // Calculate new token cost based on updated documents
+        let newTotalTokens = 0
+        if (updates.documents && Array.isArray(updates.documents)) {
+          newTotalTokens = updates.documents.reduce((sum, doc) => sum + Number(doc.totalTokens || 0), 0)
+        } else if (updatedRequest.documents && Array.isArray(updatedRequest.documents)) {
+          newTotalTokens = updatedRequest.documents.reduce((sum, doc) => sum + Number(doc.totalTokens || 0), 0)
+        }
+        
+        tokenAdjustment = newTotalTokens - oldTotalTokens
+        
+        if (tokenAdjustment !== 0) {
+          console.log(`Token adjustment for request ${req.params.id}: ${oldTotalTokens} → ${newTotalTokens} (delta: ${tokenAdjustment})`)
+          
+          // Update user's token balance by the difference
+          if (currentRequest.userId) {
+            const before = await User.findById(currentRequest.userId)
+            const adjusted = await User.findByIdAndUpdate(
+              currentRequest.userId,
+              { $inc: { tokenBalance: -tokenAdjustment } },
+              { new: true }
+            )
+            
+            if (adjusted) {
+              console.log(`User ${currentRequest.userId} tokens: ${before.tokenBalance} → ${adjusted.tokenBalance}`)
+              
+              // Update request's totalTokens to reflect new calculation
+              await PrintRequest.findByIdAndUpdate(req.params.id, { $set: { totalTokens: newTotalTokens } })
+            }
+          }
+        }
+      } catch (tokenErr) {
+        console.error('Failed to adjust tokens on document edit:', tokenErr)
+      }
+    }
+
+    // If status changed and the request was previously pending, refund tokens when rejected or cancelled
     let refunded = false
     let refundedAmount = 0
     let newBalance = null
-    if (updates.status === 'Rejected') {
+    if (updates.status === 'Rejected' || updates.status === 'Cancelled') {
       try {
         // Log useful debug info to trace why refunds may not run
         console.log(`Refund check for request ${req.params.id}: currentStatus=${currentRequest.status}, totalTokens=${currentRequest.totalTokens}, refunded=${currentRequest.refunded}, userId=${currentRequest.userId}`)
@@ -128,7 +171,7 @@ const updateRequest = async (req, res) => {
           }
         }
       } catch (refundErr) {
-        console.error('Failed to refund tokens on rejection:', refundErr)
+        console.error('Failed to refund tokens on rejection/cancellation:', refundErr)
       }
     }
 
@@ -146,7 +189,10 @@ const updateRequest = async (req, res) => {
           message = `Your print request for "${fileNames}" was rejected.${reason}`
           if (refunded) message += ` ${refundedAmount} tokens have been returned to your account.`
         }
-        if (updates.status === 'Cancelled') message = `Your print request for "${fileNames}" was cancelled due to unclaimed pickup.`
+        if (updates.status === 'Cancelled') {
+          message = `Your print request for "${fileNames}" was cancelled.`
+          if (refunded) message += ` ${refundedAmount} tokens have been returned to your account.`
+        }
 
         const notification = { type: notifType, message, requestId: updatedRequest._id }
         await User.findByIdAndUpdate(currentRequest.userId, { $push: { notifications: notification } })

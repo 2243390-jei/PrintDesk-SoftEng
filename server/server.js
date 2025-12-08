@@ -1,4 +1,3 @@
-// Minimal server starter — uses modular app in `app.js`
 const app = require('./app')
 const http = require('http')
 const socketIO = require('socket.io')
@@ -6,7 +5,7 @@ const { loadConfig, promptForConfig } = require('./config/host')
 
 const server = http.createServer(app)
 
-// Initialize Socket.IO with CORS enabled
+// Initialize Socket.IO 
 const io = socketIO(server, {
   cors: {
     origin: '*',
@@ -14,7 +13,7 @@ const io = socketIO(server, {
   }
 })
 
-// Store io globally so controllers can access it
+// Store io globally 
 global.io = io
 
 // Handle socket connections
@@ -37,7 +36,7 @@ io.on('connection', (socket) => {
   }
 
   const PORT = config.port
-  const HOST = config.host // Will be '0.0.0.0' to listen on all interfaces
+  const HOST = config.host
 
   server.listen(PORT, HOST, () => {
     console.log(`\n✅ Server running`)
@@ -48,7 +47,7 @@ io.on('connection', (socket) => {
 })()
 
 
-// Handle server errors (e.g. port already in use)
+// Handle server errors 
 server.on('error', (err) => {
   if (err && err.code === 'EADDRINUSE') {
     console.error(`ERROR: Port ${PORT} is already in use.`)
@@ -64,8 +63,6 @@ server.on('error', (err) => {
   console.error('Server error:', err)
   process.exit(1)
 })
-
-// (optional) resetTokens route removed — keep routes modular. If you add a resetTokens route, re-enable here.
 
 // Auto-cancel expired pickup requests
 const PrintRequest = require('./models/PrintRequest')

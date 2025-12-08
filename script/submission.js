@@ -732,7 +732,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         queueDisplay.style.background = count >= 20 ? '#fff0f0' : '#f0fff0'
         queueDisplay.style.color = count >= 20 ? '#c62828' : '#2e7d32'
         const pos = count + 1
-        queueDisplay.textContent = `📅 Pickup ${pickupDateOnly} — ${count} pending, you would be #${pos}`
+        queueDisplay.textContent = `📅 Pickup ${pickupDateOnly}: Your Line in Queue#${pos}`
         if (count >= 20) {
           // show inline warning near form
           queueDisplay.textContent += ' — Reservation limit reached (20)'
