@@ -1849,6 +1849,17 @@ body.history-body {
     text-align: center;
   }
 
+  /* Center the Print Faster section title + paragraph on mobile only */
+  .print-faster-title,
+  .print-faster-text {
+    text-align: center;
+  }
+
+  /* Center the step-by-step section title on mobile only */
+  .step-by-step-top-title {
+    text-align: center;
+  }
+
   .home-body .hero-text p {
     font-size: 1rem;
     text-align: center;
