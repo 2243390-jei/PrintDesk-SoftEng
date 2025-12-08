@@ -69,9 +69,10 @@ body::after {
 }
 
 .lock-logo {
-  width: 30px;
+  width: 40px;
   height: auto;
-  margin-bottom: 0.8rem;
+  display: block;
+  margin: 0.6rem auto 0.8rem;
 }
 
 .login-box h2 {
@@ -225,6 +226,113 @@ body.home-body {
   height: 40px;
   cursor: pointer;
 }
+
+/* Home-specific navbar and hamburger tweaks
+   Scope changes to `.home-body` so authentication pages (which use `.left .logo`) are unaffected */
+.home-body .navbar {
+  /* make navbar a containing block for absolutely positioned logo/hamburger */
+  position: fixed; /* already fixed globally but ensure specificity */
+  padding: 8px 12px; /* reduce horizontal padding so items can sit near edges */
+}
+
+/* Anchor the logo to the left edge of the navbar and vertically center it */
+.home-body .navbar .logo {
+  /* keep logo in normal flow on desktop so flex layout places it at start */
+  position: relative;
+  margin-left: 12px;
+  top: auto;
+  transform: none;
+}
+
+.home-body .navbar .logo img {
+  height: 70px;
+  width: auto;
+  margin: 0;
+  display: block;
+}
+
+.home-body .hamburger {
+  display: none; /* hidden on desktop by default; shown on mobile via media query */
+  position: absolute;
+  right: 12px; /* anchor to right edge */
+  top: 50%;
+  transform: translateY(-50%); /* vertically center */
+  width: 76px; /* larger tappable area */
+  height: 76px;
+  padding: 12px;
+  border-radius: 14px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  z-index: 1200;
+  transition: transform 0.18s ease, background-color 0.18s ease;
+}
+
+.home-body .hamburger .bar {
+  width: 44px; /* wider bars to match bigger button */
+  height: 5px; /* thicker bars for visibility */
+  border-radius: 3px;
+  background: #1e1362;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+/* If hamburger uses a text icon (☰) ensure it is bold and legible */
+.home-body .hamburger .hamburger-icon {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  color: #1e1362;
+  display: inline-block;
+}
+
+/* Remove border/outline/box-shadow on click/focus/open so it doesn't show a visible border */
+.home-body .hamburger:focus,
+.home-body .hamburger:active,
+.home-body .hamburger.is-open {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+/* Also apply the same accessible focus style removal globally for any hamburger button */
+.hamburger:focus,
+.hamburger:active,
+.hamburger.is-open {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+/* Ensure profile icon sits on the right side of the navbar on desktop */
+.home-body .navbar .profile-icon {
+  /* keep profile icon in the normal flow on desktop so flex places it at the end */
+  display: block !important;
+  position: relative;
+  right: auto !important;
+  left: auto !important;
+  margin-right: 12px;
+  top: auto;
+  transform: none;
+  z-index: 1600 !important;
+}
+
+.home-body .navbar .profile-icon img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+/* Position the profile icon on desktop (right side of navbar) */
+/* Removed duplicate `.home-body .profile-icon` rule to avoid conflicts with the navbar-scoped rule */
+
+/* when hamburger toggles to open (X) keep the transform behavior but use larger bars */
+.home-body .hamburger.is-open .bar:nth-child(1),
+.home-body .hamburger.is-open .bar:nth-child(3) {
+  width: 44px;
+}
+
 
 /* ===== HERO SECTION ===== */
 .home-body .hero {
@@ -1228,9 +1336,12 @@ body.history-body {
   transform: translateY(-50%);
   z-index: 1100;
 }
-.hamburger:focus {
-  outline: 2px solid rgba(30,19,98,0.12);
-  outline-offset: 2px;
+.hamburger:focus,
+.hamburger:active {
+  /* remove default focus outline/offset so button doesn't shift on click/focus */
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
 }
 .hamburger .bar {
   display: block;
@@ -1240,18 +1351,19 @@ body.history-body {
   margin: 4px 0;
   transition: transform 0.28s cubic-bezier(.2,.9,.3,1), opacity 0.2s ease;
   border-radius: 2px;
+  transform-origin: center center;
 }
 
 /* Open / close animation to X */
 .hamburger.is-open .bar:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
+  transform: rotate(45deg);
 }
 .hamburger.is-open .bar:nth-child(2) {
   opacity: 0;
   transform: scaleX(0);
 }
 .hamburger.is-open .bar:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
+  transform: rotate(-45deg);
 }
 
 /* Mobile bottom sheet */
@@ -1662,10 +1774,35 @@ body.history-body {
   .left {
     width: 100%;
     margin-bottom: 20px;
+    order: -1; /* ensure logo appears above the login box on small screens */
+    text-align: center; /* center align the logo container */
+    display: flex; /* center child elements horizontally */
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
   }
 
   .logo {
     width: 200px;
+    display: block;
+    margin: 0 auto 8px auto;
+    max-width: 80%;
+  }
+
+  /* Stronger centering in case other rules interfere (mobile) */
+  .container > .left,
+  .container > .left > img.logo {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+  }
+
+  .container > .left > img.logo {
+    display: block !important;
+    margin: 0 auto !important;
+    max-width: 80% !important;
   }
 
   /* show hamburger on mobile and hide center nav */
@@ -1674,6 +1811,16 @@ body.history-body {
   .navbar .logo img { height: 56px; max-width: 65%; }
   .profile-icon { display: none; }
 
+  /* show home hamburger on mobile; hide profile icon on mobile */
+  .home-body .hamburger { display: inline-flex !important; }
+  .home-body .navbar .profile-icon { display: none !important; }
+
+
+/* Desktop: ensure hamburger is hidden and profile icon visible at right */
+@media (min-width: 769px) {
+  .home-body .hamburger { display: none !important; }
+  .home-body .navbar .profile-icon { display: block !important; position: relative !important; right: auto !important; margin-right: 12px !important; }
+}
   /* reduce header horizontal padding to avoid horizontal overflow on small devices */
   .navbar { padding: 8px 12px; }
 
@@ -1713,6 +1860,14 @@ body.history-body {
   /* Put hero image above the text on mobile */
   .home-body .hero-image { order: -1; display:flex; justify-content:center; }
   .home-body .hero-text { order: 0; }
+
+  /* Center the submit button on mobile for better UX */
+  .home-body .submit-btn {
+    display: block;
+    margin: 16px auto;
+    text-align: center;
+    max-width: 80%;
+  }
 
   .print-faster-section { flex-direction: column; padding: 28px 20px; }
   .print-faster-image { max-width: 100%; order: -1; }
@@ -1757,6 +1912,10 @@ body.history-body {
     margin: 20px auto;
     padding: 2rem 2.2rem; 
     box-sizing: border-box;
+    /* colored glow shadow (scaled for mobile) */
+    box-shadow:
+      -20px 8px 60px 10px rgba(14, 4, 101, 0.18),
+      24px 16px 60px 10px rgba(226, 173, 15, 0.18);
   }
 }
 
@@ -1768,9 +1927,45 @@ body.history-body {
 
   .login-box {
     padding: 1.8rem 2.5rem; /* more spacing for small screens */
+    /* colored glow shadow tuned for extra-small phones */
+    box-shadow:
+      -16px 6px 48px 8px rgba(14, 4, 101, 0.16),
+      20px 12px 48px 8px rgba(226, 173, 15, 0.16);
   }
 
   .login-box h2 {
     font-size: 1.3rem;
   }
+}
+/* Make date input easier to click */
+.date-input-wrapper input[type="date"] {
+    padding: 10px 12px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.date-input-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 1;
+    padding: 4px;
+    margin-left: 8px;
+}
+
+/* Submit button states */
+.submit-btn:disabled {
+    background-color: #cccccc !important;
+    cursor: not-allowed !important;
+    color: #666666 !important;
+    border: none !important;
+}
+
+.submit-btn:not(:disabled) {
+    background-color: #1e1362 !important;
+    cursor: pointer !important;
+    color: #ffffff !important;
+    transition: background-color 0.3s ease !important;
+}
+
+.submit-btn:not(:disabled):hover {
+    background-color: #3d2ee7 !important;
 }
