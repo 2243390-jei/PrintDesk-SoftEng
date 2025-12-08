@@ -2,6 +2,13 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Prevent accidental horizontal overflow and make sizing predictable */
+*, *::before, *::after { box-sizing: border-box; }
+img, picture, video, svg { max-width: 100%; height: auto; display: block; }
+
+/* ensure pages never create horizontal scroll */
+html, body { width: 100%; }
+
 /*Authentication*/
 body {
   margin: 0;
@@ -482,21 +489,21 @@ body.home-body {
 .policy-details {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 40px;
+  padding: 0 20px;
   display: flex;
-  justify-content: space-between;
+  gap: 36px;
+  align-items: center;
+  flex-direction: column;
 }
-
-.policy-right {
-  text-align: right;
-  flex-basis: 400px;
-}
+.policy-header { text-align: center; margin-bottom: 6px; }
+.policy-header .policy-image { max-width: 420px; width: 100%; height: auto; display: block; margin: 8px auto 0; }
 
 .policy-title {
   font-family: "Bebas Neue", sans-serif;
   font-size: 2.6rem;
   color: #000;
   margin: 0 0 20px 0;
+  text-align: center;
 }
 
 .policy-image {
@@ -508,19 +515,52 @@ body.home-body {
 }
 
 .policy-cards {
-  flex-grow: 1;
+  flex: 1 1 auto;
   display: flex;
-  justify-content: center;
-  gap: 30px;
-  padding: 0 40px;
+  flex-direction: column;
+  gap: 22px;
+  padding: 0;
+  align-items: center;
 }
-
 .policy-card {
   background: #fff;
   border-radius: 15px;
-  padding: 25px;
-  flex: 1;
-  max-width: 380px;
+  padding: 22px 20px;
+  flex: 0 0 auto;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 8px 18px rgba(16,24,40,0.06);
+}
+
+/* New top-aligned policy image styles */
+.policy-card-top { display:flex; justify-content:center; align-items:center; margin-bottom:10px; }
+.policy-card-top-img { width:88px; height:88px; object-fit:contain; display:block; border-radius:14px; background: #fff; padding:8px; }
+.policy-card-title { text-align:center; margin: 8px 0 6px; font-size:1.05rem; }
+.policy-card-text { text-align:center; color:#555; line-height:1.5; }
+
+/* Desktop: place Fair Use title + illustration above the cards and center everything */
+@media (min-width: 769px) {
+  .policy-details {
+    flex-direction: column;
+    align-items: center;
+    gap: 26px;
+    padding: 0 20px;
+  }
+
+  /* Put title/illustration above the cards */
+  .policy-header { order: -1; }
+  .policy-header .policy-title { margin-bottom: 12px; }
+
+  .policy-cards {
+    flex-direction: row;
+    justify-content: center;
+    gap: 26px;
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 960px;
+  }
+
+  .policy-card { max-width: 320px; }
 }
 
 .policy-card-header {
@@ -1170,6 +1210,102 @@ body.history-body {
   color: #333;
 }
 
+/* Hamburger (hidden on desktop) */
+.hamburger {
+  display: none;
+  background: transparent;
+  border: none;
+  width: 52px;
+  height: 52px;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1100;
+}
+.hamburger:focus {
+  outline: 2px solid rgba(30,19,98,0.12);
+  outline-offset: 2px;
+}
+.hamburger .bar {
+  display: block;
+  width: 26px;
+  height: 3px;
+  background: #1e1362;
+  margin: 4px 0;
+  transition: transform 0.28s cubic-bezier(.2,.9,.3,1), opacity 0.2s ease;
+  border-radius: 2px;
+}
+
+/* Open / close animation to X */
+.hamburger.is-open .bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburger.is-open .bar:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.hamburger.is-open .bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile bottom sheet */
+.mobile-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  pointer-events: none;
+}
+.mobile-sheet .sheet-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.mobile-sheet .sheet-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 50vh;
+  max-height: 50vh;
+  background: #fff;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  transform: translateY(110%);
+  transition: transform 0.32s cubic-bezier(.2,.9,.3,1);
+  box-shadow: 0 -8px 30px rgba(0,0,0,0.12);
+  pointer-events: auto;
+  overflow: hidden;
+}
+.mobile-sheet.open .sheet-overlay { opacity: 1; }
+.mobile-sheet.open .sheet-panel { transform: translateY(0%); }
+.sheet-handle {
+  width: 56px;
+  height: 6px;
+  background: #e6e6ea;
+  border-radius: 6px;
+  margin: 10px auto 6px auto;
+}
+.sheet-inner { padding: 18px 20px 36px 20px; }
+.sheet-inner { display: flex; flex-direction: column; height: 100%; }
+.sheet-header { position: sticky; top: 0; z-index: 12; background: #fff; padding-bottom: 8px; border-bottom: 1px solid #f3f3f3; }
+.sheet-body { flex: 1 1 auto; overflow: auto; padding-top: 8px; }
+.mobile-profile { display:flex; gap:12px; align-items:center; padding: 8px 4px; border-bottom:1px solid #f0f0f0; }
+.mobile-profile img { width:64px; height:64px; border-radius:50%; object-fit:cover; }
+.mobile-profile-info h3 { margin:0; font-size:1.05rem; color:#1e1362; }
+.mobile-profile-info p { margin:2px 0 0 0; color:#666; font-size:0.9rem; }
+.mobile-nav ul { list-style:none; padding: 12px 0 0 0; margin:0; display:flex; flex-direction:column; gap:8px; }
+.mobile-nav a { display:block; padding:12px 14px; border-radius:8px; color:#1e1362; text-decoration:none; font-weight:600; }
+.mobile-nav a.active { background:#f3f4ff; }
+
+
 .modal-open {
   overflow: hidden;
 }
@@ -1531,6 +1667,88 @@ body.history-body {
   .logo {
     width: 200px;
   }
+
+  /* show hamburger on mobile and hide center nav */
+  .hamburger { display: inline-flex; position: absolute; right: 12px; top: 18px; }
+  .navbar nav { display: none; }
+  .navbar .logo img { height: 56px; max-width: 65%; }
+  .profile-icon { display: none; }
+
+  /* reduce header horizontal padding to avoid horizontal overflow on small devices */
+  .navbar { padding: 8px 12px; }
+
+  /* ensure there is no horizontal scroll on mobile */
+  html, body, .home-body { overflow-x: hidden; }
+
+  /* make sure main content uses full width with comfortable padding */
+  .home-body .hero, .print-values-container, .step-inner, .step-bottom-inner, .policy-details {
+    padding-left: 16px; padding-right: 16px;
+  }
+
+  /* Mobile layout tweaks for home page content */
+  .home-body .hero {
+    padding: 18px 14px 6px 14px;
+  }
+
+  .home-body .hero-content {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 6px;
+  }
+
+  .home-body .hero-text h1 {
+    font-size: 2rem;
+    text-align: center;
+  }
+
+  .home-body .hero-text p {
+    font-size: 1rem;
+    text-align: center;
+    max-width: 100%;
+  }
+
+  .home-body .hero-image img { max-width: 320px; }
+
+  /* Put hero image above the text on mobile */
+  .home-body .hero-image { order: -1; display:flex; justify-content:center; }
+  .home-body .hero-text { order: 0; }
+
+  .print-faster-section { flex-direction: column; padding: 28px 20px; }
+  .print-faster-image { max-width: 100%; order: -1; }
+  .print-faster-content { text-align: center; padding-left: 0; order: 0; }
+
+  /* Hide the Fair Use Policies illustration on mobile to save vertical space */
+  .policy-header .policy-image { display: none; }
+
+  .step-inner, .step-bottom-inner, .policy-details, .print-values-container { padding: 0 18px; }
+
+  /* Step-by-step: stack image above text on mobile */
+  .step-inner { flex-direction: column; }
+  .step-image { order: -1; width: 100%; display:flex; justify-content:center; }
+  .step-text { order: 0; }
+
+  .step-bottom-inner { flex-direction: column; }
+  .step-bottom-image { order: -1; width: 100%; display:flex; justify-content:center; }
+  .step-box { order: 0; width: 100%; }
+
+  .print-values-columns { flex-direction: column; gap: 18px; }
+
+  .step-image img { width: 100%; }
+
+  /* Policy section: stack cards and move illustration below cards */
+  .policy-cards { flex-direction: column; gap: 18px; padding: 0; }
+  .policy-right { text-align: center; flex-basis: auto; order: 2; margin-top: 12px; }
+  .policy-card { max-width: 100%; }
+
+  /* ensure important interactive buttons are full width on mobile */
+  .print-form-section .form-buttons { flex-direction: column-reverse; gap: 12px; }
+  .print-form-section .submit-btn, .print-form-section .reset-btn { width: 100%; }
+
+  /* multi-column elements should stack cleanly without overflow */
+  .print-values-container, .policy-cards, .step-inner { width: 100%; max-width: 100%; }
+  .print-values-columns { flex-direction: column; gap: 14px; }
+  .print-value { width: 100%; }
 
   /* More space left & right */
   .login-box {
