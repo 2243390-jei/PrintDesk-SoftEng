@@ -975,7 +975,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       // Update status in backend for the entire request to "Rejected" including the reason
-      const updatedRequest = await updateRequestStatus(item.requestId, 'Rejected', { rejectionReason: reason });
+      const updatedRequest = await updateRequestStatus(item.requestId, 'Rejected', { rejectionReason: trimmed });
 
       if (updatedRequest && updatedRequest.status === 'Rejected') {
         // Close the reject panel and the modal
@@ -984,6 +984,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Show confirmation message and refund info if present
         let msg = `✅ Request Queue #${item.queueNumber} has been rejected.`;
+        if (trimmed) msg += ` Reason: ${trimmed}.`;
         if (updatedRequest.refunded) {
           msg += ` ${updatedRequest.refundedAmount} tokens were returned to the user's account.`;
           if (updatedRequest.newBalance !== undefined) msg += ` New balance: ${updatedRequest.newBalance} tokens.`;
