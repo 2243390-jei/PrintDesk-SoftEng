@@ -69,9 +69,10 @@ body::after {
 }
 
 .lock-logo {
-  width: 30px;
+  width: 40px;
   height: auto;
-  margin-bottom: 0.8rem;
+  display: block;
+  margin: 0.6rem auto 0.8rem;
 }
 
 .login-box h2 {
@@ -1662,10 +1663,35 @@ body.history-body {
   .left {
     width: 100%;
     margin-bottom: 20px;
+    order: -1; /* ensure logo appears above the login box on small screens */
+    text-align: center; /* center align the logo container */
+    display: flex; /* center child elements horizontally */
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
   }
 
   .logo {
     width: 200px;
+    display: block;
+    margin: 0 auto 8px auto;
+    max-width: 80%;
+  }
+
+  /* Stronger centering in case other rules interfere (mobile) */
+  .container > .left,
+  .container > .left > img.logo {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+  }
+
+  .container > .left > img.logo {
+    display: block !important;
+    margin: 0 auto !important;
+    max-width: 80% !important;
   }
 
   /* show hamburger on mobile and hide center nav */
@@ -1757,6 +1783,10 @@ body.history-body {
     margin: 20px auto;
     padding: 2rem 2.2rem; 
     box-sizing: border-box;
+    /* colored glow shadow (scaled for mobile) */
+    box-shadow:
+      -20px 8px 60px 10px rgba(14, 4, 101, 0.18),
+      24px 16px 60px 10px rgba(226, 173, 15, 0.18);
   }
 }
 
@@ -1768,6 +1798,10 @@ body.history-body {
 
   .login-box {
     padding: 1.8rem 2.5rem; /* more spacing for small screens */
+    /* colored glow shadow tuned for extra-small phones */
+    box-shadow:
+      -16px 6px 48px 8px rgba(14, 4, 101, 0.16),
+      20px 12px 48px 8px rgba(226, 173, 15, 0.16);
   }
 
   .login-box h2 {
