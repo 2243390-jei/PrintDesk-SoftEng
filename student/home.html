@@ -27,11 +27,45 @@
                 <li><a href="history.html">History</a></li>
             </ul>
         </nav>
+        <button id="hamburgerBtn" class="hamburger" aria-label="Open menu"> 
+            <span class="hamburger-icon" aria-hidden="true">☰</span>
+        </button>
         <div class="profile-icon">
             <img id="nav-profile-pic" src="../images/student_img/profile.png" alt="Profile" />
         </div>
     </header>
 
+
+            <!-- Mobile Bottom Sheet (profile + nav) -->
+            <div id="mobileSheet" class="mobile-sheet" aria-hidden="true">
+                <div class="sheet-overlay" id="sheetOverlay"></div>
+                <div class="sheet-panel" role="dialog" aria-modal="true">
+                    <div class="sheet-handle" id="sheetHandle"></div>
+                        <div class="sheet-inner">
+                            <div class="sheet-header">
+                                <div class="mobile-profile">
+                                    <img id="mobile-profile-pic" src="../images/student_img/profile.png" alt="Profile" />
+                                    <div class="mobile-profile-info">
+                                        <h3 id="mobileStudentName">Student Name</h3>
+                                        <p id="mobileStudentId">Student ID</p>
+                                    </div>
+                                </div>
+
+                                <nav class="mobile-nav">
+                                    <ul>
+                                        <li><a href="home.html" class="active">Home</a></li>
+                                        <li><a href="submission.html">Submission</a></li>
+                                        <li><a href="history.html">History</a></li>
+                                    </ul>
+                                </nav>
+                            </div>
+
+                            <div class="sheet-body">
+                                <!-- additional sheet content can go here; kept scrollable -->
+                            </div>
+                        </div>
+                </div>
+            </div>
     <!-- HERO SECTION -->
     <section class="hero">
         <div class="hero-content">
@@ -117,33 +151,35 @@
     </section>
     <section class="policy-section" id="policy">
         <div class="policy-details">
-            <div class="policy-cards">
+                <div class="policy-header">
+                    <h1 class="policy-title">Fair Use Policies</h1>
+                    <img src="../images/student_img/home/policies_image.png" alt="Policies Illustration" class="policy-image">
+                </div>
+
+                <div class="policy-cards">
                 <div class="policy-card">
-                    <div class="policy-card-header">
-                        <img src="../images/student_img/home/page_policy.png" alt="Semester Reset" class="policy-card-icon">
-                        <h2 class="policy-card-title">Semester-Based Reset</h2>
+                    <div class="policy-card-top">
+                        <img src="../images/student_img/home/page_policy.png" alt="Semester Reset" class="policy-card-top-img">
                     </div>
+                    <h2 class="policy-card-title">Semester-Based Reset</h2>
                     <p class="policy-card-text">Each student receives <strong>500 tokens</strong> every semester, used to pay for print jobs.</p>
                 </div>
                 <div class="policy-card">
-                    <div class="policy-card-header">
-                        <img src="../images/student_img/home/policy_token.png" alt="Carry Over Policy" class="policy-card-icon">
-                        <h2 class="policy-card-title">Carry-Over Policy</h2>
+                    <div class="policy-card-top">
+                        <img src="../images/student_img/home/policy_token.png" alt="Carry Over Policy" class="policy-card-top-img">
                     </div>
+                    <h2 class="policy-card-title">Carry-Over Policy</h2>
                     <p class="policy-card-text">Unused tokens <strong>will not carry over</strong> to the next semester and will be reset at the start of each new semester.</p>
                 </div>
                 <div class="policy-card">
-                    <div class="policy-card-header">
-                        <img src="../images/student_img/home/policy_token.png" alt="Pick-up Time Requests" class="policy-card-icon">
-                        <h2 class="policy-card-title">Pick-up Time Requests</h2>
+                    <div class="policy-card-top">
+                        <img src="../images/student_img/home/policy_token.png" alt="Pick-up Time Requests" class="policy-card-top-img">
                     </div>
+                    <h2 class="policy-card-title">Pick-up Time Requests</h2>
                     <p class="policy-card-text">When creating a print request, students may choose a pick-up time of only <strong>1 week</strong> in advanced prior to their print request.</p>
                 </div>
             </div>
-            <div class="policy-right">
-                <h1 class="policy-title">Fair Use Policies</h1>
-                <img src="../images/student_img/home/policies_image.png" alt="Policies Illustration" class="policy-image">
-            </div>
+            
         </div>
     </section>
     <!-- PRINT VALUES SECTION -->

@@ -426,13 +426,40 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!pageNumbers) return;
     pageNumbers.innerHTML = "";
     const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
-    for (let i = 1; i <= totalPages; i++) {
+
+    const MAX_BUTTONS = 5;
+    let startPage, endPage;
+
+    if (totalPages <= MAX_BUTTONS) {
+      startPage = 1;
+      endPage = totalPages;
+    } else if (currentPage <= MAX_BUTTONS) {
+      startPage = 1;
+      endPage = MAX_BUTTONS;
+    } else {
+      startPage = Math.max(2, currentPage - 3);
+      endPage = currentPage;
+      if (endPage - startPage + 1 < 4) {
+        startPage = Math.max(2, endPage - 3);
+      }
+    }
+
+    if (startPage > 1) {
+      const firstBtn = document.createElement("button");
+      firstBtn.textContent = "1";
+      firstBtn.className = currentPage === 1 ? "" : "inactive";
+      firstBtn.addEventListener("click", () => { currentPage = 1; renderView(printData); });
+      pageNumbers.appendChild(firstBtn);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
       const btn = document.createElement("button");
       btn.textContent = i;
       btn.className = i === currentPage ? "" : "inactive";
       btn.addEventListener("click", () => { currentPage = i; renderView(printData); });
       pageNumbers.appendChild(btn);
     }
+
     if (prevPageBtn) prevPageBtn.disabled = currentPage === 1;
     if (nextPageBtn) nextPageBtn.disabled = currentPage === totalPages;
   }

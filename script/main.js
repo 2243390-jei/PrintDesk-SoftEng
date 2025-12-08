@@ -85,6 +85,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const modal = document.getElementById("profileModal");
   const closeModal = document.querySelector(".profile-modal-close");
 
+  // Mobile sheet controls
+  const hamburgerBtn = document.getElementById('hamburgerBtn');
+  const mobileSheet = document.getElementById('mobileSheet');
+  const sheetOverlay = document.getElementById('sheetOverlay');
+  const sheetHandle = document.getElementById('sheetHandle');
+
   if (navbarProfilePic) {
     // Add badge for unread notifications
     let notifBadge = document.createElement('span');
@@ -119,6 +125,40 @@ document.addEventListener("DOMContentLoaded", async () => {
       modal.style.display = "block";
       await fetchAndDisplayUser(currentUserEmail);
     });
+
+    // Hamburger toggles mobile bottom sheet (mobile view)
+    if (hamburgerBtn && mobileSheet) {
+      hamburgerBtn.addEventListener('click', async () => {
+        // If sheet is already open, close it
+        if (mobileSheet.classList.contains('open')) {
+          closeMobileSheet();
+          hamburgerBtn.classList.remove('is-open');
+          return;
+        }
+
+        // Open sheet path
+        if (!currentUserEmail) {
+          // allow nav-only open even when not logged in
+          mobileSheet.classList.add('open');
+          mobileSheet.setAttribute('aria-hidden', 'false');
+          hamburgerBtn.classList.add('is-open');
+          return;
+        }
+
+        await fetchAndDisplayUser(currentUserEmail);
+        mobileSheet.classList.add('open');
+        mobileSheet.setAttribute('aria-hidden', 'false');
+        hamburgerBtn.classList.add('is-open');
+      });
+
+      if (sheetOverlay) sheetOverlay.addEventListener('click', () => { closeMobileSheet(); hamburgerBtn.classList.remove('is-open'); });
+      if (sheetHandle) sheetHandle.addEventListener('click', () => { closeMobileSheet(); hamburgerBtn.classList.remove('is-open'); });
+
+      // close on Escape
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { closeMobileSheet(); if (hamburgerBtn) hamburgerBtn.classList.remove('is-open'); }
+      });
+    }
 
     if (closeModal) {
       closeModal.addEventListener("click", () => {
@@ -253,6 +293,12 @@ function updateProfileModal(name, email, tokens, role, picture) {
     profilePic.src = picture;
     profilePic.style.borderRadius = "50%";
   }
+
+  // Also update mobile sheet if present
+  const mName = document.getElementById('mobileStudentName');
+  const mId = document.getElementById('mobileStudentId');
+  if (mName) mName.textContent = name || 'Unknown User';
+  if (mId) mId.textContent = email || 'N/A';
 }
 
 function updateNavbarProfilePic(picture) {
@@ -266,6 +312,17 @@ function updateNavbarProfilePic(picture) {
     navbarProfilePic.src = "../images/student_img/profile.png";
   }
   navbarProfilePic.style.borderRadius = "50%";
+
+  // mobile sheet profile pic
+  const mPic = document.getElementById('mobile-profile-pic');
+  if (mPic) mPic.src = navbarProfilePic.src;
+}
+
+function closeMobileSheet() {
+  const mobileSheet = document.getElementById('mobileSheet');
+  if (!mobileSheet) return;
+  mobileSheet.classList.remove('open');
+  mobileSheet.setAttribute('aria-hidden', 'true');
 }
 
 function updateTokenProgress(currentTokens = 0) {

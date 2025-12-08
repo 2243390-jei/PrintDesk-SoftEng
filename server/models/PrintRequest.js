@@ -33,6 +33,10 @@ const printRequestSchema = new mongoose.Schema({
   totalTokens: Number,
   status: { type: String, enum: ['Pending', 'Accepted', 'Completed', 'Rejected', 'Cancelled'], default: 'Pending' },
   acceptedAt: { type: Date, default: null },
+  // Track whether tokens were refunded when a request is rejected/cancelled
+  refunded: { type: Boolean, default: false },
+  refundedAmount: { type: Number, default: 0 },
+  refundedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 })
 

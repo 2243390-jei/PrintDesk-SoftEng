@@ -311,14 +311,38 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
     pageNumbers.innerHTML = "";
 
-    for (let i = 1; i <= totalPages; i++) {
+    const MAX_BUTTONS = 5;
+    let startPage, endPage;
+
+    if (totalPages <= MAX_BUTTONS) {
+      startPage = 1;
+      endPage = totalPages;
+    } else if (currentPage <= MAX_BUTTONS) {
+      startPage = 1;
+      endPage = MAX_BUTTONS;
+    } else {
+      // show first page separately, then a block of up to 4 pages ending at currentPage
+      startPage = Math.max(2, currentPage - 3);
+      endPage = currentPage;
+      if (endPage - startPage + 1 < 4) {
+        startPage = Math.max(2, endPage - 3);
+      }
+    }
+
+    // If startPage > 1 show first page button
+    if (startPage > 1) {
+      const firstBtn = document.createElement("button");
+      firstBtn.textContent = "1";
+      firstBtn.className = currentPage === 1 ? "active" : "inactive";
+      firstBtn.addEventListener("click", () => { currentPage = 1; renderView(users); });
+      pageNumbers.appendChild(firstBtn);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
       const btn = document.createElement("button");
       btn.textContent = i;
       btn.className = i === currentPage ? "active" : "inactive";
-      btn.addEventListener("click", () => {
-        currentPage = i;
-        renderView(users);
-      });
+      btn.addEventListener("click", () => { currentPage = i; renderView(users); });
       pageNumbers.appendChild(btn);
     }
 
