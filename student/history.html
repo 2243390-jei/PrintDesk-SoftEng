@@ -63,7 +63,30 @@
         </div>
 
         <div class="sheet-body">
-          <!-- additional sheet content can go here; kept scrollable -->
+          <!-- Mobile-only content: Token balance, notifications, logout -->
+          <div class="mobile-tokens" style="padding: 8px 4px; border-bottom: 1px solid #f3f3f3;">
+            <h3 style="margin:0 0 8px 0; color:#1e1362; font-size:1rem;">Token Balance</h3>
+            <div class="token-info" style="display:flex; gap:12px; align-items:center;">
+              <div class="token-amount" style="font-weight:800; color:#1e1362;">
+                <span id="mobileTokenCount">500</span>
+                <span style="font-weight:600; color:#64748b; margin-left:6px; font-size:0.95rem;">tokens</span>
+              </div>
+              <div class="token-progress" style="flex:1;">
+                <div class="progress-bar" id="mobileTokenProgressBar" style="width:0%; height:10px; border-radius:8px; background:linear-gradient(90deg,#3d348b,#1e1362);"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mobile-notifications" style="padding: 10px 4px; border-bottom: 1px solid #f3f3f3;">
+            <h3 style="margin:0 0 8px 0; color:#1e1362; font-size:1rem;">Notifications</h3>
+            <div class="notifications-list" id="mobileNotificationsList" style="max-height:180px; overflow:auto; padding-right:6px;">
+              <div style="color:#666;padding:8px;">No notifications</div>
+            </div>
+          </div>
+
+          <div class="mobile-logout" style="padding:12px 4px;">
+            <button id="mobileLogoutButton" class="reset-btn" style="width:100%;">Logout</button>
+          </div>
         </div>
       </div>
     </div>

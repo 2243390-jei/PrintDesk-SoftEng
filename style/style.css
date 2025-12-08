@@ -1458,6 +1458,23 @@ body.history-body {
 .mobile-nav a { display:block; padding:12px 14px; border-radius:8px; color:#1e1362; text-decoration:none; font-weight:600; }
 .mobile-nav a.active { background:#f3f4ff; }
 
+/* Mobile sheet logout button (red) - applies only inside the mobile sheet */
+.mobile-sheet #mobileLogoutButton,
+.mobile-sheet .mobile-logout button {
+  background-color: #e74c3c;
+  color: #ffffff;
+  border: 1px solid #e74c3c;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mobile-sheet #mobileLogoutButton:hover,
+.mobile-sheet .mobile-logout button:hover {
+  background-color: #c43b2b;
+  border-color: #c43b2b;
+}
+
 
 .modal-open {
   overflow: hidden;

@@ -184,6 +184,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // Mobile sheet logout button (if present)
+  const mobileLogout = document.getElementById('mobileLogoutButton');
+  if (mobileLogout) {
+    mobileLogout.addEventListener('click', () => {
+      sessionStorage.clear();
+      window.location.href = "../index.html";
+    });
+  }
+
   // Initialize Socket.IO
   initializeSocket();
 });
@@ -213,10 +222,12 @@ async function fetchAndDisplayUser(email) {
 // Render notifications into the profile modal and update badge
 function updateNotifications(notifications = [], userId) {
   const list = document.getElementById('notificationsList');
+  const mobileList = document.getElementById('mobileNotificationsList');
   const notifBadge = document.getElementById('notifBadge');
   if (!list) return;
   if (!Array.isArray(notifications) || notifications.length === 0) {
     list.innerHTML = '<div style="color:#666;padding:8px;">No notifications</div>';
+    if (mobileList) mobileList.innerHTML = '<div style="color:#666;padding:8px;">No notifications</div>';
     if (notifBadge) notifBadge.style.display = 'none';
     return;
   }
@@ -270,6 +281,7 @@ function updateNotifications(notifications = [], userId) {
     });
 
     list.appendChild(item);
+    if (mobileList) mobileList.appendChild(item.cloneNode(true));
   });
   if (notifBadge) {
     notifBadge.textContent = unreadCount > 0 ? unreadCount : '';
@@ -334,6 +346,15 @@ function updateTokenProgress(currentTokens = 0) {
     tokenCount.textContent = currentTokens;
     const progress = (currentTokens / maxTokens) * 100;
     progressBar.style.width = progress + "%";
+  }
+
+  // update mobile sheet token display if present
+  const mTokenCount = document.getElementById('mobileTokenCount');
+  const mProgressBar = document.getElementById('mobileTokenProgressBar');
+  if (mTokenCount) mTokenCount.textContent = currentTokens;
+  if (mProgressBar) {
+    const progress = (currentTokens / maxTokens) * 100;
+    mProgressBar.style.width = progress + "%";
   }
 
   const notificationsList = document.getElementById("notificationsList");
