@@ -28,6 +28,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let filteredUsers = [];
   let currentScheduledReset = null;
 
+  // Pagination state
+  const ROWS_PER_PAGE = 5;
+  let currentPage = 1;
+
   // API endpoints
   const API_BASE = "http://localhost:3000";
   const USERS_ENDPOINT = `${API_BASE}/users`;
@@ -546,9 +550,20 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // Sort users by name A-Z
+    const sortedUsers = [...usersList].sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
+
+    // Calculate pagination
+    const totalPages = Math.ceil(sortedUsers.length / ROWS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+    const endIndex = startIndex + ROWS_PER_PAGE;
+    const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
+
     usersBody.innerHTML = "";
 
-    usersList.forEach(user => {
+    paginatedUsers.forEach(user => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${user.name}</td>
@@ -558,6 +573,113 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
       usersBody.appendChild(tr);
     });
+
+    // Add pagination controls if needed
+    updatePaginationControls(totalPages);
+  }
+
+  function updatePaginationControls(totalPages) {
+    // Find or create pagination container
+    let paginationContainer = document.getElementById("tablePagination");
+    
+    if (!paginationContainer && totalPages > 1) {
+      const tableWrap = document.querySelector(".table-wrap");
+      const tableFooter = document.createElement("div");
+      tableFooter.className = "table-footer";
+      
+      const pagination = document.createElement("div");
+      pagination.className = "pagination";
+      paginationContainer = pagination;
+      paginationContainer.id = "tablePagination";
+      
+      tableFooter.appendChild(pagination);
+      tableWrap.parentNode.insertBefore(tableFooter, tableWrap.nextSibling);
+    }
+
+    if (!paginationContainer) return;
+
+    if (totalPages <= 1) {
+      paginationContainer.parentElement.style.display = "none";
+      return;
+    }
+
+    // Clamp currentPage
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    paginationContainer.parentElement.style.display = "flex";
+    paginationContainer.innerHTML = "";
+
+    // Prev button
+    const prevBtn = document.createElement("button");
+    prevBtn.textContent = "«";
+    prevBtn.className = "pagination-btn pagination-prev";
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderUsersTable(filteredUsers);
+      }
+    };
+    paginationContainer.appendChild(prevBtn);
+
+    // Page numbers container
+    const pageNumbers = document.createElement("div");
+    pageNumbers.className = "page-numbers";
+
+    // Logic: show up to 5 page buttons.
+    // - If totalPages <= 5: show 1..totalPages
+    // - If currentPage <= 5: show 1..5
+    // - If currentPage > 5: show [1] then pages (currentPage-3 .. currentPage)
+    let startPage, endPage;
+    if (totalPages <= 5) {
+      startPage = 1;
+      endPage = totalPages;
+    } else if (currentPage <= 5) {
+      startPage = 1;
+      endPage = 5;
+    } else {
+      // show first page separately, then a block of 4 pages ending at currentPage
+      startPage = Math.max(2, currentPage - 3); // starts at least at 2 (since 1 will be shown)
+      endPage = currentPage;
+      // make sure we still show 4 pages in the block when possible
+      if (endPage - startPage + 1 < 4) {
+        startPage = Math.max(2, endPage - 3);
+      }
+    }
+
+    // If startPage > 1 show first page (no ellipsis)
+    if (startPage > 1) {
+      const firstBtn = document.createElement("button");
+      firstBtn.textContent = "1";
+      firstBtn.className = `pagination-btn ${currentPage === 1 ? 'active' : 'inactive'}`;
+      firstBtn.onclick = () => { currentPage = 1; renderUsersTable(filteredUsers); };
+      pageNumbers.appendChild(firstBtn);
+    }
+
+    // Add the calculated page buttons
+    for (let i = startPage; i <= endPage; i++) {
+      const btn = document.createElement("button");
+      btn.textContent = i;
+      btn.className = `pagination-btn ${i === currentPage ? 'active' : 'inactive'}`;
+      btn.onclick = () => { currentPage = i; renderUsersTable(filteredUsers); };
+      pageNumbers.appendChild(btn);
+    }
+
+    paginationContainer.appendChild(pageNumbers);
+
+    // Next button
+    const nextBtn = document.createElement("button");
+    nextBtn.textContent = "»";
+    nextBtn.className = "pagination-btn pagination-next";
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderUsersTable(filteredUsers);
+      }
+    };
+    paginationContainer.appendChild(nextBtn);
   }
 
   // -------------------------
@@ -569,6 +691,9 @@ document.addEventListener("DOMContentLoaded", () => {
     searchInput.addEventListener("input", () => { 
       console.log("Search input changed:", searchInput.value);
       const searchTerm = searchInput.value.toLowerCase().trim();
+      
+      // Reset to first page when searching
+      currentPage = 1;
       
       if (searchTerm === "") {
         filteredUsers = [...users];
