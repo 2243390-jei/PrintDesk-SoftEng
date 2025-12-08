@@ -1662,4 +1662,39 @@ document.addEventListener("DOMContentLoaded", async () => {
   })
 
   document.querySelectorAll(".print-job").forEach(job => calculateTokens(job))
+
+  // ---------- Make pickup date field open calendar on click anywhere ----------
+  if (pickupDateTime) {
+    const openDatePicker = () => {
+      // Try native showPicker first
+      if (typeof pickupDateTime.showPicker === "function") {
+        try {
+          pickupDateTime.showPicker();
+          return;
+        } catch (e) {
+          console.log("showPicker failed, trying focus");
+        }
+      }
+
+      // Fallback: focus the input to trigger native picker
+      pickupDateTime.focus();
+    };
+
+    // Click the input field itself
+    pickupDateTime.addEventListener("click", (ev) => {
+      console.log("Date input clicked");
+      ev.preventDefault();
+      ev.stopPropagation();
+      openDatePicker();
+    });
+
+    // Also on focus
+    pickupDateTime.addEventListener("focus", () => {
+      console.log("Date input focused");
+      openDatePicker();
+    });
+
+    // Make pointer cursor
+    pickupDateTime.style.cursor = "pointer";
+  }
 })
