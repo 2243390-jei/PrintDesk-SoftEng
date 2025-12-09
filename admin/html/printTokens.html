@@ -1,144 +1,149 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Admin - Users Print Tokens</title>
-    <link rel="stylesheet" href="../css/printTokens.css" />
-    <link rel="icon" type="image/png" href="/images/Icon.png" size="32x32">
-    <script src="../../script/config.js"></script>
-    <script src="../js/printTokens.js" defer></script>
-  </head>
-  <body>
-    <div class="dashboard-container">
-      <!-- Navigation Sidebar -->
-      <nav class="sidebar">
-        <div class="sidebar-header">
-          <div class="admin-profile">
-            <div class="admin-role">ADMIN</div>
-            <div class="admin-name">Admin Name</div>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin - Users Print Tokens</title>
+  <link rel="stylesheet" href="../css/printTokens.css" />
+  <link rel="icon" type="image/png" href="/images/Icon.png" size="32x32">
+  <script src="../../script/config.js"></script>
+  <script src="../js/printTokens.js" defer></script>
+</head>
+
+<body>
+  <div class="dashboard-container">
+    <!-- Navigation Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="admin-profile">
+          <div class="admin-role">ADMIN</div>
+          <div class="admin-name">Admin Name</div>
+        </div>
+      </div>
+
+      <ul class="nav-links">
+        <li class="nav-item">
+          <a href="../html/queue.html">
+            <span class="text">QUEUE</span>
+            <span class="queue-count" id="sidebarQueueCount">0</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printmanagement.html">
+            <span class="text">PRINT</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/statistics.html">
+            <span class="text">STATISTICS</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printrecordhistory.html">
+            <span class="text">RECORDS</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/usermanagement.html">
+            <span class="text">MANAGE</span>
+          </a>
+        </li>
+        <li class="nav-item active">
+          <a href="../html/printTokens.html">
+            <span class="text">USER TOKENS</span>
+          </a>
+        </li>
+        <li class="nav-item logout-item">
+          <a href="#" id="logoutBtn">
+            <span class="text">LOGOUT</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <div class="content-area">
+        <header class="header">
+          <div class="title-block">
+            <h1 class="title">Users Token Manament</h1>
+            <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span>
+            </p>
           </div>
-        </div>
-        
-        <ul class="nav-links">
-          <li class="nav-item">
-            <a href="../html/queue.html">
-              <span class="text">QUEUE</span>
-              <span class="queue-count" id="sidebarQueueCount">0</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printmanagement.html">
-              <span class="text">PRINT</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/statistics.html">
-              <span class="text">STATISTICS</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printrecordhistory.html">
-              <span class="text">RECORDS</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/usermanagement.html">
-              <span class="text">MANAGE</span>
-            </a>
-          </li>
-          <li class="nav-item active">
-            <a href="../html/printTokens.html">
-              <span class="text">USER TOKENS</span>
-            </a>
-          </li>
-          <li class="nav-item logout-item">
-            <a href="#" id="logoutBtn">
-              <span class="text">LOGOUT</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
 
-      <!-- Main Content Area -->
-      <main class="main-content">
-        <div class="content-area">
-          <header class="header">
-            <div class="title-block">
-              <h1 class="title">Users Token Manament</h1>
-              <p class="subtitle">Good day, Admin! <span class="muted">Let's make sure everything's in order today.</span></p>
-            </div>
-
-            <div class="brand-right">
-              <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
-            </div>
-          </header>
-
-          <!-- User Tokens Section -->
-          <section class="card">
-            <div class="card-header">
-              <h2>User Tokens</h2>
-
-              <div class="controls">
-                <div class="search" role="search" aria-label="Search users">
-                  <img src="/images/admin_img/search (1).png" alt="Search" class="search-icon" />
-                  <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
-                </div>
-
-                <!-- Calendar for Reset Date -->
-                <input type="date" id="resetDate" class="reset-calendar" title="Select reset date" />
-
-                <!-- Reset Buttons -->
-                <button id="resetTokensBtn" class="reset-btn">SCHEDULE TOKEN RESET</button>
-                <button id="cancelResetBtn" class="btn-secondary" style="display: none;">CANCEL RESET</button>
-                <button id="rescheduleResetBtn" class="btn-primary" style="display: none;">RESCHEDULE RESET</button>
-              </div>
-            </div>
-
-            <div class="card-inner">
-              <!-- Reset Status Display -->
-              <div id="resetStatus" style="margin-bottom: 15px; padding: 10px; border-radius: 6px; background: #f8f9fa; text-align: center;">
-                No token reset scheduled
-              </div>
-
-              <div class="table-wrap">
-                <table class="tokens-table" aria-describedby="tokens-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Course & Year</th>
-                      <th>Total Tokens</th>
-                    </tr>
-                  </thead>
-                  <tbody id="usersBody">
-                    <!-- Populated by JS -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-
-          <footer class="footer muted">© <span id="curYear"></span> PrintDesk User Print Tokens</footer>
-        </div>
-      </main>
-    </div>
-
-    <!-- Logout Confirmation Modal -->
-    <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-      <div class="modal-backdrop" data-close-modal></div>
-      <div class="modal-content small-modal">
-        <div class="modal-header">
-          <h2>Confirm Logout</h2>
-        </div>
-        <div class="modal-body">
-          <p>Are you sure you want to logout?</p>
-          <div class="action-buttons">
-            <button class="reject-btn" id="cancelLogout">Cancel</button>
-            <button class="accept-btn" id="confirmLogout">Logout</button>
+          <div class="brand-right">
+            <img src="/images/admin_img/SLU_printdesk_logo.png" alt="SLU LOGO" />
           </div>
+        </header>
+
+        <!-- User Tokens Section -->
+        <section class="card">
+          <div class="card-header">
+            <h2>User Tokens</h2>
+
+            <div class="controls">
+              <div class="search" role="search" aria-label="Search users">
+                <img src="/images/admin_img/search (1).png" alt="Search" class="search-icon" />
+                <input id="searchInput" type="search" placeholder="Search..." aria-label="Search users" />
+              </div>
+
+              <!-- Calendar for Reset Date -->
+              <input type="date" id="resetDate" class="reset-calendar" title="Select reset date" />
+
+              <!-- Reset Buttons -->
+              <button id="resetTokensBtn" class="reset-btn">SCHEDULE TOKEN RESET</button>
+              <button id="cancelResetBtn" class="btn-secondary" style="display: none;">CANCEL RESET</button>
+              <button id="rescheduleResetBtn" class="btn-primary" style="display: none;">RESCHEDULE RESET</button>
+            </div>
+          </div>
+
+          <div class="card-inner">
+            <!-- Reset Status Display -->
+            <div id="resetStatus"
+              style="margin-bottom: 15px; padding: 10px; border-radius: 6px; background: #f8f9fa; text-align: center;">
+              No token reset scheduled
+            </div>
+
+            <div class="table-wrap">
+              <table class="tokens-table" aria-describedby="tokens-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Course & Year</th>
+                    <th>Total Tokens</th>
+                  </tr>
+                </thead>
+                <tbody id="usersBody">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <footer class="footer muted">© <span id="curYear"></span> PrintDesk User Print Tokens</footer>
+      </div>
+    </main>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content small-modal">
+      <div class="modal-header">
+        <h2>Confirm Logout</h2>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to logout?</p>
+        <div class="action-buttons">
+          <button class="reject-btn" id="cancelLogout">Cancel</button>
+          <button class="accept-btn" id="confirmLogout">Logout</button>
         </div>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>

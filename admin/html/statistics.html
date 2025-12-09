@@ -1,162 +1,162 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Admin — Statistics</title>
-    <link rel="stylesheet" href="../css/statistics.css" />
-    <link rel="icon" type="image/png" href="/images/Icon.png" size="32x32">
-    <script src="../../script/config.js"></script>
-    <script src="../js/statistics.js" defer></script>
-  </head>
-  <body>
-    <div class="dashboard-container">
-      <!-- Navigation Sidebar -->
-      <nav class="sidebar">
-        <div class="sidebar-header">
-          <div class="admin-profile">
-            <div class="admin-role">ADMIN</div>
-            <div class="admin-name">Admin Name</div>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — Statistics</title>
+  <link rel="stylesheet" href="../css/statistics.css" />
+  <link rel="icon" type="image/png" href="/images/Icon.png" size="32x32">
+  <script src="../../script/config.js"></script>
+  <script src="../js/statistics.js" defer></script>
+</head>
+
+<body>
+  <div class="dashboard-container">
+    <!-- Navigation Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <div class="admin-profile">
+          <div class="admin-role">ADMIN</div>
+          <div class="admin-name">Admin Name</div>
+        </div>
+      </div>
+
+      <ul class="nav-links">
+        <li class="nav-item">
+          <a href="../html/queue.html">
+            <span class="text">QUEUE</span>
+            <span class="queue-count" id="sidebarQueueCount">0</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printmanagement.html">
+            <span class="text">PRINT</span>
+          </a>
+        </li>
+        <li class="nav-item active">
+          <a href="../html/statistics.html">
+            <span class="text">STATISTICS</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printrecordhistory.html">
+            <span class="text">RECORDS</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/usermanagement.html">
+            <span class="text">MANAGE</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="../html/printTokens.html">
+            <span class="text">USER TOKENS</span>
+          </a>
+        </li>
+        <li class="nav-item logout-item">
+          <a href="#" id="logoutBtn">
+            <span class="text">LOGOUT</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <div class="content-area">
+        <header class="header">
+          <div class="title-block">
+            <h1 class="title">Print Statistics</h1>
+            <p class="subtitle">Statistics <span class="muted">Overview</span></p>
           </div>
-        </div>
-        
-        <ul class="nav-links">
-          <li class="nav-item">
-            <a href="../html/queue.html">
-              <span class="text">QUEUE</span>
-              <span class="queue-count" id="sidebarQueueCount">0</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printmanagement.html">
-              <span class="text">PRINT</span>
-            </a>
-          </li>
-          <li class="nav-item active">
-            <a href="../html/statistics.html">
-              <span class="text">STATISTICS</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printrecordhistory.html">
-              <span class="text">RECORDS</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/usermanagement.html">
-              <span class="text">MANAGE</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="../html/printTokens.html">
-              <span class="text">USER TOKENS</span>
-            </a>
-          </li>
-          <li class="nav-item logout-item">
-            <a href="#" id="logoutBtn">
-              <span class="text">LOGOUT</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
 
-      <!-- Main Content Area -->
-      <main class="main-content">
-        <div class="content-area">
-          <header class="header">
-            <div class="title-block">
-              <h1 class="title">Print Statistics</h1>
-              <p class="subtitle">Statistics <span class="muted">Overview</span></p>
-            </div>
-
-            <div class="brand-right">
-              <img src="/images/SLU_printdesk_logo.png" alt="SLU" />
-            </div>
-          </header>
-
-          <section class="card">
-            <div class="card-header">
-              <h2>Statistics</h2>
-              <div class="controls">
-                <label for="semesterSelect" class="visually-hidden">Semester</label>
-                <select id="semesterSelect" class="semester-select" aria-label="Filter by semester">
-                  <option value="All">All Semesters</option>
-                </select>
-
-                <label for="termSelect" class="visually-hidden">Term</label>
-                <select id="termSelect" class="term-select" aria-label="Filter by term">
-                  <option value="All">All Terms</option>
-                </select>
-
-                <label for="timeRangeSelect" class="visually-hidden">Time Range</label>
-                <select id="timeRangeSelect" class="time-range-select" aria-label="Filter by time range">
-                  <option value="All">All Time</option>
-                  <option value="This Week">This Week</option>
-                  <option value="This Month">This Month</option>
-                </select>
-
-                <div id="activeFilterLabel" class="filter-label">Showing: All</div>
-
-                <button class="icon-btn" id="refreshBtn" title="Refresh">
-                  <img src="/images/admin_img/refresh-page-option.png" alt="Refresh" style="width: 20px; height: 20px;">
-                </button>
-              </div>
-            </div>
-
-            <div class="card-inner">
-              <!-- statistics content will be rendered by ../js/statistics.js -->
-              <div id="statsContent" class="stats-grid">
-                <div class="stat-card">
-                  <div class="stat-icon"><img src="/images/admin_img/user.png" alt="Users" /></div>
-                  <div class="stat-content">
-                    <div class="stat-value" id="totalUsers">0</div>
-                    <div class="stat-label">Total Users</div>
-                    <div class="stat-change" id="usersChange"></div>
-                  </div>
-                </div>
-
-                <div class="stat-card">
-                  <div class="stat-icon"><img src="/images/admin_img/printer.png" alt="Prints" /></div>
-                  <div class="stat-content">
-                    <div class="stat-value" id="totalPrints">0</div>
-                    <div class="stat-label">Total Prints per Pages</div>
-                    <div class="stat-change" id="printsChange"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Charts will be inserted by JS after the stat cards -->
-
-              <!-- Recent Activity -->
-              <div class="data-section" style="margin-top: 18px;">
-                <h3>Recent Activity</h3>
-                <div id="recentActivityList" class="recent-activity">
-                  <!-- Filled by statistics.js -->
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <footer class="footer muted">© <span id="curYear"></span> PrintDesk Queue Management</footer>
-        </div>
-      </main>
-    </div>
-
-    <!-- Logout Confirmation Modal -->
-    <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
-      <div class="modal-backdrop" data-close-modal></div>
-      <div class="modal-content small-modal">
-        <div class="modal-header">
-          <h2>Confirm Logout</h2>
-        </div>
-        <div class="modal-body">
-          <p>Are you sure you want to logout?</p>
-          <div class="action-buttons">
-            <button class="reject-btn" id="cancelLogout">Cancel</button>
-            <button class="accept-btn" id="confirmLogout">Logout</button>
+          <div class="brand-right">
+            <img src="/images/SLU_printdesk_logo.png" alt="SLU" />
           </div>
+        </header>
+
+        <section class="card">
+          <div class="card-header">
+            <h2>Statistics</h2>
+            <div class="controls">
+              <label for="semesterSelect" class="visually-hidden">Semester</label>
+              <select id="semesterSelect" class="semester-select" aria-label="Filter by semester">
+                <option value="All">All Semesters</option>
+              </select>
+
+              <label for="termSelect" class="visually-hidden">Term</label>
+              <select id="termSelect" class="term-select" aria-label="Filter by term">
+                <option value="All">All Terms</option>
+              </select>
+
+              <label for="timeRangeSelect" class="visually-hidden">Time Range</label>
+              <select id="timeRangeSelect" class="time-range-select" aria-label="Filter by time range">
+                <option value="All">All Time</option>
+                <option value="This Week">This Week</option>
+                <option value="This Month">This Month</option>
+              </select>
+
+              <div id="activeFilterLabel" class="filter-label">Showing: All</div>
+
+              <button class="icon-btn" id="refreshBtn" title="Refresh">
+                <img src="/images/admin_img/refresh-page-option.png" alt="Refresh" style="width: 20px; height: 20px;">
+              </button>
+            </div>
+          </div>
+
+          <div class="card-inner">
+            <div id="statsContent" class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon"><img src="/images/admin_img/user.png" alt="Users" /></div>
+                <div class="stat-content">
+                  <div class="stat-value" id="totalUsers">0</div>
+                  <div class="stat-label">Total Users</div>
+                  <div class="stat-change" id="usersChange"></div>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon"><img src="/images/admin_img/printer.png" alt="Prints" /></div>
+                <div class="stat-content">
+                  <div class="stat-value" id="totalPrints">0</div>
+                  <div class="stat-label">Total Prints per Pages</div>
+                  <div class="stat-change" id="printsChange"></div>
+                </div>
+              </div>
+            </div>
+
+
+            <!-- Recent Activity -->
+            <div class="data-section" style="margin-top: 18px;">
+              <h3>Recent Activity</h3>
+              <div id="recentActivityList" class="recent-activity">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer class="footer muted">© <span id="curYear"></span> PrintDesk Queue Management</footer>
+      </div>
+    </main>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-content small-modal">
+      <div class="modal-header">
+        <h2>Confirm Logout</h2>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to logout?</p>
+        <div class="action-buttons">
+          <button class="reject-btn" id="cancelLogout">Cancel</button>
+          <button class="accept-btn" id="confirmLogout">Logout</button>
         </div>
       </div>
     </div>
-  </body>
+  </div>
+</body>
+
 </html>
