@@ -163,7 +163,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function createUser(userData) {
     try {
-      console.log("Sending user data:", userData);
 
       const response = await fetch(USERS_ENDPOINT, {
         method: 'POST',
@@ -432,7 +431,6 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         const newUser = await createUser(userData);
-        console.log("User created successfully:", newUser);
 
         // Add the new user to our local state
         const transformedUser = {

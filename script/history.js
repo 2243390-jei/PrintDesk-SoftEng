@@ -784,7 +784,6 @@
         }
         if (dateStr) {
           pickupInput.value = dateStr
-          console.log('Set pickup date:', dateStr, 'from:', req.pickupDateTime)
         }
       }
     }

@@ -96,7 +96,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   async function fetchUsersWithTokens() {
     try {
-      console.log("Fetching users and print requests...");
       
       // Fetch all users
       const usersResponse = await fetch(USERS_ENDPOINT);
@@ -111,8 +110,6 @@ document.addEventListener("DOMContentLoaded", () => {
         throw new Error(`HTTP error! status: ${requestsResponse.status}`);
       }
       const requestsData = await requestsResponse.json();
-      
-      console.log(`Found ${usersData.length} users and ${requestsData.length} print requests`);
       
       // Transform users data with course information
       const transformedUsers = usersData.map(user => {
@@ -145,7 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
         };
       });
       
-      console.log("User data transformation complete");
       return transformedUsers;
       
     } catch (error) {
@@ -177,7 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Token reset functions
   async function scheduleTokenReset(resetDate) {
     try {
-      console.log(`Scheduling token reset for: ${resetDate}`);
       
       const response = await fetch(RESET_TOKENS_ENDPOINT, {
         method: 'POST',
@@ -193,7 +188,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       const result = await response.json();
-      console.log("Token reset scheduled successfully:", result);
       return result;
       
     } catch (error) {
@@ -204,7 +198,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function cancelTokenReset() {
     try {
-      console.log("Cancelling token reset");
       
       const response = await fetch(RESET_TOKENS_CANCEL_ENDPOINT, {
         method: 'POST',
@@ -219,7 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       const result = await response.json();
-      console.log("Token reset cancelled successfully:", result);
       return result;
       
     } catch (error) {
@@ -254,7 +246,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const response = await fetch(RESET_TOKENS_SCHEDULED_ENDPOINT);
       if (!response.ok) {
         if (response.status === 404) {
-          console.log("No scheduled reset found");
           return null; // No scheduled reset
         }
         const errorText = await response.text();
@@ -262,7 +253,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       const result = await response.json();
-      console.log("Scheduled reset found:", result);
       return result;
       
     } catch (error) {
@@ -552,8 +542,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   function renderUsersTable(usersList) {
     if (!usersBody) return;
-    
-    console.log(`Rendering users table with ${usersList.length} users`);
 
     if (usersList.length === 0) {
       usersBody.innerHTML = `
@@ -705,7 +693,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!searchInput) return;
 
     searchInput.addEventListener("input", () => { 
-      console.log("Search input changed:", searchInput.value);
       const searchTerm = searchInput.value.toLowerCase().trim();
       
       // Reset to first page when searching
@@ -812,7 +799,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // -------------------------
   async function initialize() {
     try {
-      console.log("Initializing user tokens management...");
       
       // Show loading state
       if (usersBody) {
@@ -827,17 +813,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       // FIRST: Load scheduled reset BEFORE fetching users
-      console.log("Loading scheduled reset...");
       await loadScheduledReset();
       
       // SECOND: Fetch users (tokens might be updated by reset)
-      console.log("Fetching data from API...");
       users = await fetchUsersWithTokens();
       filteredUsers = [...users];
-      console.log(`Retrieved ${users.length} users`);
       
       if (users.length === 0) {
-        console.log("No users found in database");
         if (usersBody) {
           usersBody.innerHTML = `
             <tr>
@@ -861,11 +843,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // Update queue count
       await updateQueueCount();
-      
-      // Render the table
-      console.log("Rendering users table...");
       renderUsersTable(users);
-      console.log("User tokens management initialized successfully");
       
     } catch (error) {
       console.error("Error initializing user tokens management:", error);
@@ -888,7 +866,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.__tokensDemo = {
     users: () => users,
     refreshData: async () => {
-      console.log("Manually refreshing data...");
       users = await fetchUsersWithTokens();
       filteredUsers = [...users];
       renderUsersTable(users);
@@ -904,6 +881,5 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   };
-  
-  console.log("User tokens management loaded. Use window.__tokensDemo for debugging.");
+
 });
