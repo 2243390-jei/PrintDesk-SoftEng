@@ -38,18 +38,6 @@
     return d.toLocaleString('en-PH', opts)
   }
 
-  // For <input type="datetime-local"> value (YYYY-MM-DDTHH:mm)
-  function toInputDatetimeLocal(value) {
-    const d = typeof value === 'string' ? parseDateTimeLocal(value) : value
-    if (!d || Number.isNaN(d.getTime())) return ''
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    const hours = String(d.getHours()).padStart(2, '0')
-    const minutes = String(d.getMinutes()).padStart(2, '0')
-    return `${year}-${month}-${day}T${hours}:${minutes}`
-  }
-
   // Format date as YYYY-MM-DD for input[type="date"]
   function formatDateYYYYMMDD(date) {
     if (!date || !(date instanceof Date)) return ''
@@ -813,41 +801,148 @@
     }
   }
 
-  function getDocumentPreview(doc) {
-    const filename = doc.documentTitle || (doc.filePath ? doc.filePath.split("/").pop() : "Document")
-    const ext = filename.split(".").pop().toLowerCase()
-    const link = doc.filePath ? `${doc.filePath}` : "#"
-    const previewable = ["pdf", "jpg", "jpeg", "png", "gif"]
-    if (previewable.includes(ext)) {
-      return `
-        <div class="doc-preview-container" style="display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:8px;background:#fafafa">
-          <div style="flex-shrink:0;max-height:400px;overflow:auto;border:1px solid #ddd;border-radius:4px;background:white">
-            ${ext === "pdf" ? `<iframe src="${link}" style="width:100%;height:400px;border:none;border-radius:4px"></iframe>` : `<img src="${link}" alt="${filename}" style="width:100%;height:auto;max-height:400px;object-fit:contain;border-radius:4px" onerror="this.src='../images/student_img/history/file_empty.png'"/>`}
-          </div>
-          <div>
-            <div class="doc-name" style="font-weight:600;color:#1e1362;margin-bottom:4px">${filename}</div>
-            <div style="font-size:0.85rem;color:#64748b;margin-bottom:8px">Pages: ${doc.pageCount ?? "-"} • Copies: ${doc.numberOfCopies ?? "-"} • Tokens/page: ${doc.tokensPerPage ?? "-"}</div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <button type="button" class="doc-preview-btn" data-link="${link}" data-ext="${ext}" style="background:#3d2ee7;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer">Preview</button>
-              <a href="${link}" target="_blank" style="display:inline-block;color:#3d2ee7;text-decoration:none;font-size:0.9rem;font-weight:500">Open ↗</a>
-            </div>
-          </div>
-          <div style="font-weight:600;color:#1e1362;text-align:right">${doc.totalTokens ?? 0} tokens</div>
-        </div>`
+  // Helper functions for file type detection
+  function getFileExtension(filename) {
+    return String(filename || '').split('.').pop().toLowerCase()
+  }
+
+  function isImageFile(filename) {
+    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg']
+    return imageExtensions.includes(getFileExtension(filename))
+  }
+
+  function isPDFFile(filename) {
+    return getFileExtension(filename) === 'pdf'
+  }
+
+  function isWordFile(filename) {
+    const wordExtensions = ['doc', 'docx']
+    return wordExtensions.includes(getFileExtension(filename))
+  }
+
+  function isExcelFile(filename) {
+    const excelExtensions = ['xls', 'xlsx']
+    return excelExtensions.includes(getFileExtension(filename))
+  }
+
+  function isPowerPointFile(filename) {
+    const pptExtensions = ['ppt', 'pptx']
+    return pptExtensions.includes(getFileExtension(filename))
+  }
+
+  // Create comprehensive file preview with proper handling for all file types
+  function createFilePreview(fileUrl, filename, documentTitle) {
+    const previewContainer = document.createElement('div')
+    previewContainer.className = 'file-preview-wrapper'
+    previewContainer.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:8px;background:#fafafa'
+
+    const fileExt = getFileExtension(filename)
+
+    if (isImageFile(filename)) {
+      // Handle images
+      const img = document.createElement('img')
+      img.src = fileUrl
+      img.alt = `Preview of ${documentTitle}`
+      img.className = 'preview-image'
+      img.style.cssText = 'flex-shrink:0;max-height:400px;width:100%;height:auto;object-fit:contain;border-radius:4px;background:white;border:1px solid #ddd'
+      img.onerror = () => {
+        img.style.display = 'none'
+        showPreviewUnavailable(previewContainer, filename, 'notfound')
+      }
+      previewContainer.appendChild(img)
+
+    } else if (isPDFFile(filename)) {
+      // Handle PDF files with iframe
+      const pdfContainer = document.createElement('div')
+      pdfContainer.style.cssText = 'flex-shrink:0;max-height:400px;border:1px solid #ddd;border-radius:4px;background:white'
+      const iframe = document.createElement('iframe')
+      iframe.src = fileUrl + '#toolbar=0&navpanes=0'
+      iframe.type = 'application/pdf'
+      iframe.style.cssText = 'width:100%;height:400px;border:none;border-radius:4px'
+      iframe.onerror = () => showPreviewUnavailable(previewContainer, filename, 'notfound')
+      pdfContainer.appendChild(iframe)
+      previewContainer.appendChild(pdfContainer)
+
+    } else if (isWordFile(filename) || isExcelFile(filename) || isPowerPointFile(filename)) {
+      // Handle Office documents using Microsoft Office Online Viewer
+      const officeContainer = document.createElement('div')
+      officeContainer.style.cssText = 'flex-shrink:0;max-height:400px;border:1px solid #ddd;border-radius:4px;background:white'
+      const officeViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`
+      officeContainer.innerHTML = `<iframe src="${officeViewerUrl}" width="100%" height="400px" frameborder="0" style="border:none;border-radius:4px"></iframe>`
+      previewContainer.appendChild(officeContainer)
+
+    } else {
+      // Handle other file types - show unavailable message
+      showPreviewUnavailable(previewContainer, filename, 'unsupported')
+      return previewContainer
     }
-    return `
-      <div class="doc-item" style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:8px;background:#fafafa">
-        <img src="../images/student_img/history/file_empty.png" alt="Doc" width="64" height="64" style="flex-shrink:0">
-        <div style="flex:1;min-width:0">
-          <div class="doc-name" style="font-weight:600;color:#1e1362;margin-bottom:4px">${filename}</div>
-          <div style="font-size:0.85rem;color:#64748b;margin-bottom:8px">Pages: ${doc.pageCount ?? "-"} • Copies: ${doc.numberOfCopies ?? "-"} • Tokens/page: ${doc.tokensPerPage ?? "-"}</div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button type="button" class="doc-cannot-preview" data-link="${link}" style="background:#f3f4f6;color:#334155;border:1px solid #e2e8f0;padding:8px 12px;border-radius:8px;cursor:pointer">Can't Preview</button>
-            <a href="${link}" target="_blank" style="display:inline-block;color:#3d2ee7;text-decoration:none;font-size:0.9rem;font-weight:500">Download ↗</a>
-          </div>
-        </div>
-        <div style="font-weight:600;color:#1e1362;text-align:right">${doc.totalTokens ?? 0} tokens</div>
-      </div>`
+
+    return previewContainer
+  }
+
+  function showPreviewUnavailable(container, filename, reason = 'deleted') {
+    let message = `No preview available for ${filename}`
+    if (reason === 'unsupported') {
+      message = "We're sorry, but for some reason we can't open this for you."
+    }
+    if (reason === 'notfound') {
+      message = 'File not found'
+    }
+
+    container.innerHTML = `
+      <div class="preview-placeholder" style="text-align:center;padding:40px 20px;color:#64748b">
+        <img src="../images/student_img/history/file_empty.png" alt="Document" style="width:64px;height:64px;margin-bottom:12px;opacity:0.6" />
+        <p style="margin:0;font-size:0.95rem">${message}</p>
+      </div>
+    `
+  }
+
+  function getDocumentPreview(doc, index) {
+    if (!doc) return ''
+    const filename = doc.documentTitle || (doc.filePath ? doc.filePath.split("/").pop() : "Document")
+    const link = doc.filePath ? `${API_ENDPOINT}${doc.filePath}` : "#"
+    const fileExt = getFileExtension(filename)
+
+    // Determine if file is previewable
+    const isPreviewable = isImageFile(filename) || isPDFFile(filename) || isWordFile(filename) || isExcelFile(filename) || isPowerPointFile(filename)
+
+    const docHTML = document.createElement('div')
+    docHTML.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:12px;border:1px solid #e0e0e0;border-radius:8px;margin-bottom:8px;background:#fafafa'
+
+    // Add preview area
+    if (isPreviewable && link !== "#") {
+      const previewEl = createFilePreview(link, filename, doc.documentTitle || filename)
+      docHTML.appendChild(previewEl)
+    } else if (link !== "#") {
+      const unavailableEl = document.createElement('div')
+      unavailableEl.style.cssText = 'text-align:center;padding:40px 20px;color:#64748b;border:1px solid #ddd;border-radius:4px;background:white'
+      unavailableEl.innerHTML = `
+        <img src="../images/student_img/history/file_empty.png" alt="Document" style="width:64px;height:64px;margin-bottom:12px;opacity:0.6" />
+        <p style="margin:0;font-size:0.95rem">We're sorry, but for some reason we can't open this for you.</p>
+      `
+      docHTML.appendChild(unavailableEl)
+    }
+
+    // Add document info
+    const infoDiv = document.createElement('div')
+    infoDiv.style.cssText = 'display:flex;flex-direction:column;gap:8px'
+    infoDiv.innerHTML = `
+      <div style="font-weight:600;color:#1e1362;margin-bottom:4px">${filename}</div>
+      <div style="font-size:0.85rem;color:#64748b;margin-bottom:8px">Pages: ${doc.pageCount ?? "-"} • Copies: ${doc.numberOfCopies ?? "-"} • Tokens/page: ${doc.tokensPerPage ?? "-"}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${isPreviewable && link !== "#" ? `<button type="button" class="doc-preview-btn" data-link="${link}" data-ext="${fileExt}" style="background:#3d2ee7;color:#fff;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:0.9rem">Preview</button>` : ''}
+        ${link !== "#" ? `<a href="${link}" target="_blank" style="display:inline-block;color:#3d2ee7;text-decoration:none;font-size:0.9rem;font-weight:500">Download ↗</a>` : ''}
+      </div>
+    `
+    docHTML.appendChild(infoDiv)
+
+    // Add token cost
+    const tokenDiv = document.createElement('div')
+    tokenDiv.style.cssText = 'font-weight:600;color:#1e1362;text-align:right;border-top:1px solid #e0e0e0;padding-top:8px'
+    tokenDiv.textContent = `${doc.totalTokens ?? 0} tokens`
+    docHTML.appendChild(tokenDiv)
+
+    return docHTML.outerHTML
   }
 
   // click delegation for document preview buttons
@@ -902,11 +997,11 @@
     modal = document.createElement('div')
     modal.id = 'filePreviewModal'
     modal.className = 'modal'
-    modal.style.cssText = 'display:none;align-items:center;justify-content:center;padding:12px'
+    modal.style.cssText = 'display:none;align-items:center;justify-content:center;padding:12px;overflow:hidden'
     modal.innerHTML = `
-      <div class="modal-content" style="width:100%;max-width:900px;max-height:90vh;overflow:auto;padding:12px;">
-        <button class="close-modal" style="position:absolute;right:12px;top:12px;background:#f1f5f9;border:1px solid #e2e8f0;padding:8px;border-radius:8px;cursor:pointer">×</button>
-        <div class="file-preview-content"></div>
+      <div class="modal-content" style="width:100%;max-width:900px;max-height:90vh;padding:12px;overflow:hidden;display:flex;flex-direction:column;">
+        <button class="close-modal" style="position:absolute;right:12px;top:12px;background:#f1f5f9;border:1px solid #e2e8f0;padding:8px;border-radius:8px;cursor:pointer;z-index:10">×</button>
+        <div class="file-preview-content" style="flex:1;overflow:auto;width:100%;"></div>
       </div>`
     document.body.appendChild(modal)
     modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.style.display = 'none' })
