@@ -36,7 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let REQUESTS_ENDPOINT = `${API_BASE}/requests`;
   let RESET_TOKENS_ENDPOINT = `${API_BASE}/reset-tokens`;
   let RESET_TOKENS_CANCEL_ENDPOINT = `${API_BASE}/cancel-reset`;
-  let RESET_TOKENS_EXECUTE_ENDPOINT = `${API_BASE}/reset-tokens/execute`;
+  let RESET_TOKENS_EXECUTE_ENDPOINT = `${API_BASE}/execute-token-reset`;
+  let RESET_TOKENS_SCHEDULED_ENDPOINT = `${API_BASE}/reset-tokens/scheduled`;
 
   // Load dynamic API endpoint
   (async () => {
@@ -45,7 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
     REQUESTS_ENDPOINT = `${API_BASE}/requests`;
     RESET_TOKENS_ENDPOINT = `${API_BASE}/reset-tokens`;
     RESET_TOKENS_CANCEL_ENDPOINT = `${API_BASE}/cancel-reset`;
-    RESET_TOKENS_EXECUTE_ENDPOINT = `${API_BASE}/reset-tokens/execute`;
+    RESET_TOKENS_EXECUTE_ENDPOINT = `${API_BASE}/execute-token-reset`;
+    RESET_TOKENS_SCHEDULED_ENDPOINT = `${API_BASE}/reset-tokens/scheduled`;
     await initialize();
   })();
 
@@ -186,7 +188,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
       const result = await response.json();
@@ -211,7 +214,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
       const result = await response.json();
@@ -226,38 +230,35 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function executeTokenReset() {
     try {
-      console.log("Executing token reset immediately");
-      
-      const response = await fetch(RESET_TOKENS_EXECUTE_ENDPOINT, {
+      const resp = await fetch(RESET_TOKENS_EXECUTE_ENDPOINT, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}) // no payload required by server
+      })
+
+      const body = await resp.json().catch(() => null)
+      if (!resp.ok) {
+        const msg = (body && (body.error || body.message)) || resp.statusText
+        throw new Error(msg)
       }
-      
-      const result = await response.json();
-      console.log("Token reset executed successfully:", result);
-      return result;
-      
-    } catch (error) {
-      console.error("Error executing token reset:", error);
-      throw error;
+
+      return body || { message: 'Token reset executed' }
+    } catch (err) {
+      console.error('executeTokenReset error:', err)
+      throw err
     }
   }
 
   async function getScheduledReset() {
     try {
-      const response = await fetch(`${RESET_TOKENS_ENDPOINT}/scheduled`);
+      const response = await fetch(RESET_TOKENS_SCHEDULED_ENDPOINT);
       if (!response.ok) {
         if (response.status === 404) {
-          console.log("No scheduled reset found (404 — endpoint may not exist)");
+          console.log("No scheduled reset found");
           return null; // No scheduled reset
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
       const result = await response.json();
@@ -265,8 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return result;
       
     } catch (error) {
-      // Silently handle endpoint errors (endpoint may not exist)
-      console.warn("Could not fetch scheduled reset:", error.message);
+      console.error("Error fetching scheduled reset:", error.message);
       return null;
     }
   }
@@ -314,7 +314,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("tokenResetId", result.resetId);
         
       } catch (error) {
-        alert("Failed to schedule token reset. Please try again.");
+        alert("Failed to schedule token reset: " + error.message);
         console.error("Error scheduling token reset:", error);
       }
     });
@@ -342,7 +342,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.removeItem("tokenResetId");
         
       } catch (error) {
-        alert("Failed to cancel token reset. Please try again.");
+        alert("Failed to cancel token reset: " + error.message);
         console.error("Error cancelling token reset:", error);
       }
     });
@@ -384,7 +384,7 @@ document.addEventListener("DOMContentLoaded", () => {
         localStorage.setItem("tokenResetId", result.resetId);
         
       } catch (error) {
-        alert("Failed to reschedule token reset. Please try again.");
+        alert("Failed to reschedule token reset: " + error.message);
         console.error("Error rescheduling token reset:", error);
       }
     });
@@ -396,7 +396,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadScheduledReset() {
     try {
       const scheduledReset = await getScheduledReset();
-      if (scheduledReset) {
+      if (scheduledReset && !scheduledReset.error) {
         currentScheduledReset = scheduledReset;
         updateResetUI(true, scheduledReset.resetDate);
         
@@ -451,37 +451,41 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function handleTodayReset(scheduledReset) {
-    console.log("Today is the scheduled reset day!");
-    
-    const userConfirmed = confirm(
-      "Today is the scheduled token reset day. Do you want to reset all user tokens to 500 now?\n\n" +
-      "Click OK to reset now, or Cancel to skip (you can reset manually later)."
-    );
-    
-    if (userConfirmed) {
-      try {
-        const result = await executeTokenReset();
-        alert(result.message || "All user tokens have been reset to 500.");
-        
-        // Clear the schedule
-        await cancelTokenReset();
-        currentScheduledReset = null;
-        updateResetUI(false);
-        
-        // Clear localStorage
-        localStorage.removeItem("tokenResetDate");
-        localStorage.removeItem("tokenResetId");
-        
-        // Refresh user data
-        await refreshUserData();
-        
-      } catch (error) {
-        console.error("Error executing today's reset:", error);
-        alert("Failed to execute token reset. Please try manually.");
+  async function executeTokenReset() {
+    try {
+      const resp = await fetch(RESET_TOKENS_EXECUTE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}) // no payload required by server
+      })
+
+      const body = await resp.json().catch(() => null)
+      if (!resp.ok) {
+        const msg = (body && (body.error || body.message)) || resp.statusText
+        throw new Error(msg)
       }
-    } else {
-      console.log("User postponed the scheduled reset.");
+
+      return body || { message: 'Token reset executed' }
+    } catch (err) {
+      console.error('executeTokenReset error:', err)
+      throw err
+    }
+  }
+
+  // Example: call and handle UI update
+  async function handleTodayReset(scheduledReset) {
+    try {
+      const result = await executeTokenReset()
+      alert(result.message || 'All user tokens have been reset to 500.')
+      // remove scheduled info & refresh users
+      try { await fetch(RESET_TOKENS_CANCEL_ENDPOINT, { method: 'POST' }) } catch (_) {}
+      localStorage.removeItem('tokenResetDate')
+      localStorage.removeItem('tokenResetId')
+      currentScheduledReset = null
+      updateResetUI(false)
+      await refreshUserData()
+    } catch (err) {
+      alert('Failed to execute token reset. Please try manually.')
     }
   }
 
@@ -536,6 +540,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function refreshUserData() {
     try {
       users = await fetchUsersWithTokens();
+      filteredUsers = [...users];
       renderUsersTable(users);
     } catch (error) {
       console.error("Error refreshing user data:", error);
@@ -721,7 +726,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
- // -------------------------
+  // -------------------------
   // Queue Count Update
   // -------------------------
   async function updateQueueCount() {
