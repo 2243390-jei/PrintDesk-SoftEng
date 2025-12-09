@@ -212,7 +212,7 @@ body {
 .filter-menu .divider{ height:8px; background:transparent; }
 
 /* filter panel */
-.filter-panel { margin-top:6px; padding:8px; background:#fff; border-radius:8px; box-shadow: 0 8px 20px rgba(18,22,25,0.06); border:1px solid #eef0f2; display:flex; flex-direction:column; gap:8px; }
+.filter-panel { margin-top:6px; padding:8px; background:#fff; border-radius:8px; box-shadow: 0 8px 20px rgba(18,22,25,0.06); border:1px solid #eef0f2; display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto; }
 .visually-hidden{ display:none; }
 
 /* card-inner + table */
