@@ -2147,3 +2147,46 @@ body.history-body {
 .submit-btn:not(:disabled):hover {
     background-color: #3d2ee7 !important;
 }
+
+/* Honor Code Section Styling */
+.honor-text {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 60px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  border: 1px solid #dbdbdb;
+}
+
+.honor-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.honor-highlight {
+  width: 5px;
+  height: 40px;
+  background: linear-gradient(180deg, #dc2626 0%, #991b1b 100%);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.honor-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 1.8rem;
+  color: #1E1362;
+  margin: 0;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.honor-description {
+  color: #6b6b7b;
+  line-height: 1.8;
+  font-size: 0.95rem;
+  margin: 0;
+  text-align: justify;
+}
