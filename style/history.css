@@ -321,6 +321,8 @@
   animation: modalFadeIn 0.18s ease;
   padding: 0;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes modalFadeIn {
@@ -341,6 +343,7 @@
   top: 0;
   background: #ffffff;
   z-index: 5;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {

@@ -30,68 +30,72 @@
             </ul>
         </nav>
 
-            <button id="hamburgerBtn" class="hamburger" aria-label="Open menu">
-                <span class="hamburger-icon" aria-hidden="true">☰</span>
-            </button>
+        <button id="hamburgerBtn" class="hamburger" aria-label="Open menu">
+            <span class="hamburger-icon" aria-hidden="true">☰</span>
+        </button>
 
-            <div class="profile-icon">
-                <img id="nav-profile-pic" src="../images/student_img/profile.png" alt="Profile" />
-            </div>
+        <div class="profile-icon">
+            <img id="nav-profile-pic" src="../images/student_img/profile.png" alt="Profile" />
+        </div>
     </header>
 
-                <!-- Mobile Bottom Sheet (profile + nav) -->
-                <div id="mobileSheet" class="mobile-sheet" aria-hidden="true">
-                    <div class="sheet-overlay" id="sheetOverlay"></div>
-                    <div class="sheet-panel" role="dialog" aria-modal="true">
-                        <div class="sheet-handle" id="sheetHandle"></div>
-                            <div class="sheet-inner">
-                                <div class="sheet-header">
-                                    <div class="mobile-profile">
-                                        <img id="mobile-profile-pic" src="../images/student_img/profile.png" alt="Profile" />
-                                        <div class="mobile-profile-info">
-                                            <h3 id="mobileStudentName">Student Name</h3>
-                                            <p id="mobileStudentId">Student ID</p>
-                                        </div>
-                                    </div>
+    <!-- Mobile Bottom Sheet (profile + nav) -->
+    <div id="mobileSheet" class="mobile-sheet" aria-hidden="true">
+        <div class="sheet-overlay" id="sheetOverlay"></div>
+        <div class="sheet-panel" role="dialog" aria-modal="true">
+            <div class="sheet-handle" id="sheetHandle"></div>
+            <div class="sheet-inner">
+                <div class="sheet-header">
+                    <div class="mobile-profile">
+                        <img id="mobile-profile-pic" src="../images/student_img/profile.png" alt="Profile" />
+                        <div class="mobile-profile-info">
+                            <h3 id="mobileStudentName">Student Name</h3>
+                            <p id="mobileStudentId">Student ID</p>
+                        </div>
+                    </div>
 
-                                    <nav class="mobile-nav">
-                                        <ul>
-                                            <li><a href="home.html">Home</a></li>
-                                            <li><a href="submission.html" class="active">Submission</a></li>
-                                            <li><a href="history.html">History</a></li>
-                                        </ul>
-                                    </nav>
-                                </div>
+                    <nav class="mobile-nav">
+                        <ul>
+                            <li><a href="home.html">Home</a></li>
+                            <li><a href="submission.html" class="active">Submission</a></li>
+                            <li><a href="history.html">History</a></li>
+                        </ul>
+                    </nav>
+                </div>
 
-                                <div class="sheet-body">
-                                        <!-- Mobile-only content: Token balance, notifications, logout -->
-                                        <div class="mobile-tokens" style="padding: 8px 4px; border-bottom: 1px solid #f3f3f3;">
-                                            <h3 style="margin:0 0 8px 0; color:#1e1362; font-size:1rem;">Token Balance</h3>
-                                            <div class="token-info" style="display:flex; gap:12px; align-items:center;">
-                                                <div class="token-amount" style="font-weight:800; color:#1e1362;">
-                                                    <span id="mobileTokenCount">500</span>
-                                                    <span style="font-weight:600; color:#64748b; margin-left:6px; font-size:0.95rem;">tokens</span>
-                                                </div>
-                                                <div class="token-progress" style="flex:1;">
-                                                    <div class="progress-bar" id="mobileTokenProgressBar" style="width:0%; height:10px; border-radius:8px; background:linear-gradient(90deg,#3d348b,#1e1362);"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="mobile-notifications" style="padding: 10px 4px; border-bottom: 1px solid #f3f3f3;">
-                                            <h3 style="margin:0 0 8px 0; color:#1e1362; font-size:1rem;">Notifications</h3>
-                                            <div class="notifications-list" id="mobileNotificationsList" style="max-height:180px; overflow:auto; padding-right:6px;">
-                                                <div style="color:#666;padding:8px;">No notifications</div>
-                                            </div>
-                                        </div>
-
-                                        <div class="mobile-logout" style="padding:12px 4px;">
-                                            <button id="mobileLogoutButton" class="reset-btn" style="width:100%;">Logout</button>
-                                        </div>
+                <div class="sheet-body">
+                    <!-- Mobile-only content: Token balance, notifications, logout -->
+                    <div class="mobile-tokens" style="padding: 8px 4px; border-bottom: 1px solid #f3f3f3;">
+                        <h3 style="margin:0 0 8px 0; color:#1e1362; font-size:1rem;">Token Balance</h3>
+                        <div class="token-info" style="display:flex; gap:12px; align-items:center;">
+                            <div class="token-amount" style="font-weight:800; color:#1e1362;">
+                                <span id="mobileTokenCount">500</span>
+                                <span
+                                    style="font-weight:600; color:#64748b; margin-left:6px; font-size:0.95rem;">tokens</span>
+                            </div>
+                            <div class="token-progress" style="flex:1;">
+                                <div class="progress-bar" id="mobileTokenProgressBar"
+                                    style="width:0%; height:10px; border-radius:8px; background:linear-gradient(90deg,#3d348b,#1e1362);">
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="mobile-notifications" style="padding: 10px 4px; border-bottom: 1px solid #f3f3f3;">
+                        <h3 style="margin:0 0 8px 0; color:#1e1362; font-size:1rem;">Notifications</h3>
+                        <div class="notifications-list" id="mobileNotificationsList"
+                            style="max-height:180px; overflow:auto; padding-right:6px;">
+                            <div style="color:#666;padding:8px;">No notifications</div>
+                        </div>
+                    </div>
+
+                    <div class="mobile-logout" style="padding:12px 4px;">
+                        <button id="mobileLogoutButton" class="reset-btn" style="width:100%;">Logout</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
     <!-- HERO SECTION -->
     <section class="print-hero">
@@ -121,7 +125,8 @@
                     <div class="form-group">
                         <label>Course:</label>
                         <input list="courseList" name="course" id="courseInput" placeholder="Select or type course..."
-                            required data-valid-courses="BSA,BSMA,BSBA,BSBA-FM (BA),BSBA-MM (BA),BSEntrep (BA),BSTM,BSHM,BSCS,BSIT,BMMA" />
+                            required
+                            data-valid-courses="BSA,BSMA,BSBA,BSBA-FM (BA),BSBA-MM (BA),BSEntrep (BA),BSTM,BSHM,BSCS,BSIT,BMMA" />
                         <datalist id="courseList">
                             <option value="BSCS">Bachelor of Science in Computer Science</option>
                             <option value="BSIT">Bachelor of Science in Information Technology</option>
@@ -183,7 +188,8 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Number of Copies:</label>
-                                <input type="number" name="copies_1" value="1" min="1" onkeydown="return false;" onpaste="return false;"  required />
+                                <input type="number" name="copies_1" value="1" min="1" onkeydown="return false;"
+                                    onpaste="return false;" required />
                             </div>
 
                             <div class="form-group">
@@ -255,8 +261,8 @@
                 <div class="form-buttons">
                     <button type="button" id="customResetBtn" class="reset-btn">Reset</button>
                     <!-- Add disabled attribute initially -->
-                    <button type="submit" class="submit-btn" id="submitBtn" disabled 
-                            style="background-color: #cccccc; cursor: not-allowed; color: #666666;">
+                    <button type="submit" class="submit-btn" id="submitBtn" disabled
+                        style="background-color: #cccccc; cursor: not-allowed; color: #666666;">
                         Submit
                     </button>
                 </div>
@@ -332,7 +338,6 @@
             <h2 style="color: #2e7d32; margin: 0 0 20px 0;">Submission Successful!</h2>
             <div id="successDetails"
                 style="text-align: left; background: #f0fff0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2e7d32;">
-                <!-- Success details will be filled in by JavaScript -->
             </div>
             <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px;">
                 <button id="successHomeBtn" class="reset-btn" style="padding: 10px 30px;">Go to Home</button>

@@ -1682,7 +1682,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Click the input field itself
     pickupDateTime.addEventListener("click", (ev) => {
-      console.log("Date input clicked");
       ev.preventDefault();
       ev.stopPropagation();
       openDatePicker();
@@ -1690,7 +1689,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Also on focus
     pickupDateTime.addEventListener("focus", () => {
-      console.log("Date input focused");
       openDatePicker();
     });
 

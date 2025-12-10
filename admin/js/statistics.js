@@ -781,7 +781,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateCharts();
         // Update queue count in sidebar
         await fetchQueueCount();
-        console.log('Refresh complete');
       } catch (err) {
         console.error('Refresh error:', err);
       } finally {
