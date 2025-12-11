@@ -85,6 +85,26 @@ const performScheduledResets = async () => {
 
     const result = await User.updateMany({}, updateDoc)
 
+    // Send token reset notification to all non-admin users (bulk update)
+    try {
+      const notification = {
+        type: 'token_reset',
+        message: 'Your print tokens have been reset to 500. You now have a fresh allocation for printing.',
+        createdAt: new Date()
+      }
+
+      // Push notification to all non-admin users in a single DB operation
+      await User.updateMany({ role: { $ne: 'admin' } }, { $push: { notifications: notification } })
+
+      // Emit a broadcast real-time event; clients can filter by role or handle as needed
+      if (global.io) {
+        global.io.emit('token_reset', notification)
+      }
+    } catch (notifErr) {
+      console.error('Failed to send token reset notifications:', notifErr)
+      // Don't fail the reset if notifications fail; log and continue
+    }
+
     // mark executed
     const ids = toExecute.map(r => r._id)
     await TokenReset.updateMany({ _id: { $in: ids } }, { $set: { executed: true, executedAt: new Date() } })
@@ -118,6 +138,27 @@ const executeReset = async (req, res) => {
 const resetAllTokens = async (req, res) => {
   try {
     const result = await User.updateMany({}, { $set: { tokenBalance: 500, tokens: 500 } })
+    
+    // Send token reset notification to all non-admin users (bulk update)
+    try {
+      const notification = {
+        type: 'token_reset',
+        message: 'Your print tokens have been reset to 500. You now have a fresh allocation for printing.',
+        createdAt: new Date()
+      }
+
+      // Push notification to all non-admin users in a single DB operation
+      await User.updateMany({ role: { $ne: 'admin' } }, { $push: { notifications: notification } })
+
+      // Emit a broadcast real-time event; clients can filter by role or handle as needed
+      if (global.io) {
+        global.io.emit('token_reset', notification)
+      }
+    } catch (notifErr) {
+      console.error('Failed to send token reset notifications:', notifErr)
+      // Don't fail the reset if notifications fail; log and continue
+    }
+    
     res.json({ message: 'All user tokens have been reset to 500', usersUpdated: result.modifiedCount ?? result.nModified ?? 0, usersMatched: result.matchedCount ?? result.n ?? 0 })
   } catch (err) {
     console.error('Error resetting all tokens:', err)
